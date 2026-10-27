@@ -20,6 +20,10 @@
   font-weight: 600;
 }
 
+.room-preview__panel .room-preview__heading {
+  margin-top: 14px;
+}
+
 .room-preview__segmented {
   display: flex;
   flex-wrap: wrap;
