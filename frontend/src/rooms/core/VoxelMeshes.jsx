@@ -30,10 +30,10 @@ function InstancedLayer({ items, geometry, children, ...props }) {
   )
 }
 
-// Oda katmanlarını çizer: solid + glass + bulb + glow = en fazla 4 draw call.
+// Oda katmanlarını çizer: solid + glass + bulb + glow (+ akşam/gece night) = en fazla 5 draw call.
 export default function VoxelMeshes({ layers }) {
   const preset = useTimeOfDay()
-  const { solid, glass, bulb, glow } = layers
+  const { solid, glass, bulb, glow, night } = layers
 
   return (
     <>
@@ -62,6 +62,11 @@ export default function VoxelMeshes({ layers }) {
             depthWrite={false}
             blending={AdditiveBlending}
           />
+        </InstancedLayer>
+      )}
+      {night.length > 0 && (
+        <InstancedLayer items={night} geometry={BOX} visible={preset.nightLights > 0}>
+          <meshBasicMaterial transparent opacity={preset.nightLights} />
         </InstancedLayer>
       )}
     </>
