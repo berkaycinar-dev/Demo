@@ -3,8 +3,11 @@
 Her oda tek başına çalışan bir React bileşenidir: kamera, ışık, sürükle-döndür, +/− yakınlaştırma
 ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfaya koymak yeterli.
 
+Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli). Her temada 1-10 kişilik oda var.
+
 ```jsx
 import { LibraryRoom, LibraryRoom4 } from './rooms/library'
+import { CabinRoom } from './rooms/cabin'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -21,7 +24,7 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom`: 1-10, uygun oda bileşenini seçer |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
 | `children` | Sahneye eklenecek 3D içerik (avatarlar) |
@@ -35,6 +38,8 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
 - `core/` tema bağımsız: `RoomCanvas` (kabuk), `VoxelMeshes` (instanced çizim), `SpotRings`, gün zamanı ayarları
 - `library/parts.js` kütüphane mobilyaları (kutulardan), `buildLibrary.js` yerleşimi sahneye çevirir
 - `library/LibraryRoom1..10.jsx` her kapasitenin kendi yerleşimi (`LAYOUT`)
+- `cabin/` aynı yapı: `parts.js` (kütük duvar, taş şömine, karlı pencere...), `buildCabin.js`, `CabinRoom1..10.jsx`
+- Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
 
 Yeni tema (Kafe vb.): `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -47,6 +52,9 @@ Yeni tema (Kafe vb.): `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `b
   Avatarlar gibi hareketli gölge atan nesneler eklenince `gl.shadowMap.needsUpdate = true` yapılmalı.
 - Işık sayısı sabit (en fazla 4 lamba ışığı), gün zamanı geçişinde shader yeniden derlenmez.
 - Avatarlarda sürekli animasyon olacaksa animasyon karelerinde `invalidate()` çağrılmalı.
+- Dağ evinde şömine ateşi (`cabin/FireEffect.jsx`) saniyede en fazla 15 kare ister (~8 draw call/kare,
+  gölge yeniden çizilmez). `reducedMotion` prop'u ya da işletim sistemindeki "hareketi azalt" ayarı
+  animasyonu durdurur; o zaman boşta yine 0 kare çizilir.
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?c=4&t=night` ile kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=cabin&c=4&t=night` ile tema, kapasite ve gün zamanı seçilebilir.

@@ -150,10 +150,12 @@ function Lighting({ bounds, preset, lamps }) {
  *
  * bounds: { min: [x, y, z], max: [x, y, z] } oda kutusu (kadraj ve gölge kamerası için)
  * lamps: nokta ışık konumları [[x, y, z], ...] (performans için en fazla 4)
+ * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
  */
 export default function RoomCanvas({
   bounds,
   lamps = [],
+  presets,
   defaultTimeOfDay = 'auto',
   className = '',
   style,
@@ -162,7 +164,10 @@ export default function RoomCanvas({
   const [mode, setMode] = useState(defaultTimeOfDay)
   const hour = useCurrentHour()
   const timeOfDay = mode === 'auto' ? timeOfDayForHour(hour) : mode
-  const preset = TIME_PRESETS[timeOfDay]
+  const preset = useMemo(
+    () => ({ ...TIME_PRESETS[timeOfDay], ...presets?.[timeOfDay] }),
+    [timeOfDay, presets],
+  )
 
   const view = useRef({ yaw: 0, zoom: 1 })
   const store = useRef(null)
