@@ -1,0 +1,89 @@
+.room-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  overflow: hidden;
+  background: var(--room-bg);
+  transition: background-color 0.6s ease;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+
+.room-canvas__toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  cursor: default;
+}
+
+.room-canvas__group {
+  display: flex;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fffaf3;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.15);
+}
+
+.room-canvas__group button {
+  min-width: 36px;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: #2b2622;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.room-canvas__group button + button {
+  border-left: 1px solid #ece3d6;
+}
+
+.room-canvas__group button:hover {
+  background: #f3ebdf;
+}
+
+.room-canvas__group button[aria-pressed='true'] {
+  background: #1f6b4a;
+  color: #fff;
+}
+
+.room-canvas__group button:focus-visible {
+  outline: 2px solid #1f6b4a;
+  outline-offset: -2px;
+}
+
+.room-canvas__hint {
+  position: absolute;
+  left: 16px;
+  bottom: 10px;
+  margin: 0;
+  color: rgba(60, 48, 36, 0.6);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.room-canvas[data-time='night'] .room-canvas__hint {
+  color: rgba(240, 232, 220, 0.55);
+}
+
+@media (max-width: 600px) {
+  .room-canvas__toolbar {
+    top: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .room-canvas__group button {
+    min-width: 32px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+}
