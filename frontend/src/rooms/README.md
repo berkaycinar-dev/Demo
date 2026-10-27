@@ -3,11 +3,13 @@
 Her oda tek başına çalışan bir React bileşenidir: kamera, ışık, sürükle-döndür, +/− yakınlaştırma
 ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfaya koymak yeterli.
 
-Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli). Her temada 1-10 kişilik oda var.
+Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza).
+Her temada 1-10 kişilik oda var.
 
 ```jsx
 import { LibraryRoom, LibraryRoom4 } from './rooms/library'
 import { CabinRoom } from './rooms/cabin'
+import { OfficeRoom } from './rooms/office'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -24,7 +26,8 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom`: 1-10, uygun oda bileşenini seçer |
+| `reducedMotion` | `CabinRoom` / `OfficeRoom`: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
 | `children` | Sahneye eklenecek 3D içerik (avatarlar) |
@@ -39,7 +42,9 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
 - `library/parts.js` kütüphane mobilyaları (kutulardan), `buildLibrary.js` yerleşimi sahneye çevirir
 - `library/LibraryRoom1..10.jsx` her kapasitenin kendi yerleşimi (`LAYOUT`)
 - `cabin/` aynı yapı: `parts.js` (kütük duvar, taş şömine, karlı pencere...), `buildCabin.js`, `CabinRoom1..10.jsx`
+- `office/` aynı yapı: `parts.js` (cam cephe + şehir silüeti, bench masalar, kahve barı...), `buildOffice.js`, `OfficeRoom1..10.jsx`
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema (Kafe vb.): `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -55,6 +60,8 @@ Yeni tema (Kafe vb.): `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `b
 - Dağ evinde şömine ateşi (`cabin/FireEffect.jsx`) saniyede en fazla 15 kare ister (~8 draw call/kare,
   gölge yeniden çizilmez). `reducedMotion` prop'u ya da işletim sistemindeki "hareketi azalt" ayarı
   animasyonu durdurur; o zaman boşta yine 0 kare çizilir.
+- Ofiste monitör imleçleri ve gökdelen ikaz lambaları (`office/BlinkEffect.jsx`) saniyede 4 kare ister
+  (~7 draw call/kare). `reducedMotion` ile durur.
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=cabin&c=4&t=night` ile tema, kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`), kapasite ve gün zamanı seçilebilir.

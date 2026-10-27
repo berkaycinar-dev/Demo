@@ -6,7 +6,8 @@ import { Euler, Quaternion, Vector3 } from 'three'
 //   glass: ışıksız pencere camı (rengi gün zamanına göre değişir)
 //   bulb:  ışıksız ampul / abajur (gece parlar)
 //   glow:  masa ve zemindeki ışık havuzu (additive düzlem)
-export const LAYERS = ['solid', 'glass', 'bulb', 'glow']
+//   night: yalnızca akşam/gece görünen ışıksız ışıklar (şehir pencereleri gibi)
+export const LAYERS = ['solid', 'glass', 'bulb', 'glow', 'night']
 
 const FORWARD = new Vector3(0, 0, 1)
 

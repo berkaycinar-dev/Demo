@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { CABIN_MAX_CAPACITY, CabinRoom } from './cabin'
 import { TIME_MODES } from './core/timeOfDay'
 import { LIBRARY_MAX_CAPACITY, LibraryRoom } from './library'
+import { OFFICE_MAX_CAPACITY, OfficeRoom } from './office'
 import './RoomPreview.css'
 
 const THEMES = {
   library: { label: 'Kütüphane', Room: LibraryRoom, max: LIBRARY_MAX_CAPACITY },
   cabin: { label: 'Dağ Evi', Room: CabinRoom, max: CABIN_MAX_CAPACITY },
+  office: { label: 'Yazılım Ofisi', Room: OfficeRoom, max: OFFICE_MAX_CAPACITY },
 }
 
 // Geliştirme önizlemesi. URL ile başlangıç ayarı: ?theme=cabin&c=4&t=night
