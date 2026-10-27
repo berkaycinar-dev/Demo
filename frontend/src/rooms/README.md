@@ -53,6 +53,10 @@ Yeni tema (Kafe vb.): `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `b
 - `frameloop="demand"`: sahne yalnızca sürükleme, zoom veya gün zamanı değişince çizilir; boştayken 0 GPU işi.
 - Tüm oda 4 `InstancedMesh` (solid, cam, ampul, ışık havuzu) + halkalar: kare başına 5 draw call.
   En büyük oda (10 kişi) ~1200 kutu / ~15k üçgen.
+- Kutular kameraya yakından uzağa sıralı yüklenir (`VoxelMeshes`): arkadaki zemin/duvar pikselleri
+  derinlik testinde elenir. Büyük odada yakınlaşınca GPU süresi ~%40–55 düşer; yeni kutu katmanları
+  da `InstancedLayer` üzerinden çizilirse sıralamayı otomatik alır.
+- Çözünürlük `dpr` en fazla 1.5 (maliyet piksel sayısıyla büyür; 2x ekranda fark görünmez).
 - Gölge haritası yalnızca ışık değişince yeniden çizilir (`shadowMap.autoUpdate = false`).
   Avatarlar gibi hareketli gölge atan nesneler eklenince `gl.shadowMap.needsUpdate = true` yapılmalı.
 - Işık sayısı sabit (en fazla 4 lamba ışığı), gün zamanı geçişinde shader yeniden derlenmez.

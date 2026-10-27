@@ -17,6 +17,9 @@ const ZOOM_MIN = 0.7
 const ZOOM_MAX = 2.5
 const FIT_MARGIN = 0.9
 const SHADOW_MAP_SIZE = 2048
+// Maliyet piksel sayısıyla büyür; 2x ekranda 1.5 + MSAA voxel sahnede gözle ayırt edilmez ama
+// GPU süresini ~%45 düşürür.
+const MAX_DPR = 1.5
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v))
 
@@ -223,7 +226,7 @@ export default function RoomCanvas({
         frameloop="demand"
         shadows="percentage"
         flat
-        dpr={[1, 2]}
+        dpr={[1, MAX_DPR]}
         gl={{ antialias: true, alpha: true, stencil: false, powerPreference: 'high-performance' }}
         camera={{ near: 0.1, far: CAMERA_DISTANCE * 2.5 }}
         onCreated={(state) => {
