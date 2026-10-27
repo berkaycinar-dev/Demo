@@ -1,5 +1,5 @@
-import { useThree } from '@react-three/fiber'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
+import AnimationTicker from '../core/AnimationTicker'
 import RoomCanvas from '../core/RoomCanvas'
 import SpotRings from '../core/SpotRings'
 import VoxelMeshes from '../core/VoxelMeshes'
@@ -11,15 +11,6 @@ import SteamEffect from './SteamEffect'
 // Buhar ve manzaradaki hareketler yavaş; saniyede 12 kare akıcı görünür. Tek zamanlayıcı ikisini
 // birlikte çizer, sahnenin geri kalanı boşta ek kare istemez.
 const ANIMATION_FPS = 12
-
-function AnimationTicker({ fps }) {
-  const invalidate = useThree((s) => s.invalidate)
-  useEffect(() => {
-    const id = setInterval(() => invalidate(), 1000 / fps)
-    return () => clearInterval(id)
-  }, [fps, invalidate])
-  return null
-}
 
 // Açık hava: gündüz deniz mavisi arka plan, ampuller sönük; akşam gün batımı, gece ampul
 // zincirleri ve karşı kıyının ışıkları. glass manzarayı (gökyüzü, deniz) renklendirir.
