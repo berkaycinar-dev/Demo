@@ -6,6 +6,7 @@ import { LIBRARY_MAX_CAPACITY, LibraryRoom } from './library'
 import { OFFICE_MAX_CAPACITY, OfficeRoom } from './office'
 import { SPACE_MAX_CAPACITY, SpaceRoom } from './space'
 import { TEAGARDEN_MAX_CAPACITY, TeaGardenRoom } from './teagarden'
+import { UNDERWATER_MAX_CAPACITY, UnderwaterRoom } from './underwater'
 import './RoomPreview.css'
 
 const THEMES = {
@@ -15,6 +16,7 @@ const THEMES = {
   teagarden: { label: 'Çay Bahçesi', Room: TeaGardenRoom, max: TEAGARDEN_MAX_CAPACITY },
   camp: { label: 'Kamp', Room: CampRoom, max: CAMP_MAX_CAPACITY },
   space: { label: 'Uzay İstasyonu', Room: SpaceRoom, max: SPACE_MAX_CAPACITY },
+  underwater: { label: 'Sualtı Üssü', Room: UnderwaterRoom, max: UNDERWATER_MAX_CAPACITY },
 }
 
 // Geliştirme önizlemesi. URL ile başlangıç ayarı: ?theme=cabin&c=4&t=night
