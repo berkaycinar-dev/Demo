@@ -163,7 +163,8 @@ export function shelfRun(f, length, height, rnd, { ladders = [] } = {}) {
   const gap = (top - bottom) / levels
   for (let level = 0; level < levels; level++) {
     const y = bottom + level * gap
-    if (level > 0) f.box(0, y - 0.035, 0.04, length, 0.035, D - 0.05, C.woodMid)
+    // raf tahtaları uç dikmelerin içinde biter (yan kapakla aynı düzleme düşmesin)
+    if (level > 0) f.box(0.005, y - 0.035, 0.04, length - 0.01, 0.035, D - 0.05, C.woodMid)
     for (let i = 0; i < sections; i++) {
       bookRow(f, i * sectionWidth + 0.035, (i + 1) * sectionWidth - 0.035, y, gap - 0.07, D, rnd)
     }
@@ -314,7 +315,7 @@ export function bankerLamp(f) {
   f.box(-0.2, 0.26, -0.09, 0.4, 0.07, 0.18, C.lampGreen)
   f.box(-0.19, 0.33, -0.06, 0.38, 0.03, 0.12, C.lampGreenDark)
   f.box(-0.17, 0.245, -0.07, 0.34, 0.015, 0.14, '#ffffff', { layer: 'bulb' })
-  f.box(0.1, 0.17, -0.005, 0.01, 0.09, 0.01, C.brass)
+  f.box(0.1, 0.17, -0.005, 0.01, 0.085, 0.01, C.brass)
 }
 
 // ---------------------------------------------------------------- mobilyalar
@@ -330,7 +331,8 @@ export function windowBench(f, length) {
   f.box(0.15, 0.53, 0.05, 0.32, 0.24, 0.12, C.mustard, { rot: [-0.3, 0, 0] })
 }
 
-export function teaCorner(f) {
+// Çay köşesi; çaydanlığın buhar noktası room.steams'e.
+export function teaCorner(f, room) {
   const W = 0.8
   const D = 0.5
   const H = 0.78
@@ -351,6 +353,7 @@ export function teaCorner(f) {
   k.box(-0.015, 0.34, -0.015, 0.03, 0.03, 0.03, C.porcelain)
   k.box(0.12, 0.06, -0.02, 0.07, 0.04, 0.04, C.steel)
   k.box(-0.18, 0.08, -0.02, 0.06, 0.03, 0.04, C.woodDark)
+  room.steams.push(k.point(0, 0.38, 0).toArray())
 
   // tepside ince belli bardaklar ve şekerlik
   f.box(x0 + 0.36, H, z0 + 0.08, 0.4, 0.012, 0.34, C.steel)
@@ -476,35 +479,18 @@ export function bust(f) {
   f.box(-0.02, 1.42, 0.12, 0.04, 0.06, 0.03, C.marble)
 }
 
-export function bookCart(f, rnd) {
-  const W = 0.9
-  const D = 0.42
-  const x0 = -W / 2
-  const z0 = -D / 2
-  for (const [x, z] of [[0.02, 0.02], [W - 0.08, 0.02], [0.02, D - 0.08], [W - 0.08, D - 0.08]]) {
-    f.box(x0 + x - 0.01, 0, z0 + z - 0.01, 0.08, 0.08, 0.08, C.ink)
-    f.box(x0 + x, 0.08, z0 + z, 0.06, 0.82, 0.06, C.woodMid)
-  }
-  for (const y of [0.18, 0.55]) {
-    f.box(x0, y, z0, W, 0.04, D, C.woodLight)
-    bookRow(f.frame(x0, 0, z0), 0.06, W - 0.06, y + 0.04, 0.28, D, rnd)
-  }
-  f.box(x0, 0.86, z0, W, 0.04, D, C.woodLight)
-  f.box(x0 + W - 0.04, 0.9, z0 + 0.1, 0.04, 0.12, 0.22, C.brass)
-}
-
 // ---------------------------------------------------------------- duvar süsleri
 // Orijin duvar yüzeyinde parçanın merkezi, +z odanın içine doğru.
 
-export function wallClock(f) {
+// Duvar saati; ibreler ClockEffect'te gerçek saate göre çizilir (kadranın merkezi room.clocks'a).
+export function wallClock(f, room) {
   f.box(-0.24, -0.24, 0, 0.48, 0.48, 0.05, C.woodDark)
   f.box(-0.2, -0.2, 0.05, 0.4, 0.4, 0.01, C.cream)
   for (const [x, y] of [[-0.015, 0.15], [-0.015, -0.18], [0.15, -0.015], [-0.18, -0.015]]) {
     f.box(x, y, 0.06, 0.03, 0.03, 0.006, C.ink)
   }
-  f.frame(0, 0, 0.062, 0, 0, -0.5).box(-0.012, 0, 0, 0.024, 0.15, 0.006, C.ink)
-  f.frame(0, 0, 0.068, 0, 0, -2.2).box(-0.015, 0, 0, 0.03, 0.1, 0.006, C.ink)
-  f.box(-0.02, -0.02, 0.06, 0.04, 0.04, 0.016, C.brass)
+  f.box(-0.02, -0.02, 0.06, 0.04, 0.04, 0.024, C.brass)
+  room.clocks.push({ center: f.point(0, 0, 0), quat: f.worldRotation() })
 }
 
 // "Sessiz salon" levhası: üstü çizili telefon.
@@ -524,4 +510,30 @@ export function painting(f, w = 0.9, h = 0.7) {
   f.box(-iw / 2, -ih / 2, 0.06, iw, ih * 0.4, 0.008, '#4f7a3a')
   f.box(-iw / 2 + iw * 0.35, -ih / 2 + ih * 0.3, 0.06, iw * 0.45, ih * 0.25, 0.012, '#6a9450')
   f.box(iw * 0.18, ih * 0.15, 0.06, 0.09, 0.09, 0.008, '#e9c46a')
+}
+
+// El yazması vitrini; orijin merkez, iki uzun yüzü aynı (her yönden düzgün görünür). Kadife
+// tabanda açık eski kitap, rulo, büyüteç; pirinç köşe dikmeleri ve üst çerçeve.
+export function vitrine(f) {
+  const W = 1.3
+  const D = 0.64
+  f.box(-W / 2, 0, -D / 2, W, 0.08, D, C.woodDark)
+  f.box(-W / 2 + 0.03, 0.08, -D / 2 + 0.02, W - 0.06, 0.7, D - 0.04, C.wood)
+  for (const z of [-D / 2 + 0.008, D / 2 - 0.02]) {
+    for (const x of [-W / 2 + 0.1, 0.03]) f.box(x, 0.18, z, W / 2 - 0.13, 0.5, 0.012, C.woodMid)
+  }
+  f.box(-W / 2, 0.78, -D / 2, W, 0.04, D, C.woodDark)
+  f.box(-W / 2 + 0.06, 0.82, -D / 2 + 0.06, W - 0.12, 0.006, D - 0.12, '#6e1f2e')
+  const y = 0.826
+  f.box(-0.32, y, -0.12, 0.42, 0.012, 0.28, '#7a4a2a')
+  f.box(-0.31, y + 0.012, -0.11, 0.2, 0.025, 0.26, C.cream)
+  f.box(-0.105, y + 0.012, -0.11, 0.2, 0.025, 0.26, C.cream)
+  f.box(0.2, y, -0.04, 0.3, 0.05, 0.05, C.paper, { rot: [0, 0.3, 0] })
+  f.box(0.15, y, 0.12, 0.09, 0.012, 0.09, C.brass)
+  f.box(0.24, y, 0.15, 0.12, 0.012, 0.025, C.woodMid)
+  for (const [x, z] of [[-W / 2 + 0.03, -D / 2 + 0.03], [W / 2 - 0.06, -D / 2 + 0.03], [-W / 2 + 0.03, D / 2 - 0.06], [W / 2 - 0.06, D / 2 - 0.06]]) {
+    f.box(x, 0.82, z, 0.03, 0.32, 0.03, C.brass)
+  }
+  for (const z of [-D / 2 + 0.03, D / 2 - 0.06]) f.box(-W / 2 + 0.03, 1.14, z, W - 0.06, 0.03, 0.03, C.brass)
+  for (const x of [-W / 2 + 0.03, W / 2 - 0.06]) f.box(x, 1.14, -D / 2 + 0.06, 0.03, 0.03, D - 0.12, C.brass)
 }

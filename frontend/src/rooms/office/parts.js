@@ -104,13 +104,16 @@ export function glassWall(f, length, rnd, room) {
 
 // Uzak ve yakın bina sıraları; yakın binalarda kat bantları, akşam/gece yanan pencereler
 // (night katmanı) ve yüksek binaların tepesinde yanıp sönen ikaz lambası.
+// Manzara iki uçtaki kayıtların içinde başlar ve biter: odanın kesik ön kenarında kayıtla aynı
+// düzleme düşüp titremesin.
 function skyline(f, length, y0, top, rnd, room) {
   const v = -0.12
-  f.box(0, y0, v - 0.006, length, top - y0, 0.006, C.sky, GLASS)
+  const end = length - 0.03
+  f.box(0.03, y0, v - 0.006, end - 0.03, top - y0, 0.006, C.sky, GLASS)
 
-  let u = 0
-  while (u < length - 0.05) {
-    const w = Math.min(0.35 + rnd() * 0.6, length - u)
+  let u = 0.03
+  while (u < end - 0.05) {
+    const w = Math.min(0.35 + rnd() * 0.6, end - u)
     const h = Math.min(0.9 + rnd() * 1.7, top - y0)
     f.box(u, y0, v, w, h, 0.004, pick(rnd, C.buildingFar), GLASS)
     for (let k = 0; k < 4; k++) {
@@ -119,9 +122,9 @@ function skyline(f, length, y0, top, rnd, room) {
     u += w + rnd() * 0.15
   }
 
-  u = rnd() * 0.3
-  while (u < length - 0.25) {
-    const w = Math.min(0.4 + rnd() * 0.7, length - u)
+  u = 0.03 + rnd() * 0.3
+  while (u < end - 0.25) {
+    const w = Math.min(0.4 + rnd() * 0.7, end - u)
     const h = 0.4 + rnd() * 1.3
     f.box(u, y0, v + 0.006, w, h, 0.004, pick(rnd, C.buildingNear), GLASS)
     for (let y = y0 + 0.08; y < y0 + h - 0.08; y += 0.12) {
@@ -295,8 +298,9 @@ function pendant(f, length) {
 
 // ---------------------------------------------------------------- mola alanları
 
-// Kahve barı; orijin sol-arka köşe (duvara dayalı), u = uzunluk.
-export function coffeeBar(f, length) {
+// Kahve barı; orijin sol-arka köşe (duvara dayalı), u = uzunluk. Espresso makinesinin önündeki
+// fincandan çıkan buhar noktası room.steams'e.
+export function coffeeBar(f, length, room) {
   f.box(0.02, 0, 0.02, length - 0.04, 0.08, 0.52, C.ink)
   f.box(0, 0.08, 0, length, 0.78, 0.6, C.cabinet)
   for (let u = 0.6; u < length - 0.1; u += 0.6) f.box(u, 0.1, 0.6, 0.006, 0.72, 0.004, C.groove)
@@ -311,6 +315,8 @@ export function coffeeBar(f, length) {
   m.box(-0.18, 0, 0.12, 0.36, 0.03, 0.12, C.steelDark)
   m.box(-0.16, 0.34, -0.16, 0.08, 0.06, 0.08, C.porcelain)
   m.box(-0.05, 0.34, -0.16, 0.08, 0.06, 0.08, C.porcelain)
+  m.box(-0.11, 0.03, 0.17, 0.07, 0.06, 0.07, C.porcelain)
+  room.steams.push(m.point(-0.075, 0.1, 0.205).toArray())
 
   // öğütücü, fincanlar, meyve kâsesi
   f.box(0.72, top, 0.18, 0.14, 0.32, 0.18, C.ink)
@@ -318,8 +324,8 @@ export function coffeeBar(f, length) {
   for (let i = 0; i < 3; i++) f.box(0.98 + i * 0.1, top, 0.2 + (i % 2) * 0.12, 0.08, 0.09, 0.08, C.accents[i])
   if (length > 1.8) {
     f.box(length - 0.55, top, 0.2, 0.3, 0.06, 0.24, C.porcelain)
-    for (const [x, color] of [[0.06, '#e9c46a'], [0.14, '#e76f51'], [0.1, '#8ab17d']]) {
-      f.box(length - 0.55 + x, top + 0.06, 0.28, 0.08, 0.07, 0.08, color)
+    for (const [x, z, h, color] of [[0.06, 0.28, 0.07, '#e9c46a'], [0.14, 0.27, 0.065, '#e76f51'], [0.1, 0.295, 0.075, '#8ab17d']]) {
+      f.box(length - 0.55 + x, top + 0.06, z, 0.08, h, 0.08, color)
     }
   }
 

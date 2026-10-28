@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import AnimationTicker from '../core/AnimationTicker'
 import RoomCanvas from '../core/RoomCanvas'
 import SpotRings from '../core/SpotRings'
+import SteamEffect from '../core/SteamEffect'
 import VoxelMeshes from '../core/VoxelMeshes'
 import { RoomContext } from '../core/roomContext'
 import BlinkEffect from './BlinkEffect'
@@ -41,12 +43,15 @@ const OFFICE_PRESETS = {
   },
 }
 
+// İmleç ve ikaz lambaları yavaş yanıp söner, buhar yavaş yükselir; saniyede 10 kare yeter.
+const ANIMATION_FPS = 10
+
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
 /**
  * Yazılım ofisi temasının ortak sahnesi. OfficeRoom1..10 bunu kendi yerleşimiyle çağırır.
  * Prop'lar CabinScene ile aynıdır: onSpotClick, reducedMotion, children, defaultTimeOfDay,
- * className, style. reducedMotion: true iken imleç ve ikaz lambaları yanıp sönmez.
+ * className, style. reducedMotion: true iken imleç ve ikaz lambaları yanıp sönmez, kahve buharı durur.
  */
 export default function OfficeScene({ layout, onSpotClick, reducedMotion, children, ...canvasProps }) {
   const room = useMemo(() => buildOffice(layout), [layout])
@@ -56,6 +61,8 @@ export default function OfficeScene({ layout, onSpotClick, reducedMotion, childr
     <RoomCanvas bounds={room.bounds} lamps={room.lights} presets={OFFICE_PRESETS} {...canvasProps}>
       <VoxelMeshes layers={room.layers} />
       {room.blinkers.length > 0 && <BlinkEffect items={room.blinkers} animated={animated} />}
+      {room.steams.length > 0 && <SteamEffect steams={room.steams} animated={animated} />}
+      {animated && <AnimationTicker fps={ANIMATION_FPS} />}
       <SpotRings spots={room.spots} onSpotClick={onSpotClick} />
       <RoomContext.Provider value={room}>{children}</RoomContext.Provider>
     </RoomCanvas>
