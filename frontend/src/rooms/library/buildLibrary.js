@@ -3,7 +3,6 @@ import {
   FLOOR_BOTTOM,
   WALL,
   armchair,
-  bookCart,
   bust,
   cardCatalog,
   floor,
@@ -17,6 +16,7 @@ import {
   shelfRun,
   sideTable,
   teaCorner,
+  vitrine,
   wallClock,
   walls,
   windowBench,
@@ -30,18 +30,18 @@ const FACING = { '+z': 0, '+x': Math.PI / 2, '-z': Math.PI, '-x': -Math.PI / 2 }
 
 // Zemine konan eşyalar. spot: önünde mola halkası açılır ({ id, label, distance }).
 const PROPS = {
-  plant: { draw: plant },
-  globe: { draw: globe },
-  bust: { draw: bust },
-  floorLamp: { draw: floorLamp },
-  sideTable: { draw: sideTable },
-  bookCart: { draw: bookCart },
-  tea: { draw: teaCorner, spot: { id: 'tea', label: 'Çay köşesi', distance: 0.95 } },
-  armchair: { draw: armchair, spot: { id: 'reading', label: 'Okuma koltuğu', distance: 1 } },
-  catalog: { draw: cardCatalog, spot: { id: 'catalog', label: 'Kart kataloğu', distance: 0.9 } },
+  plant: { draw: (f) => plant(f) },
+  globe: { draw: (f) => globe(f) },
+  bust: { draw: (f) => bust(f) },
+  floorLamp: { draw: (f) => floorLamp(f) },
+  sideTable: { draw: (f, rnd) => sideTable(f, rnd) },
+  tea: { draw: (f, rnd, room) => teaCorner(f, room), spot: { id: 'tea', label: 'Çay köşesi', distance: 0.95 } },
+  armchair: { draw: (f) => armchair(f), spot: { id: 'reading', label: 'Okuma koltuğu', distance: 1 } },
+  catalog: { draw: (f) => cardCatalog(f), spot: { id: 'catalog', label: 'Kart kataloğu', distance: 0.9 } },
+  vitrine: { draw: (f) => vitrine(f), spot: { id: 'vitrine', label: 'El yazması vitrini', distance: 0.95 } },
 }
 
-const DECOR = { clock: wallClock, painting, sign: quietSign }
+const DECOR = { clock: (f, room) => wallClock(f, room), painting: (f) => painting(f), sign: (f) => quietSign(f) }
 
 /**
  * Kütüphane yerleşim tanımını voxel katmanlarına, koltuklara ve mola noktalarına çevirir.
@@ -62,7 +62,7 @@ export function buildLibrary(layout) {
   const { width, depth, seed = 1 } = layout
   const rnd = seededRandom(seed)
   const { root, layers } = createVoxelBuilder()
-  const room = { seats: [], spots: [], lights: [] }
+  const room = { seats: [], spots: [], lights: [], steams: [], clocks: [] }
 
   const addSpot = (id, label, point) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
@@ -96,13 +96,13 @@ export function buildLibrary(layout) {
   for (const { type, x, z, facing = '+z' } of layout.props ?? []) {
     const prop = PROPS[type]
     const f = root.frame(x, 0, z, FACING[facing])
-    prop.draw(f, rnd)
+    prop.draw(f, rnd, room)
     if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
   }
 
   for (const { type, wall, at, y } of layout.decor ?? []) {
     const f = wall === 'left' ? root.frame(0, y, at, Math.PI / 2) : root.frame(at, y, 0)
-    DECOR[type](f)
+    DECOR[type](f, room)
   }
 
   for (const { id, label, x, z } of layout.spots ?? []) {
@@ -114,6 +114,8 @@ export function buildLibrary(layout) {
     seats: room.seats.map((s, i) => ({ id: `seat-${i + 1}`, ...s })),
     spots: room.spots,
     lights: room.lights.slice(0, MAX_LAMP_LIGHTS),
+    steams: room.steams,
+    clocks: room.clocks,
     bounds: { min: [-WALL, FLOOR_BOTTOM, -WALL], max: [width, WALL_HEIGHT + 0.05, depth] },
   }
 }

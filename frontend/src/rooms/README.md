@@ -31,7 +31,7 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 | Prop | Açıklama |
 | --- | --- |
 | `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom`: 1-10, uygun oda bileşenini seçer |
-| `reducedMotion` | `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom`: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
+| `reducedMotion` | Tüm temalar: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
 | `children` | Sahneye eklenecek 3D içerik (avatarlar) |
@@ -43,11 +43,19 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
 ## Yapı
 
 - `core/` tema bağımsız: `RoomCanvas` (kabuk), `VoxelMeshes` (instanced çizim), `SpotRings`, gün zamanı ayarları,
-  `AnimationTicker` (temanın tüm efektlerine ortak kare zamanlayıcısı)
+  `AnimationTicker` (temanın tüm efektlerine ortak kare zamanlayıcısı), `SteamEffect` (semaver, çaydanlık, kahve
+  makinesi buharı; tüm temalar paylaşır)
 - `library/parts.js` kütüphane mobilyaları (kutulardan), `buildLibrary.js` yerleşimi sahneye çevirir
-- `library/LibraryRoom1..10.jsx` her kapasitenin kendi yerleşimi (`LAYOUT`)
-- `cabin/` aynı yapı: `parts.js` (kütük duvar, taş şömine, karlı pencere...), `buildCabin.js`, `CabinRoom1..10.jsx`
-- `office/` aynı yapı: `parts.js` (cam cephe + şehir silüeti, bench masalar, kahve barı...), `buildOffice.js`, `OfficeRoom1..10.jsx`
+- `library/LibraryRoom1..10.jsx` her kapasitenin kendi yerleşimi (`LAYOUT`). Düzen her odada aynı: arka duvar
+  boydan kitaplık (8+ kişide ortada büst nişi), sol-arkada küre, sağ-arkada saksı ve kart kataloğu, sol duvarda
+  pencere önü bank ve sol-önde okuma köşesi, sağ kenarda çay köşesi, 8+ kişide sağ-önde el yazması vitrini.
+- `cabin/` aynı yapı: `parts.js` (kütük duvar, taş şömine, karlı pencere...), `buildCabin.js`, `CabinRoom1..10.jsx`.
+  Şömine arka duvarın ortasında, berjerler iki yanında ateşe dönük; solunda odun askısı, sağında kayaklar ve
+  köknar; sol duvarda pencere önü oturma, gitar ve kanepe; sağ kenarda kakao köşesi.
+- `office/` aynı yapı: `parts.js` (cam cephe + şehir silüeti, bench masalar, kahve barı...), `buildOffice.js`, `OfficeRoom1..10.jsx`.
+  Arka duvarda soldan sağa görev panosu, çıta panel ve dolap, ekran, su sebili, kahve barı; sol-önde lounge
+  (kanepe ve karşısında armut koltuklar), 8+ kişide sağ-önde masa tenisi.
+- Her temada ön kenar boş kalır (kamerayı kapatmaz); eşyalar duvara ya da kendi köşesine dayalı, yüzü odaya dönük.
 - `teagarden/` aynı yapı: `parts.js` (deniz manzaralı korkuluk, semaverli çay ocağı, ince belli bardaklar,
   ampul zincirleri, çınar, simitçi, süs havuzu...), `buildTeaGarden.js`, `TeaGardenRoom1..10.jsx`.
   Tüm odalarda köşeler aynı: çay ocağı sol-arka, deniz kenarı sol-ön, kedi sağ-ön, ağaç sağ-arka;
@@ -79,12 +87,14 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
   Avatarlar gibi hareketli gölge atan nesneler eklenince `gl.shadowMap.needsUpdate = true` yapılmalı.
 - Işık sayısı sabit (en fazla 4 lamba ışığı), gün zamanı geçişinde shader yeniden derlenmez.
 - Avatarlarda sürekli animasyon olacaksa animasyon karelerinde `invalidate()` çağrılmalı.
-- Dağ evinde şömine ateşi (`cabin/FireEffect.jsx`) saniyede en fazla 15 kare ister (~8 draw call/kare,
-  gölge yeniden çizilmez). `reducedMotion` prop'u ya da işletim sistemindeki "hareketi azalt" ayarı
-  animasyonu durdurur; o zaman boşta yine 0 kare çizilir.
-- Ofiste monitör imleçleri ve gökdelen ikaz lambaları (`office/BlinkEffect.jsx`) saniyede 4 kare ister
-  (~7 draw call/kare). `reducedMotion` ile durur.
-- Çay bahçesinde semaver buharı (`teagarden/SteamEffect.jsx`) ve manzaradaki hareketler
+- Kütüphanede çay buharı ve gerçek saati gösteren duvar saati (`library/ClockEffect.jsx`, saniye ibresi işler)
+  tek zamanlayıcıyla saniyede 10 kare ister (~8 draw call/kare). `reducedMotion` prop'u ya da işletim
+  sistemindeki "hareketi azalt" ayarı animasyonu durdurur; o zaman boşta yine 0 kare çizilir.
+- Dağ evinde şömine ateşi (`cabin/FireEffect.jsx`), pencerelerde yağan kar (`cabin/SnowEffect.jsx`) ve kakao
+  buharı tek zamanlayıcıyla saniyede 15 kare ister (~10 draw call/kare, gölge yeniden çizilmez). `reducedMotion` ile durur.
+- Ofiste monitör imleçleri, gökdelen ikaz lambaları (`office/BlinkEffect.jsx`) ve espresso buharı tek
+  zamanlayıcıyla saniyede 10 kare ister (~8 draw call/kare). `reducedMotion` ile durur.
+- Çay bahçesinde semaver buharı ve manzaradaki hareketler
   (`teagarden/SeaViewEffect.jsx`: vapur, yelkenli, martı, yanıp sönen kıyı ışıkları) tek bir
   zamanlayıcıyla saniyede 12 kare ister (~8-9 draw call/kare). `reducedMotion` ile durur.
   Her ampul zinciri bir nokta ışık; en büyük oda ~2050 kutu / ~25k üçgen.

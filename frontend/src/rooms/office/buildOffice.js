@@ -32,7 +32,7 @@ const PROPS = {
   sofa: { draw: sofa, spot: { id: 'lounge', label: 'Lounge', distance: 1.0 } },
   coffeeTable: { draw: coffeeTable },
   beanBag: { draw: beanBag },
-  pingPong: { draw: pingPong, spot: { id: 'pingpong', label: 'Masa tenisi', distance: 1.05 } },
+  pingPong: { draw: pingPong, spot: { id: 'pingpong', label: 'Masa tenisi', distance: 1.15 } },
   snakePlant: { draw: snakePlant },
   credenza: { draw: (f, rnd, item) => credenza(f, rnd, item.length) },
   waterCooler: { draw: waterCooler, spot: { id: 'water', label: 'Su sebili', distance: 0.7 } },
@@ -44,8 +44,8 @@ const DECOR = {
   tv: { draw: (f, rnd) => dashboardTv(f, rnd) },
   slats: { draw: (f, rnd, item) => slatPanel(f, item.length, item.height ?? WALL_HEIGHT - 0.3) },
   coffeeBar: {
-    draw: (f, rnd, item) => coffeeBar(f, item.length),
-    spot: { id: 'coffee', label: 'Kahve köşesi', distance: 1.05, center: true },
+    draw: (f, rnd, item, room) => coffeeBar(f, item.length, room),
+    spot: { id: 'coffee', label: 'Kahve köşesi', distance: 1.15, center: true },
   },
 }
 
@@ -67,7 +67,7 @@ export function buildOffice(layout) {
   const { width, depth, seed = 1 } = layout
   const rnd = seededRandom(seed)
   const { root, layers } = createVoxelBuilder()
-  const room = { seats: [], spots: [], lights: [], blinkers: [] }
+  const room = { seats: [], spots: [], lights: [], blinkers: [], steams: [] }
 
   const addSpot = (id, label, point) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
@@ -86,7 +86,7 @@ export function buildOffice(layout) {
   for (const item of layout.decor ?? []) {
     const decor = DECOR[item.type]
     const f = root.frame(item.at, item.y ?? 0, 0)
-    decor.draw(f, rnd, item)
+    decor.draw(f, rnd, item, room)
     if (decor.spot) {
       const u = decor.spot.center ? item.length / 2 : 0
       addSpot(decor.spot.id, decor.spot.label, root.point(item.at + u, 0, decor.spot.distance))
@@ -110,6 +110,7 @@ export function buildOffice(layout) {
     spots: room.spots,
     lights: room.lights.slice(0, MAX_LAMP_LIGHTS),
     blinkers: room.blinkers,
+    steams: room.steams,
     bounds: { min: [-WALL, FLOOR_BOTTOM, -WALL], max: [width, WALL_HEIGHT + 0.03, depth] },
   }
 }

@@ -1,13 +1,11 @@
-import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useLayoutEffect, useRef } from 'react'
 import { AdditiveBlending, BoxGeometry, Color, Matrix4, Quaternion, Vector3 } from 'three'
 import { FLAT_PLANE, getGlowTexture } from '../core/glow'
 import { useTimeOfDay } from '../core/roomContext'
 import { FLAME_BASE, FLAMES } from './parts'
 
 const BOX = new BoxGeometry()
-// Ateş saniyede en fazla bu kadar kare ister; sürüklerken sahne zaten tam hızda çizilir.
-const FIRE_FPS = 15
 const SPARKS = 6
 const SPARK_LIFE = 1.6
 const SPARK_COLORS = ['#ffd27a', '#ff9a3c']
@@ -56,12 +54,11 @@ function writeFlames(mesh, fires, t, animated) {
 
 /**
  * Şömine ateşi: titreyen alevler, kıvılcımlar, dalgalanan ışık ve ışık havuzu.
- * fires: ateş orijinleri [[x, y, z], ...]. animated=false iken (hareketi azalt) sabit durur
- * ve hiç kare istemez.
+ * fires: ateş orijinleri [[x, y, z], ...]. Kareyi CabinScene'deki ortak zamanlayıcı ister;
+ * animated=false iken (hareketi azalt) sabit durur.
  */
 export default function FireEffect({ fires, animated = true }) {
   const preset = useTimeOfDay()
-  const invalidate = useThree((s) => s.invalidate)
   const flames = useRef(null)
   const glows = useRef(null)
   const lights = useRef([])
@@ -87,12 +84,6 @@ export default function FireEffect({ fires, animated = true }) {
     }
     glowMesh.instanceMatrix.needsUpdate = true
   }, [fires])
-
-  useEffect(() => {
-    if (!animated) return
-    const id = setInterval(() => invalidate(), 1000 / FIRE_FPS)
-    return () => clearInterval(id)
-  }, [animated, invalidate])
 
   useFrame(({ clock }) => {
     if (!animated) return
