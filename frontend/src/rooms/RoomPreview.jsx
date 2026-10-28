@@ -4,6 +4,7 @@ import { CAMP_MAX_CAPACITY, CampRoom } from './camp'
 import { TIME_MODES } from './core/timeOfDay'
 import { LIBRARY_MAX_CAPACITY, LibraryRoom } from './library'
 import { OFFICE_MAX_CAPACITY, OfficeRoom } from './office'
+import { SPACE_MAX_CAPACITY, SpaceRoom } from './space'
 import { TEAGARDEN_MAX_CAPACITY, TeaGardenRoom } from './teagarden'
 import './RoomPreview.css'
 
@@ -13,6 +14,7 @@ const THEMES = {
   office: { label: 'Yazılım Ofisi', Room: OfficeRoom, max: OFFICE_MAX_CAPACITY },
   teagarden: { label: 'Çay Bahçesi', Room: TeaGardenRoom, max: TEAGARDEN_MAX_CAPACITY },
   camp: { label: 'Kamp', Room: CampRoom, max: CAMP_MAX_CAPACITY },
+  space: { label: 'Uzay İstasyonu', Room: SpaceRoom, max: SPACE_MAX_CAPACITY },
 }
 
 // Geliştirme önizlemesi. URL ile başlangıç ayarı: ?theme=cabin&c=4&t=night

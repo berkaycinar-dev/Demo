@@ -4,7 +4,7 @@ Her oda tek başına çalışan bir React bileşenidir: kamera, ışık, sürük
 ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfaya koymak yeterli.
 
 Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza),
-`teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı).
+`teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu).
 Her temada 1-10 kişilik oda var.
 
 ```jsx
@@ -13,6 +13,7 @@ import { CabinRoom } from './rooms/cabin'
 import { OfficeRoom } from './rooms/office'
 import { TeaGardenRoom } from './rooms/teagarden'
 import { CampRoom } from './rooms/camp'
+import { SpaceRoom } from './rooms/space'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -29,8 +30,8 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom`: 1-10, uygun oda bileşenini seçer |
-| `reducedMotion` | `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom`: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom`: 1-10, uygun oda bileşenini seçer |
+| `reducedMotion` | `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom`: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
 | `children` | Sahneye eklenecek 3D içerik (avatarlar) |
@@ -55,8 +56,13 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
   çadırlar, iskele, kano, hamak...), `buildCamp.js`, `CampRoom1..10.jsx`. Düzen her odada aynı:
   solda göl, arkada orman, ortada ateş çemberi (koltuklar ateşe bakar, ön taraf kameraya açık),
   sağda çadırlar; oda büyüdükçe iskele, piknik masası, kano, tabela ve hamak eklenir.
+- `space/` aynı yapı: `parts.js` (gezegen manzaralı gözlem penceresi, hava kilidi, uzay giysisi, kontrol paneli,
+  hologramlı görev masası, hidroponik bahçe, koşu bandı...), `buildSpace.js`, `SpaceRoom1..10.jsx`. Düzen her odada
+  aynı: sol duvar pencere, arka duvarda soldan sağa hava kilidi, giysi, kontrol paneli, ikmal otomatı, kargo rafı,
+  hidroponik bahçe (eşit aralıkla), ortada görev masası, sağ kenarda spor köşesi; oda büyüdükçe koşu bandı,
+  teleskop, bisiklet, pencere önü bank, kargo rafı ve zemin penceresi eklenir.
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
-- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar); görünürlüğü `nightLights` ayarından gelir
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -85,6 +91,9 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
 - Kampta ateş (`camp/CampfireEffect.jsx`: alev, kıvılcım, titreyen ışık) ile ateş böcekleri ve parlayan
   yıldızlar (`camp/NightLifeEffect.jsx`, yalnızca akşam/gece) tek zamanlayıcıyla saniyede 15 kare ister
   (~9 draw call/kare). `reducedMotion` ile durur. En büyük oda ~1250 kutu, en fazla 3 nokta ışık.
+- Uzay istasyonunda dönen hologram, pencerede süzülen uydu, ekrandaki tarama çizgisi ve yanıp sönen tuş /
+  durum ışıkları / yıldızlar (`space/StationEffect.jsx`) tek zamanlayıcıyla saniyede 12 kare ister (~9 draw call/kare,
+  efektin tamamı 2 instanced mesh). `reducedMotion` ile durur. En büyük oda ~1150 kutu, en fazla 3 nokta ışık.
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`), kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`), kapasite ve gün zamanı seçilebilir.
