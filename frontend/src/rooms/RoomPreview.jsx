@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BAR_MAX_CAPACITY, BarRoom } from './bar'
 import { CABIN_MAX_CAPACITY, CabinRoom } from './cabin'
 import { CAMP_MAX_CAPACITY, CampRoom } from './camp'
 import { TIME_MODES } from './core/timeOfDay'
@@ -17,6 +18,7 @@ const THEMES = {
   camp: { label: 'Kamp', Room: CampRoom, max: CAMP_MAX_CAPACITY },
   space: { label: 'Uzay İstasyonu', Room: SpaceRoom, max: SPACE_MAX_CAPACITY },
   underwater: { label: 'Sualtı Üssü', Room: UnderwaterRoom, max: UNDERWATER_MAX_CAPACITY },
+  bar: { label: 'Bar', Room: BarRoom, max: BAR_MAX_CAPACITY },
 }
 
 // Geliştirme önizlemesi. URL ile başlangıç ayarı: ?theme=cabin&c=4&t=night
