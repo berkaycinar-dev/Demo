@@ -1,10 +1,8 @@
-import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import { useLayoutEffect, useRef } from 'react'
 import { BoxGeometry, Color, Matrix4, Vector3 } from 'three'
 
 const BOX = new BoxGeometry()
-// Yanıp sönme için saniyede 4 kare yeter; sahnenin geri kalanı boştayken çizilmez.
-const BLINK_FPS = 4
 
 const matrix = new Matrix4()
 const scale = new Vector3()
@@ -23,11 +21,10 @@ function writeBlinkers(mesh, items, t, animated) {
 /**
  * Yanıp sönen küçük ışıklar: monitörlerdeki imleçler, gökdelen ikaz lambaları.
  * items: [{ center, quat, size, color, rate (Hz), duty (yanık kalma oranı) }].
- * animated=false iken (hareketi azalt) hepsi sabit yanar ve hiç kare istemez.
+ * Kareyi OfficeScene'deki ortak zamanlayıcı ister; animated=false iken (hareketi azalt) hepsi sabit yanar.
  */
 export default function BlinkEffect({ items, animated = true }) {
   const ref = useRef(null)
-  const invalidate = useThree((s) => s.invalidate)
 
   useLayoutEffect(() => {
     const mesh = ref.current
@@ -36,12 +33,6 @@ export default function BlinkEffect({ items, animated = true }) {
     mesh.instanceColor.needsUpdate = true
     writeBlinkers(mesh, items, 0, false)
   }, [items])
-
-  useEffect(() => {
-    if (!animated) return
-    const id = setInterval(() => invalidate(), 1000 / BLINK_FPS)
-    return () => clearInterval(id)
-  }, [animated, invalidate])
 
   useFrame(({ clock }) => {
     if (animated) writeBlinkers(ref.current, items, clock.elapsedTime, true)

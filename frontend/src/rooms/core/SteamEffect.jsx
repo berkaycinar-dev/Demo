@@ -32,9 +32,9 @@ function writeSteam(mesh, steams, t, animated) {
 }
 
 /**
- * Semaverden yükselen buhar. steams: buhar çıkış noktaları [[x, y, z], ...].
- * Kareyi TeaGardenScene'deki ortak zamanlayıcı ister; animated=false iken (hareketi azalt)
- * bulutçuklar sabit durur.
+ * Semaver, çaydanlık, kahve makinesi gibi kaplardan yükselen buhar (tüm temalar paylaşır).
+ * steams: buhar çıkış noktaları [[x, y, z], ...]. Kareyi temanın ortak zamanlayıcısı
+ * (AnimationTicker) ister; animated=false iken (hareketi azalt) bulutçuklar sabit durur.
  */
 export default function SteamEffect({ steams, animated = true }) {
   const ref = useRef(null)

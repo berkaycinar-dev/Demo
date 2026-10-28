@@ -6,7 +6,6 @@ import {
   WALL_HEIGHT,
   armchair,
   braidedRug,
-  coatRack,
   cocoaCorner,
   farmTable,
   firPlant,
@@ -37,10 +36,9 @@ const PROPS = {
   plant: { draw: firPlant },
   armchair: { draw: (f, rnd, item) => armchair(f, item.color) },
   sofa: { draw: sofa, spot: { id: 'sofa', label: 'Kanepe', distance: 0.95 } },
-  cocoa: { draw: cocoaCorner, spot: { id: 'cocoa', label: 'Kakao köşesi', distance: 0.95 } },
+  cocoa: { draw: (f, rnd, item, room) => cocoaCorner(f, room), spot: { id: 'cocoa', label: 'Kakao köşesi', distance: 0.95 } },
   skis: { draw: skis },
   guitar: { draw: guitar },
-  coatRack: { draw: coatRack },
 }
 
 // Duvar süsleri; at: duvar boyunca konum (raf için sol uç), y: yükseklik.
@@ -67,7 +65,7 @@ export function buildCabin(layout) {
   const { width, depth, seed = 1 } = layout
   const rnd = seededRandom(seed)
   const { root, layers } = createVoxelBuilder()
-  const room = { seats: [], spots: [], lights: [], fires: [] }
+  const room = { seats: [], spots: [], lights: [], fires: [], steams: [], snow: [] }
 
   const addSpot = (id, label, point) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
@@ -80,8 +78,8 @@ export function buildCabin(layout) {
 
   floor(root, width, depth, rnd)
   // arka duvar x = -WALL'dan başlar (köşe), sol duvarda u = depth - z
-  logWall(root.frame(-WALL, 0, 0), width + WALL, openings('back', (x) => x + WALL), 'end', rnd)
-  logWall(root.frame(0, 0, depth, Math.PI / 2), depth, openings('left', (z) => depth - z), 'start', rnd)
+  logWall(root.frame(-WALL, 0, 0), width + WALL, openings('back', (x) => x + WALL), 'end', rnd, room)
+  logWall(root.frame(0, 0, depth, Math.PI / 2), depth, openings('left', (z) => depth - z), 'start', rnd, room)
   root.box(0, 0, 0, 0.16, WALL_HEIGHT, 0.16, C.logs[1])
 
   for (const rug of layout.rugs ?? []) {
@@ -108,7 +106,7 @@ export function buildCabin(layout) {
   for (const item of layout.props ?? []) {
     const prop = PROPS[item.type]
     const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
-    prop.draw(f, rnd, item)
+    prop.draw(f, rnd, item, room)
     if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
   }
 
@@ -123,6 +121,8 @@ export function buildCabin(layout) {
     spots: room.spots,
     lights: room.lights.slice(0, MAX_LAMP_LIGHTS),
     fires: room.fires,
+    steams: room.steams,
+    snow: room.snow,
     bounds: { min: [-WALL, FLOOR_BOTTOM, -WALL], max: [width + 0.02, WALL_HEIGHT, depth] },
   }
 }

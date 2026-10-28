@@ -104,7 +104,7 @@ function solidSpans(length, openings) {
 
 // Kütük duvar. Yerel u boyunca uzanır, iç yüzey v = 0'da, kalınlık -v yönünde.
 // openings: [[u0, u1]] pencere boşlukları. cutEnd: 'start' | 'end', kütük kesitinin göründüğü uç.
-export function logWall(f, length, openings, cutEnd, rnd) {
+export function logWall(f, length, openings, cutEnd, rnd, room) {
   const sorted = [...openings].sort((a, b) => a[0] - b[0])
   f.box(0, FLOOR_BOTTOM, -WALL, length, -FLOOR_BOTTOM, WALL, C.foundation)
   for (let y = 0; y < WALL_HEIGHT - 1e-3; y += LOG) {
@@ -118,12 +118,12 @@ export function logWall(f, length, openings, cutEnd, rnd) {
     const ring = cutEnd === 'start' ? -0.016 : length
     f.box(ring, y + 0.1, -WALL + 0.08, 0.016, 0.1, WALL - 0.16, C.endRing)
   }
-  for (const [a, b] of sorted) snowyWindow(f, a, b)
+  for (const [a, b] of sorted) snowyWindow(f, a, b, room)
 }
 
 // Pencere ve dışarıdaki karlı manzara. Manzara cam katmanında: rengi gün zamanıyla çarpılır,
-// gece kendiliğinden kararır.
-function snowyWindow(f, a, b) {
+// gece kendiliğinden kararır. Camın ardında yağan kar SnowEffect'te (alanı room.snow'a).
+function snowyWindow(f, a, b, room) {
   const w = b - a
   const h = WINDOW_TOP - SILL
   const glass = -WALL / 2
@@ -152,6 +152,13 @@ function snowyWindow(f, a, b) {
   // kasa, kayıt ve iç pervaz
   const t = 0.07
   const fz = glass - 0.04
+  room.snow.push({
+    origin: f.point(a + t, SILL + t, glass + 0.02),
+    across: f.point(1, 0, 0).sub(f.point(0, 0, 0)),
+    width: w - 2 * t,
+    height: h - 2 * t,
+    quat: f.worldRotation(),
+  })
   f.box(a, SILL, fz, w, t, 0.08, C.frame)
   f.box(a, WINDOW_TOP - t, fz, w, t, 0.08, C.frame)
   f.box(a, SILL, fz, t, h, 0.08, C.frame)
@@ -279,7 +286,7 @@ export function firewood(f, rnd) {
     for (let i = 0; i < 5; i++) {
       const x = -W / 2 + offset + i * s + 0.005
       if (x + s > W / 2 + 1e-3) break
-      const y = 0.03 + row * (s - 0.012)
+      const y = 0.03 + row * (s - 0.006)
       f.box(x, y, -D / 2, s - 0.006, s - 0.006, D, pick(rnd, C.barks))
       f.box(x + 0.012, y + 0.012, D / 2, s - 0.03, s - 0.03, 0.006, C.logCut)
     }
@@ -449,8 +456,9 @@ export function sofa(f) {
 
 // ---------------------------------------------------------------- eşyalar
 
-// Kakao köşesi: dolap, emaye çaydanlık, kupalar, marshmallow kavanozu.
-export function cocoaCorner(f) {
+// Kakao köşesi: dolap, emaye çaydanlık, kupalar, marshmallow kavanozu. Çaydanlığın ağzından
+// çıkan buhar noktası room.steams'e.
+export function cocoaCorner(f, room) {
   const W = 0.9
   const D = 0.5
   const H = 0.86
@@ -470,6 +478,7 @@ export function cocoaCorner(f) {
   k.box(-0.02, 0.2, -0.02, 0.04, 0.03, 0.04, C.iron)
   k.box(0.12, 0.06, -0.02, 0.08, 0.04, 0.04, C.enamel)
   k.box(-0.08, 0.23, -0.015, 0.16, 0.03, 0.03, C.iron)
+  room.steams.push(k.point(0.19, 0.11, 0).toArray())
   ;[C.enamel, C.wool, C.sage].forEach((color, i) => {
     f.box(0.02 + i * 0.1, top, -0.12 + (i % 2) * 0.1, 0.08, 0.1, 0.08, color)
   })
@@ -516,18 +525,6 @@ export function guitar(f) {
   g.box(-0.06, 0.12, 0.04, 0.12, 0.03, 0.01, C.woodDark)
   g.box(-0.03, 0.58, -0.03, 0.06, 0.55, 0.05, C.woodDark)
   g.box(-0.045, 1.13, -0.035, 0.09, 0.14, 0.05, C.woodDark)
-}
-
-export function coatRack(f) {
-  f.box(-0.25, 0, -0.04, 0.5, 0.05, 0.08, C.wood)
-  f.box(-0.04, 0, -0.25, 0.08, 0.05, 0.5, C.wood)
-  f.box(-0.04, 0.05, -0.04, 0.08, 1.7, 0.08, C.wood)
-  f.box(-0.18, 1.55, -0.02, 0.14, 0.04, 0.04, C.woodDark)
-  f.box(0.04, 1.45, -0.02, 0.14, 0.04, 0.04, C.woodDark)
-  f.box(-0.21, 0.9, -0.05, 0.1, 0.68, 0.06, C.plaidRed)
-  f.box(0.06, 0.7, -0.12, 0.26, 0.8, 0.22, C.coat)
-  f.box(-0.09, 1.75, -0.09, 0.18, 0.12, 0.18, C.mustard)
-  f.box(-0.03, 1.87, -0.03, 0.06, 0.06, 0.06, C.wool)
 }
 
 // Kürk post; orijin merkez.
