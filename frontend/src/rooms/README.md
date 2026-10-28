@@ -4,7 +4,8 @@ Her oda tek başına çalışan bir React bileşenidir: kamera, ışık, sürük
 ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfaya koymak yeterli.
 
 Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza),
-`teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu).
+`teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu),
+`underwater` (Sualtı Araştırma Üssü).
 Her temada 1-10 kişilik oda var.
 
 ```jsx
@@ -14,6 +15,7 @@ import { OfficeRoom } from './rooms/office'
 import { TeaGardenRoom } from './rooms/teagarden'
 import { CampRoom } from './rooms/camp'
 import { SpaceRoom } from './rooms/space'
+import { UnderwaterRoom } from './rooms/underwater'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -30,7 +32,7 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom`: 1-10, uygun oda bileşenini seçer |
 | `reducedMotion` | Tüm temalar: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
@@ -69,8 +71,14 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
   aynı: sol duvar pencere, arka duvarda soldan sağa hava kilidi, giysi, kontrol paneli, ikmal otomatı, kargo rafı,
   hidroponik bahçe (eşit aralıkla), ortada görev masası, sağ kenarda spor köşesi; oda büyüdükçe koşu bandı,
   teleskop, bisiklet, pencere önü bank, kargo rafı ve zemin penceresi eklenir.
+- `underwater/` aynı yapı: `parts.js` (deniz manzaralı akvaryum camı, basınç kapısı, dalış giysisi, sonar paneli,
+  kahve köşesi, masa akvaryumlu araştırma masası, yosun bahçesi, denizanası tankı, dalış havuzu...), `buildUnderwater.js`,
+  `UnderwaterRoom1..10.jsx`. Düzen her odada aynı: sol duvar boydan boya akvaryum camı, arka duvarda soldan sağa basınç
+  kapısı, dalış giysisi, sonar paneli, kahve köşesi, numune rafı, yosun bahçesi (eşit aralıkla), ortada araştırma masası,
+  sağ-arkada denizanası tankı, sağ-önde tüp kafesi; oda büyüdükçe gözlem kamerası, cam önü bank, numune rafı ve dalış
+  havuzu eklenir. Camın arkasındaki deniz duvar kalınlığı içinde sığ bir dioramadır (kamera dönünce derinlik verir).
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
-- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları); görünürlüğü `nightLights` ayarından gelir
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -104,6 +112,10 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
 - Uzay istasyonunda dönen hologram, pencerede süzülen uydu, ekrandaki tarama çizgisi ve yanıp sönen tuş /
   durum ışıkları / yıldızlar (`space/StationEffect.jsx`) tek zamanlayıcıyla saniyede 12 kare ister (~9 draw call/kare,
   efektin tamamı 2 instanced mesh). `reducedMotion` ile durur. En büyük oda ~1150 kutu, en fazla 3 nokta ışık.
+- Sualtı üssünde camın ardında geçen balık sürüleri ve kaplumbağa, salınan yosunlar, yükselen kabarcıklar ve denizanaları,
+  içeride denizanası tankı, masa akvaryumu, dönen sonar çizgisi ve havuzdaki parıltılar (`underwater/ReefEffect.jsx`) ile kahve
+  buharı tek zamanlayıcıyla saniyede 12 kare ister (~9 draw call/kare, efektin tamamı 2 instanced mesh; deniz tarafı suyun gün
+  zamanı rengini alır). `reducedMotion` ile durur. En büyük oda ~1320 kutu, en fazla 3 nokta ışık.
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`), kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`), kapasite ve gün zamanı seçilebilir.
