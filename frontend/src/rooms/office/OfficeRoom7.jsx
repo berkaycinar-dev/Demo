@@ -1,30 +1,32 @@
 import OfficeScene from './OfficeScene'
 
-// 7 kişi · 10x8 · 3+3 masa grubu + tekli masa, dashboard ekranı, lounge.
+// 7 kişi · 10x8 · 4+3 masa grubu, dashboard ekranı, lounge, kolon.
 const LAYOUT = {
   width: 10,
   depth: 8,
   seed: 1207,
-  columns: [{ x: 0, z: 4.0 }],
+  columns: [
+    { x: 0, z: 3.8 },
+  ],
   decor: [
     { type: 'board', at: 1.6, y: 1.45 },
-    { type: 'slats', at: 2.9, y: 0.08, length: 2.4 },
-    { type: 'tv', at: 6.3, y: 1.6 },
+    { type: 'slats', at: 2.9, y: 0.08, length: 2.6 },
     { type: 'coffeeBar', at: 7.4, length: 2.4 },
   ],
   pods: [
-    { x: 4.4, z: 3.9, back: 3, front: 3 },
-    { x: 8.4, z: 3.6, back: 1 },
+    { x: 5.45, z: 3.35, back: 4, front: 3 },
   ],
-  rugs: [{ x: 0.5, z: 5.4, w: 3.3, d: 2.4, color: '#b8a58c' }],
+  rugs: [
+    { x: 0.5, z: 5.25, w: 3.3, d: 2.4, color: '#b8a58c' },
+  ],
   props: [
-    { type: 'credenza', x: 4.1, z: 0.3, length: 1.6 },
-    { type: 'sofa', x: 1.2, z: 6.6, facing: '+x' },
-    { type: 'beanBag', x: 3.2, z: 6.0, facing: -90 },
-    { type: 'beanBag', x: 3.2, z: 7.2, facing: -90 },
-    { type: 'waterCooler', x: 9.65, z: 5.6, facing: '-x' },
-    { type: 'snakePlant', x: 9.5, z: 7.4 },
-    { type: 'snakePlant', x: 0.6, z: 1.0 },
+    { type: 'credenza', x: 4.2, z: 0.3, length: 1.6 },
+    { type: 'waterCooler', x: 7, z: 0.3 },
+    { type: 'snakePlant', x: 0.6, z: 1 },
+    { type: 'sofa', x: 1.2, z: 6.45, facing: '+x' },
+    { type: 'beanBag', x: 3.3, z: 5.85, facing: -90 },
+    { type: 'beanBag', x: 3.3, z: 7.05, facing: -90 },
+    { type: 'snakePlant', x: 0.55, z: 4.9 },
   ],
 }
 

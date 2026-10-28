@@ -6,26 +6,31 @@ const LAYOUT = {
   depth: 6.5,
   seed: 444,
   windows: [
-    { wall: 'left', at: 1.9 },
-    { wall: 'left', at: 4.5 },
+    { wall: 'left', at: 3.2 },
   ],
-  fireplace: { x: 4.3 },
+  fireplace: { x: 3.75 },
   rugs: [
-    { type: 'braided', x: 1.7, z: 2.7, w: 4.0, d: 2.9 },
-    { type: 'fur', x: 4.3, z: 1.55, w: 1.7, d: 1.0 },
+    { type: 'braided', x: 2.03, z: 3.02, w: 3.4, d: 2.6 },
+    { type: 'fur', x: 3.75, z: 1.55, w: 1.7, d: 1 },
   ],
-  windowSeats: [{ at: 1.9, length: 1.3 }],
-  tables: [{ x: 3.7, z: 3.95, length: 2.8, depth: 1.1, back: 2, front: 2 }],
+  windowSeats: [
+    { at: 3.2, length: 1.3 },
+  ],
+  tables: [
+    { x: 3.73, z: 4.32, length: 2.4, depth: 1.1, back: 2, front: 2 },
+  ],
   props: [
-    { type: 'firewood', x: 2.6, z: 0.25 },
-    { type: 'armchair', x: 6.3, z: 2.3, facing: -135, color: 'mustard' },
+    { type: 'firewood', x: 2.1, z: 0.25 },
+    { type: 'armchair', x: 2.05, z: 2, facing: 135, color: 'sage' },
+    { type: 'armchair', x: 5.45, z: 2, facing: -135, color: 'rust' },
+    { type: 'skis', x: 5.6, z: 0, facing: '+z' },
     { type: 'plant', x: 7.05, z: 0.45 },
-    { type: 'cocoa', x: 6.95, z: 5.7, facing: '-x' },
-    { type: 'skis', x: 0, z: 5.7, facing: '+x' },
+    { type: 'cocoa', x: 7.05, z: 3.3, facing: '-x' },
+    { type: 'guitar', x: 0, z: 5.95, facing: '+x' },
   ],
   decor: [
-    { type: 'shelf', wall: 'back', at: 0.3, y: 1.5, length: 1.5 },
-    { type: 'sconce', wall: 'left', at: 3.2, y: 1.9 },
+    { type: 'shelf', wall: 'back', at: 1.55, y: 1.5, length: 1.2 },
+    { type: 'sconce', wall: 'left', at: 1.95, y: 1.9 },
   ],
 }
 

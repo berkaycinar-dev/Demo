@@ -2,11 +2,11 @@ import { useMemo } from 'react'
 import AnimationTicker from '../core/AnimationTicker'
 import RoomCanvas from '../core/RoomCanvas'
 import SpotRings from '../core/SpotRings'
+import SteamEffect from '../core/SteamEffect'
 import VoxelMeshes from '../core/VoxelMeshes'
 import { RoomContext } from '../core/roomContext'
 import { buildTeaGarden } from './buildTeaGarden'
 import SeaViewEffect from './SeaViewEffect'
-import SteamEffect from './SteamEffect'
 
 // Buhar ve manzaradaki hareketler yavaş; saniyede 12 kare akıcı görünür. Tek zamanlayıcı ikisini
 // birlikte çizer, sahnenin geri kalanı boşta ek kare istemez.

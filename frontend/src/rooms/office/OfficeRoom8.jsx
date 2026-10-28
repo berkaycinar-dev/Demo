@@ -5,27 +5,31 @@ const LAYOUT = {
   width: 11,
   depth: 8.5,
   seed: 1208,
-  columns: [{ x: 0, z: 4.3 }],
+  columns: [
+    { x: 0, z: 4.05 },
+  ],
   decor: [
     { type: 'board', at: 1.6, y: 1.45 },
     { type: 'slats', at: 2.9, y: 0.08, length: 2.6 },
-    { type: 'tv', at: 6.6, y: 1.6 },
+    { type: 'tv', at: 6.45, y: 1.6 },
     { type: 'coffeeBar', at: 8.2, length: 2.6 },
   ],
   pods: [
-    { x: 3.9, z: 3.9, back: 2, front: 2 },
-    { x: 7.6, z: 3.9, back: 2, front: 2 },
+    { x: 4.05, z: 3.6, back: 2, front: 2 },
+    { x: 7.85, z: 3.6, back: 2, front: 2 },
   ],
-  rugs: [{ x: 0.5, z: 5.8, w: 3.3, d: 2.4, color: '#b8a58c' }],
+  rugs: [
+    { x: 0.5, z: 5.75, w: 3.3, d: 2.4, color: '#b8a58c' },
+  ],
   props: [
     { type: 'credenza', x: 4.2, z: 0.3, length: 1.6 },
-    { type: 'sofa', x: 1.2, z: 7.0, facing: '+x' },
-    { type: 'beanBag', x: 3.2, z: 6.4, facing: -90 },
-    { type: 'beanBag', x: 3.2, z: 7.6, facing: -90 },
-    { type: 'pingPong', x: 7.4, z: 7.0, facing: '-z' },
-    { type: 'waterCooler', x: 10.65, z: 5.8, facing: '-x' },
-    { type: 'snakePlant', x: 10.5, z: 8.0 },
-    { type: 'snakePlant', x: 0.6, z: 1.0 },
+    { type: 'waterCooler', x: 7.8, z: 0.3 },
+    { type: 'snakePlant', x: 0.6, z: 1 },
+    { type: 'sofa', x: 1.2, z: 6.95, facing: '+x' },
+    { type: 'beanBag', x: 3.3, z: 6.35, facing: -90 },
+    { type: 'beanBag', x: 3.3, z: 7.55, facing: -90 },
+    { type: 'snakePlant', x: 0.55, z: 5.4 },
+    { type: 'pingPong', x: 9, z: 7.4, facing: '-z' },
   ],
 }
 

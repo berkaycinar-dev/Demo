@@ -1,31 +1,35 @@
 import CabinScene from './CabinScene'
 
-// 3 kişi · 6.5x6 · üçlü masa, iki karlı pencere, duvar feneri.
+// 3 kişi · 7x6 · üçlü masa, şöminenin iki yanında berjer, duvar feneri.
 const LAYOUT = {
-  width: 6.5,
+  width: 7,
   depth: 6,
   seed: 333,
   windows: [
-    { wall: 'left', at: 1.9 },
-    { wall: 'left', at: 4.4 },
+    { wall: 'left', at: 3.2 },
   ],
-  fireplace: { x: 3.9 },
+  fireplace: { x: 3.5 },
   rugs: [
-    { type: 'braided', x: 1.6, z: 2.8, w: 3.6, d: 2.2 },
-    { type: 'fur', x: 3.9, z: 1.55, w: 1.6, d: 0.95 },
+    { type: 'braided', x: 1.48, z: 3.15, w: 4, d: 2 },
+    { type: 'fur', x: 3.5, z: 1.55, w: 1.7, d: 1 },
   ],
-  windowSeats: [{ at: 1.9, length: 1.3 }],
-  tables: [{ x: 3.4, z: 3.6, length: 3.0, depth: 0.85, back: 3 }],
+  windowSeats: [
+    { at: 3.2, length: 1.3 },
+  ],
+  tables: [
+    { x: 3.48, z: 4.3, length: 3, depth: 0.8, back: 3, front: 0 },
+  ],
   props: [
-    { type: 'firewood', x: 2.2, z: 0.25 },
-    { type: 'armchair', x: 5.6, z: 2.4, facing: -135, color: 'sage' },
-    { type: 'plant', x: 6.05, z: 0.45 },
-    { type: 'cocoa', x: 5.95, z: 5.3, facing: '-x' },
-    { type: 'guitar', x: 0, z: 5.4, facing: '+x' },
+    { type: 'firewood', x: 1.85, z: 0.25 },
+    { type: 'armchair', x: 1.8, z: 2, facing: 135, color: 'sage' },
+    { type: 'armchair', x: 5.2, z: 2, facing: -135, color: 'rust' },
+    { type: 'plant', x: 6.55, z: 0.45 },
+    { type: 'cocoa', x: 6.55, z: 3.3, facing: '-x' },
+    { type: 'guitar', x: 0, z: 5.45, facing: '+x' },
   ],
   decor: [
-    { type: 'shelf', wall: 'back', at: 0.3, y: 1.5, length: 1.3 },
-    { type: 'sconce', wall: 'left', at: 3.15, y: 1.9 },
+    { type: 'shelf', wall: 'back', at: 1.3, y: 1.5, length: 1.2 },
+    { type: 'sconce', wall: 'left', at: 1.95, y: 1.9 },
   ],
 }
 
