@@ -30,9 +30,9 @@ export function createVoxelBuilder() {
         frame.add(new Vector3(x + w / 2, y + h / 2, z + d / 2), quat, [w, h, d], color, layer)
         return frame
       },
-      // Yatay ışık havuzu (glow katmanı), y yüksekliğinde w x d.
-      glow(x, y, z, w, d) {
-        frame.add(new Vector3(x + w / 2, y, z + d / 2), new Quaternion(), [w, 1, d], '#ffffff', 'glow')
+      // Yatay ışık havuzu (glow katmanı), y yüksekliğinde w x d. color lamba rengiyle çarpılır.
+      glow(x, y, z, w, d, color = '#ffffff') {
+        frame.add(new Vector3(x + w / 2, y, z + d / 2), new Quaternion(), [w, 1, d], color, 'glow')
         return frame
       },
       // Alt çerçeve: önce yaw (Y), sonra pitch (X), sonra roll (Z).
