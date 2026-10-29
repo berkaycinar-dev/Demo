@@ -1,0 +1,83 @@
+openapi: 3.0.3
+info:
+  title: Odakhane API
+  version: 0.1.0
+  description: |
+    REST contract for the Odakhane backend. Owner: C (backend business logic).
+
+    Workflow for every new endpoint:
+      1. Add it here first and open a PR (frontend can start against this file).
+      2. Implement it in backend/ with unit tests.
+      3. Add a matching request to backend/bruno/.
+
+    Conventions:
+      * All paths start with /api/v1
+      * JSON field names are camelCase
+      * Times are ISO-8601 UTC strings, e.g. 2026-10-29T20:00:00Z
+      * Every error uses the ErrorResponse shape below
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+tags:
+  - name: system
+    description: Health and diagnostics
+
+paths:
+  /api/v1/ping:
+    get:
+      tags: [system]
+      operationId: ping
+      summary: Check that the API is up (goes through controller and service)
+      responses:
+        "200":
+          description: API is reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PingResponse"
+              example:
+                message: pong
+                serverTime: "2026-10-29T20:00:00Z"
+
+components:
+  schemas:
+    PingResponse:
+      type: object
+      required: [message, serverTime]
+      properties:
+        message:
+          type: string
+          example: pong
+        serverTime:
+          type: string
+          format: date-time
+          description: Server's current time (UTC). Clients may use it to correct clock drift for timers.
+
+    ErrorResponse:
+      type: object
+      description: |
+        Shared error body (RFC 9457 problem details). Returned with 4xx/5xx statuses.
+        Frontend should branch on `code`, not on `detail` text.
+      required: [status, title, code]
+      properties:
+        status:
+          type: integer
+          example: 409
+        title:
+          type: string
+          example: Business rule violated
+        detail:
+          type: string
+          example: Room is full
+        code:
+          type: string
+          description: Stable machine-readable error code
+          example: ROOM_FULL
+        fieldErrors:
+          type: object
+          description: Only for VALIDATION_ERROR. Field name -> message.
+          additionalProperties:
+            type: string
+          example:
+            name: must not be blank
