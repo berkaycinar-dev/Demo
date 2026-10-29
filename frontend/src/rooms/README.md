@@ -5,7 +5,7 @@ ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfay
 
 Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza),
 `teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu),
-`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda).
+`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda), `cyber` (Siber Loft, neon megakent).
 Her temada 1-10 kişilik oda var.
 
 ```jsx
@@ -18,6 +18,7 @@ import { SpaceRoom } from './rooms/space'
 import { UnderwaterRoom } from './rooms/underwater'
 import { BarRoom } from './rooms/bar'
 import { TreehouseRoom } from './rooms/treehouse'
+import { CyberRoom } from './rooms/cyber'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -34,7 +35,7 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom` / `CyberRoom`: 1-10, uygun oda bileşenini seçer |
 | `reducedMotion` | Tüm temalar: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
@@ -48,7 +49,9 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
 
 - `core/` tema bağımsız: `RoomCanvas` (kabuk), `VoxelMeshes` (instanced çizim), `SpotRings`, gün zamanı ayarları,
   `AnimationTicker` (temanın tüm efektlerine ortak kare zamanlayıcısı), `SteamEffect` (semaver, çaydanlık, kahve
-  makinesi buharı; tüm temalar paylaşır)
+  makinesi buharı; tüm temalar paylaşır). `RoomCanvas`'ın `lamps` dizisi `[x, y, z]` ya da `{ position, color }` alır;
+  renk verilmezse gün zamanı ayarındaki `lampColor` kullanılır. Builder'daki `glow(x, y, z, w, d, color)` ışık havuzunu
+  bu renkle boyar (renk `lampColor` ile çarpılır).
 - `library/parts.js` kütüphane mobilyaları (kutulardan), `buildLibrary.js` yerleşimi sahneye çevirir
 - `library/LibraryRoom1..10.jsx` her kapasitenin kendi yerleşimi (`LAYOUT`). Düzen her odada aynı: arka duvar
   boydan kitaplık (8+ kişide ortada büst nişi), sol-arkada küre, sağ-arkada saksı ve kart kataloğu, sol duvarda
@@ -90,8 +93,15 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
   kapağı, kitaplık (3+), kakao köşesi (5+), gövdeye bağlı hamak ve sağ arka köşede gövde (eşit aralıkla); sol duvarda
   pencereler ve her birinin altında tabureli masa, ortada kilim üstünde kütük masalar (3+), sağda teleskop, sağ önde minder
   köşesi (8+). Koltuklar: pencere masaları + kütük masalar (2'şer) + minder köşesi (2).
+- `cyber/` aynı yapı: `parts.js` (yerden tavana panoramik pencere ve gece kenti, zırhlı kayar kapı, sunucu kabinleri, veri
+  duvarı, veri akışı sütunları, drone yuvası, "ODAK" neonlu ramen otomatı, kapsül masa ve sandalyeler, hologram masası, yumurta
+  koltuklu lounge, VR istasyonu, bonsai teraryumu...), `buildCyber.js`, `CyberRoom1..10.jsx`. Düzen her odada aynı: sol duvar
+  panoramik pencere ve önünde kapsül masalar; arka duvarda soldan sağa kapı, sunucular (3+), veri duvarı (5+), drone yuvası ve
+  otomat (eşit aralıkla, geniş boşluklarda veri akışı sütunu); ortada hologram masaları (3+), sağda VR istasyonu, sağ önde
+  lounge (8+), lounge olmayan orta odalarda bonsai teraryumu. Koltuklar: kapsül masalar + hologram masaları (2'şer) + lounge (2).
+  Neonlar `bulb` katmanında; tema `bulb` ve `lampColor`'ı beyaz tutar, lambalar ve ışık havuzları kendi rengini taşır.
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
-- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar); görünürlüğü `nightLights` ayarından gelir
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar, Siber Loft'ta kulelerin ışıklı pencere şeritleri); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -138,8 +148,13 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
   (`treehouse/TreehouseEffect.jsx`) ve kakao buharı tek zamanlayıcıyla saniyede 12 kare ister (~10 draw call/kare, efektin
   tamamı 4 instanced mesh; ateş böcekleri yalnızca akşam/gece çizilir). `reducedMotion` ile durur. En büyük oda ~1450 kutu,
   en fazla 3 nokta ışık.
+- Siber Loft'ta pencerede iki şeritte akan uçan araçlar, ikaz lambaları ve iki renkli reklam panoları, sunucu LED'leri, veri
+  duvarında çubuk grafik / radar taraması / kayan satırlar, veri akışı sütunları, holo ekranlar, dönen hologram küreler ve tarama
+  halkaları, titreyen "ODAK" neonu, süzülen drone (`cyber/CyberEffect.jsx`) ve kahve / erişte buharı tek zamanlayıcıyla saniyede
+  12 kare ister (~10 draw call/kare, efektin tamamı 3 instanced mesh). `reducedMotion` ile durur. En büyük oda ~850 kutu, en
+  fazla 3 renkli nokta ışık (eflatun, kehribar, camgöbeği).
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`), kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`, `cyber`), kapasite ve gün zamanı seçilebilir.
 Parametresiz adres sitenin sade test arayüzünü açar (`src/site/`): Lobi, Odam, Oda oluştur (tema ve kapasite seçimi, canlı
 3D önizleme). Temaların listesi (ad, kısa açıklama, oda bileşeni, en büyük kapasite) `themes.js` içinde; iki taraf da onu okur.
