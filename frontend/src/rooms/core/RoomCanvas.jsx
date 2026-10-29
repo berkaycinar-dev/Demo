@@ -133,11 +133,11 @@ function Lighting({ bounds, preset, lamps }) {
         shadow-normalBias={0.025}
         shadow-radius={3}
       />
-      {lamps.map((position, i) => (
+      {lamps.map((lamp, i) => (
         <pointLight
           key={i}
-          position={position}
-          color={preset.lampColor}
+          position={Array.isArray(lamp) ? lamp : lamp.position}
+          color={lamp.color ?? preset.lampColor}
           intensity={preset.lamp}
           distance={4.5}
           decay={2}
@@ -152,7 +152,8 @@ function Lighting({ bounds, preset, lamps }) {
  * gün zamanı düğmeleri. Tema içeriği (voxel mesh'ler, halkalar, avatarlar) children olarak gelir.
  *
  * bounds: { min: [x, y, z], max: [x, y, z] } oda kutusu (kadraj ve gölge kamerası için)
- * lamps: nokta ışık konumları [[x, y, z], ...] (performans için en fazla 4)
+ * lamps: nokta ışıklar [[x, y, z] | { position, color }, ...] (performans için en fazla 4); renk verilmezse
+ *        gün zamanı ayarındaki lampColor
  * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
  */
 export default function RoomCanvas({
