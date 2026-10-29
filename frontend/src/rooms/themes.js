@@ -1,6 +1,7 @@
 import { BAR_MAX_CAPACITY, BarRoom } from './bar'
 import { CABIN_MAX_CAPACITY, CabinRoom } from './cabin'
 import { CAMP_MAX_CAPACITY, CampRoom } from './camp'
+import { CYBER_MAX_CAPACITY, CyberRoom } from './cyber'
 import { LIBRARY_MAX_CAPACITY, LibraryRoom } from './library'
 import { OFFICE_MAX_CAPACITY, OfficeRoom } from './office'
 import { SPACE_MAX_CAPACITY, SpaceRoom } from './space'
@@ -20,4 +21,5 @@ export const THEMES = {
   underwater: { label: 'Sualtı Üssü', description: 'akvaryum camı, sonar, denizanaları', Room: UnderwaterRoom, max: UNDERWATER_MAX_CAPACITY },
   bar: { label: 'Bar', description: 'yağmurlu sokak, neon, müzik kutusu', Room: BarRoom, max: BAR_MAX_CAPACITY },
   treehouse: { label: 'Ağaç Ev', description: 'ağaç gövdesi, hamak, ateş böcekleri', Room: TreehouseRoom, max: TREEHOUSE_MAX_CAPACITY },
+  cyber: { label: 'Siber Loft', description: 'neon kent manzarası, hologram masa, sunucular', Room: CyberRoom, max: CYBER_MAX_CAPACITY },
 }
