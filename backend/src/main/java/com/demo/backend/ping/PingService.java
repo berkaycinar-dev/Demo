@@ -1,4 +1,4 @@
-package com.odakhane.backend.ping;
+package com.demo.backend.ping;
 
 import java.time.Clock;
 import java.time.Instant;

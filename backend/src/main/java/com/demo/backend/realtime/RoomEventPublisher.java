@@ -1,4 +1,4 @@
-package com.odakhane.backend.realtime;
+package com.demo.backend.realtime;
 
 /**
  * The only door from business logic (C) to real-time broadcasting (D).

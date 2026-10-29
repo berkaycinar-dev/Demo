@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "name": "Odakhane API",
+  "name": "Demo API",
   "type": "collection",
   "ignore": ["node_modules", ".git"]
 }

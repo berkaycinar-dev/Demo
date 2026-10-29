@@ -1,4 +1,4 @@
-package com.odakhane.backend.common.error;
+package com.demo.backend.common.error;
 
 /**
  * Thrown when a request is well-formed but breaks a business rule

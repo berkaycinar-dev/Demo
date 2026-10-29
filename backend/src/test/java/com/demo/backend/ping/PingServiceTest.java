@@ -1,4 +1,4 @@
-package com.odakhane.backend.ping;
+package com.demo.backend.ping;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

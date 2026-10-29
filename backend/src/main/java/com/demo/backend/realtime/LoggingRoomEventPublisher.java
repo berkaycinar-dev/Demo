@@ -1,4 +1,4 @@
-package com.odakhane.backend.realtime;
+package com.demo.backend.realtime;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

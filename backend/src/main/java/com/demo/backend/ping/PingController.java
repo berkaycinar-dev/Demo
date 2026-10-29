@@ -1,4 +1,4 @@
-package com.odakhane.backend.ping;
+package com.demo.backend.ping;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

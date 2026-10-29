@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Odakhane API
+  title: Demo API
   version: 0.1.0
   description: |
-    REST contract for the Odakhane backend. Owner: C (backend business logic).
+    REST contract for the Demo backend. Owner: C (backend business logic).
 
     Workflow for every new endpoint:
       1. Add it here first and open a PR (frontend can start against this file).

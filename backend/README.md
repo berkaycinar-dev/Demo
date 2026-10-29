@@ -1,4 +1,4 @@
-# Odakhane Backend
+# Demo Backend
 
 Spring Boot 4.1 · Java 21 · PostgreSQL 16 · Flyway
 
@@ -52,9 +52,9 @@ Bruno ile: Bruno'da **Open Collection** → `backend/bruno` → ortam olarak **l
 
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
-| `DB_URL` | `jdbc:postgresql://localhost:5432/odakhane` | Veritabanı adresi |
-| `DB_USER` | `odakhane` | |
-| `DB_PASSWORD` | `odakhane` | Sunucuda mutlaka değiştir |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/demo` | Veritabanı adresi |
+| `DB_USER` | `demo` | |
+| `DB_PASSWORD` | `demo` | Sunucuda mutlaka değiştir |
 | `PORT` | `8080` | |
 | `CORS_ORIGINS` | `http://localhost:5173` | Frontend adresleri (virgülle ayrılır) |
 
@@ -63,7 +63,7 @@ Bruno ile: Bruno'da **Open Collection** → `backend/bruno` → ortam olarak **l
 Paketler özelliğe göre ayrılır, her özelliğin içinde katmanlar bulunur:
 
 ```
-com.odakhane.backend
+com.demo.backend
 ├── common/
 │   ├── config/      Clock, CORS
 │   └── error/       GlobalExceptionHandler, NotFoundException, BusinessRuleException

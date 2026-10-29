@@ -1,4 +1,4 @@
-package com.odakhane.backend.common.error;
+package com.demo.backend.common.error;
 
 /**
  * Thrown by services when a requested resource does not exist
