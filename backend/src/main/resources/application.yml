@@ -1,13 +1,13 @@
 spring:
   application:
-    name: odakhane-backend
+    name: demo-backend
 
   # Values after ":" are local defaults (matching docker-compose.yml).
   # On a server, set DB_URL / DB_USER / DB_PASSWORD as environment variables instead.
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/odakhane}
-    username: ${DB_USER:odakhane}
-    password: ${DB_PASSWORD:odakhane}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/demo}
+    username: ${DB_USER:demo}
+    password: ${DB_PASSWORD:demo}
 
   jpa:
     # Flyway owns the schema; Hibernate only checks entities match the tables.

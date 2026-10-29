@@ -1,4 +1,4 @@
-package com.odakhane.backend.common.config;
+package com.demo.backend.common.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

@@ -5,20 +5,20 @@
 services:
   db:
     image: postgres:16
-    container_name: odakhane-db
+    container_name: demo-db
     environment:
-      POSTGRES_DB: odakhane
-      POSTGRES_USER: odakhane
-      POSTGRES_PASSWORD: odakhane
+      POSTGRES_DB: demo
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
     ports:
       - "5432:5432"
     volumes:
-      - odakhane-db-data:/var/lib/postgresql/data
+      - demo-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U odakhane -d odakhane"]
+      test: ["CMD-SHELL", "pg_isready -U demo -d demo"]
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  odakhane-db-data:
+  demo-db-data:

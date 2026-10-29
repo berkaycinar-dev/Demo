@@ -12,11 +12,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.odakhane</groupId>
+    <groupId>com.demo</groupId>
     <artifactId>backend</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <name>odakhane-backend</name>
-    <description>Odakhane backend: business rules (auth, rooms, timer, points, league, rewards)</description>
+    <name>demo-backend</name>
+    <description>Demo backend: business rules (auth, rooms, timer, points, league, rewards)</description>
 
     <properties>
         <java.version>21</java.version>
