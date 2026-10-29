@@ -5,7 +5,7 @@ ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfay
 
 Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza),
 `teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu),
-`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan).
+`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda).
 Her temada 1-10 kişilik oda var.
 
 ```jsx
@@ -17,6 +17,7 @@ import { CampRoom } from './rooms/camp'
 import { SpaceRoom } from './rooms/space'
 import { UnderwaterRoom } from './rooms/underwater'
 import { BarRoom } from './rooms/bar'
+import { TreehouseRoom } from './rooms/treehouse'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -33,7 +34,7 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom`: 1-10, uygun oda bileşenini seçer |
 | `reducedMotion` | Tüm temalar: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
@@ -83,8 +84,14 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
   `BarRoom1..10.jsx`. Düzen her odada aynı: arka duvarda soldan sağa giriş kapısı, dart (4+), arka bar ve önündeki tezgâh,
   müzik kutusu (eşit aralıkla); sol duvarda pencereler ve pencere altında sedirler (6+), ortada yuvarlak masa (4+), sağda
   bilardo masası (8+), bilardo olmayan odalarda müzik kutusunun önünde büyük saksı. Koltuklar: tabureler + sedirler + masa.
+- `treehouse/` aynı yapı: `parts.js` (tahta kaplama duvarlar, ormana bakan açık pencereler, zemindeki giriş kapağı ve
+  merdiven, kasa kitaplık, kakao köşesi, hamak, odayı delip geçen ağaç gövdesi ve dalları, kütük masa ve tabureler, minder
+  köşesi, teleskop...), `buildTreehouse.js`, `TreehouseRoom1..10.jsx`. Düzen her odada aynı: arka duvarda soldan sağa giriş
+  kapağı, kitaplık (3+), kakao köşesi (5+), gövdeye bağlı hamak ve sağ arka köşede gövde (eşit aralıkla); sol duvarda
+  pencereler ve her birinin altında tabureli masa, ortada kilim üstünde kütük masalar (3+), sağda teleskop, sağ önde minder
+  köşesi (8+). Koltuklar: pencere masaları + kütük masalar (2'şer) + minder köşesi (2).
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
-- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası); görünürlüğü `nightLights` ayarından gelir
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -126,6 +133,11 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
   alevi, dönen tavan vantilatörü (`bar/BarEffect.jsx`) ve kahve fincanlarının buharı tek zamanlayıcıyla saniyede 12 kare
   ister (~10 draw call/kare, efektin tamamı 3 instanced mesh). `reducedMotion` ile durur. En büyük oda ~1170 kutu, en fazla
   3 nokta ışık.
+- Ağaç evde pencerelerden düşen yapraklar, gece ateş böcekleri, kavanozdaki ateş böcekleri, yanıp sönen süs ampulleri,
+  fener alevleri, salınan hamak ve rüzgâr çanı, başını sallayan kuş, gövde boyunca süzülen yapraklar
+  (`treehouse/TreehouseEffect.jsx`) ve kakao buharı tek zamanlayıcıyla saniyede 12 kare ister (~10 draw call/kare, efektin
+  tamamı 4 instanced mesh; ateş böcekleri yalnızca akşam/gece çizilir). `reducedMotion` ile durur. En büyük oda ~1450 kutu,
+  en fazla 3 nokta ışık.
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`), kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`), kapasite ve gün zamanı seçilebilir.
