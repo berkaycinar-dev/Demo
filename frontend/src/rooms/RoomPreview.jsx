@@ -1,27 +1,7 @@
 import { useState } from 'react'
-import { BAR_MAX_CAPACITY, BarRoom } from './bar'
-import { CABIN_MAX_CAPACITY, CabinRoom } from './cabin'
-import { CAMP_MAX_CAPACITY, CampRoom } from './camp'
 import { TIME_MODES } from './core/timeOfDay'
-import { LIBRARY_MAX_CAPACITY, LibraryRoom } from './library'
-import { OFFICE_MAX_CAPACITY, OfficeRoom } from './office'
-import { SPACE_MAX_CAPACITY, SpaceRoom } from './space'
-import { TEAGARDEN_MAX_CAPACITY, TeaGardenRoom } from './teagarden'
-import { TREEHOUSE_MAX_CAPACITY, TreehouseRoom } from './treehouse'
-import { UNDERWATER_MAX_CAPACITY, UnderwaterRoom } from './underwater'
+import { THEMES } from './themes'
 import './RoomPreview.css'
-
-const THEMES = {
-  library: { label: 'Kütüphane', Room: LibraryRoom, max: LIBRARY_MAX_CAPACITY },
-  cabin: { label: 'Dağ Evi', Room: CabinRoom, max: CABIN_MAX_CAPACITY },
-  office: { label: 'Yazılım Ofisi', Room: OfficeRoom, max: OFFICE_MAX_CAPACITY },
-  teagarden: { label: 'Çay Bahçesi', Room: TeaGardenRoom, max: TEAGARDEN_MAX_CAPACITY },
-  camp: { label: 'Kamp', Room: CampRoom, max: CAMP_MAX_CAPACITY },
-  space: { label: 'Uzay İstasyonu', Room: SpaceRoom, max: SPACE_MAX_CAPACITY },
-  underwater: { label: 'Sualtı Üssü', Room: UnderwaterRoom, max: UNDERWATER_MAX_CAPACITY },
-  bar: { label: 'Bar', Room: BarRoom, max: BAR_MAX_CAPACITY },
-  treehouse: { label: 'Ağaç Ev', Room: TreehouseRoom, max: TREEHOUSE_MAX_CAPACITY },
-}
 
 // Geliştirme önizlemesi. URL ile başlangıç ayarı: ?theme=cabin&c=4&t=night
 function readParams() {
