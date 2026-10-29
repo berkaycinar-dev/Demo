@@ -1,0 +1,24 @@
+# Local PostgreSQL for development.
+#   Start:  docker compose up -d
+#   Stop:   docker compose down        (data is kept in the volume)
+#   Reset:  docker compose down -v     (deletes all data)
+services:
+  db:
+    image: postgres:16
+    container_name: odakhane-db
+    environment:
+      POSTGRES_DB: odakhane
+      POSTGRES_USER: odakhane
+      POSTGRES_PASSWORD: odakhane
+    ports:
+      - "5432:5432"
+    volumes:
+      - odakhane-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odakhane -d odakhane"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  odakhane-db-data:

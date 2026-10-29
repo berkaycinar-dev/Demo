@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: odakhane-backend
+
+  # Values after ":" are local defaults (matching docker-compose.yml).
+  # On a server, set DB_URL / DB_USER / DB_PASSWORD as environment variables instead.
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/odakhane}
+    username: ${DB_USER:odakhane}
+    password: ${DB_PASSWORD:odakhane}
+
+  jpa:
+    # Flyway owns the schema; Hibernate only checks entities match the tables.
+    hibernate:
+      ddl-auto: validate
+    # Do not keep DB connections open while the JSON response is written.
+    open-in-view: false
+
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  cors:
+    # Vite dev server. Add more origins comma-separated, e.g. via CORS_ORIGINS env var.
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
