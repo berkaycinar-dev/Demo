@@ -1,0 +1,288 @@
+/* Test arayüzü: bilerek sade. Görsel tasarım ayrıca yapılacak. */
+
+.site {
+  min-height: 100svh;
+  background: #f4f4f2;
+  color: #222;
+}
+
+.site h1 {
+  margin: 0 0 16px;
+  font-size: 26px;
+}
+
+.site h2 {
+  margin: 28px 0 12px;
+  font-size: 19px;
+}
+
+.site h3 {
+  margin: 4px 0;
+  font-size: 16px;
+}
+
+.site p {
+  margin: 0 0 12px;
+}
+
+.site-muted {
+  color: #666;
+  font-size: 14px;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+}
+
+.site-brand {
+  font-size: 20px;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.site-nav button {
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.site-nav button:hover {
+  background: #f0f0ee;
+}
+
+.site-nav button[aria-current='page'] {
+  border-color: #bbb;
+  background: #ececea;
+  font-weight: 600;
+}
+
+.site-main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.site-card {
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.site-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.site-btn {
+  padding: 9px 16px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  font: inherit;
+  cursor: pointer;
+}
+
+.site-btn:hover {
+  background: #f0f0ee;
+}
+
+.site-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.site-btn--primary {
+  border-color: #222;
+  background: #222;
+  color: #fff;
+}
+
+.site-btn--primary:hover {
+  background: #444;
+}
+
+.site-btn--wide {
+  width: 100%;
+}
+
+.site button:focus-visible,
+.site input:focus-visible {
+  outline: 2px solid #2f6fd6;
+  outline-offset: 2px;
+}
+
+/* lobi */
+
+.site-rooms {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-room {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.site-room .site-btn {
+  margin-top: auto;
+}
+
+/* oda oluştur */
+
+.create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.create-preview {
+  position: sticky;
+  top: 16px;
+}
+
+.create-preview h2 {
+  margin-top: 0;
+}
+
+.field {
+  display: block;
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+}
+
+.field__label {
+  display: block;
+  margin-bottom: 8px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.field input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.theme-option {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.theme-option span {
+  display: block;
+  margin-top: 2px;
+  color: #666;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.theme-option:hover {
+  background: #f6f6f4;
+}
+
+.theme-option[aria-pressed='true'] {
+  border-color: #222;
+  box-shadow: inset 0 0 0 1px #222;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choice-row button {
+  min-width: 40px;
+  padding: 8px 12px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.choice-row button[aria-pressed='true'] {
+  border-color: #222;
+  background: #222;
+  color: #fff;
+}
+
+/* 3D oda kapsayıcıları: oda bileşeni ebeveyninin boyutunu doldurur */
+
+.room-frame {
+  overflow: hidden;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.create-preview__room {
+  height: min(560px, 70svh);
+}
+
+.myroom__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.myroom__room {
+  height: max(420px, calc(100svh - 230px));
+}
+
+@media (max-width: 900px) {
+  .create {
+    grid-template-columns: 1fr;
+  }
+
+  .create-preview {
+    position: static;
+    order: -1;
+  }
+
+  .create-preview__room {
+    height: 380px;
+  }
+}

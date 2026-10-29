@@ -141,3 +141,5 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
 Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`), kapasite ve gün zamanı seçilebilir.
+Parametresiz adres sitenin sade test arayüzünü açar (`src/site/`): Lobi, Odam, Oda oluştur (tema ve kapasite seçimi, canlı
+3D önizleme). Temaların listesi (ad, kısa açıklama, oda bileşeni, en büyük kapasite) `themes.js` içinde; iki taraf da onu okur.
