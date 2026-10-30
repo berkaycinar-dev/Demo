@@ -1,3 +1,4 @@
+import { ALCHEMIST_MAX_CAPACITY, AlchemistRoom } from './alchemist'
 import { BAR_MAX_CAPACITY, BarRoom } from './bar'
 import { CABIN_MAX_CAPACITY, CabinRoom } from './cabin'
 import { CAMP_MAX_CAPACITY, CampRoom } from './camp'
@@ -22,4 +23,5 @@ export const THEMES = {
   bar: { label: 'Bar', description: 'yağmurlu sokak, neon, müzik kutusu', Room: BarRoom, max: BAR_MAX_CAPACITY },
   treehouse: { label: 'Ağaç Ev', description: 'ağaç gövdesi, hamak, ateş böcekleri', Room: TreehouseRoom, max: TREEHOUSE_MAX_CAPACITY },
   cyber: { label: 'Siber Loft', description: 'neon kent manzarası, hologram masa, sunucular', Room: CyberRoom, max: CYBER_MAX_CAPACITY },
+  alchemist: { label: 'Simyacı Odası', description: 'taş kule, kazan, iksirler, kristal küre', Room: AlchemistRoom, max: ALCHEMIST_MAX_CAPACITY },
 }
