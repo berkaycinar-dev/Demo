@@ -5,7 +5,7 @@ ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfay
 
 Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza),
 `teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu),
-`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda), `cyber` (Siber Loft, neon megakent).
+`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda), `cyber` (Siber Loft, neon megakent), `alchemist` (Simyacı Odası, taş kule).
 Her temada 1-10 kişilik oda var.
 
 ```jsx
@@ -19,6 +19,7 @@ import { UnderwaterRoom } from './rooms/underwater'
 import { BarRoom } from './rooms/bar'
 import { TreehouseRoom } from './rooms/treehouse'
 import { CyberRoom } from './rooms/cyber'
+import { AlchemistRoom } from './rooms/alchemist'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -35,7 +36,7 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom` / `CyberRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom` / `CyberRoom` / `AlchemistRoom`: 1-10, uygun oda bileşenini seçer |
 | `reducedMotion` | Tüm temalar: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
@@ -100,8 +101,16 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
   otomat (eşit aralıkla, geniş boşluklarda veri akışı sütunu); ortada hologram masaları (3+), sağda VR istasyonu, sağ önde
   lounge (8+), lounge olmayan orta odalarda bonsai teraryumu. Koltuklar: kapsül masalar + hologram masaları (2'şer) + lounge (2).
   Neonlar `bulb` katmanında; tema `bulb` ve `lampColor`'ı beyaz tutar, lambalar ve ışık havuzları kendi rengini taşır.
+- `alchemist/` aynı yapı: `parts.js` (kaba taş duvar ve döşeme, meşe kirişler, sivri kemerli kurşun çerçeveli pencereler,
+  kemerli kapı, kitaplık, baykuşlu iksir dolabı, imbikli simya tezgâhı, duvar şamdanları, gotik sandalyeli okuma ve çalışma
+  masaları, ocak üstünde kazan, rün çemberli kristal küre, gök küresi, berjerli okuma köşesi...), `buildAlchemist.js`,
+  `AlchemistRoom1..10.jsx`. Düzen her odada aynı: sol duvarda pencereler ve altlarında okuma masaları; arka duvarda soldan
+  sağa kapı, kitaplık, iksir dolabı (3+), simya tezgâhı (7+) (eşit aralıkla, geniş boşluklarda şamdan); sağ arka köşede kazan,
+  sağda kristal küre, ortada halı üstünde çalışma masaları (3+), sağ önde okuma köşesi (8+), olmayan orta odalarda gök küresi.
+  Koltuklar: okuma masaları + çalışma masaları (2'şer) + okuma köşesi (2). Duvara asılan düz eşyalar, 1 cm taşan taşların
+  önünde kalsın diye en az 1.2 cm önde durur.
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
-- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar, Siber Loft'ta kulelerin ışıklı pencere şeritleri); görünürlüğü `nightLights` ayarından gelir
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar, Siber Loft'ta kulelerin ışıklı pencere şeritleri, simyacı odasında ay ve uzak kulenin penceresi); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -153,8 +162,14 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
   halkaları, titreyen "ODAK" neonu, süzülen drone (`cyber/CyberEffect.jsx`) ve kahve / erişte buharı tek zamanlayıcıyla saniyede
   12 kare ister (~10 draw call/kare, efektin tamamı 3 instanced mesh). `reducedMotion` ile durur. En büyük oda ~850 kutu, en
   fazla 3 renkli nokta ışık (eflatun, kehribar, camgöbeği).
+- Simyacı odasında mum ve ocak alevleri, kıvılcımlar, kazanda ve şişelerde kabarcıklar, kazandan yükselen yarı saydam yeşil
+  duman, imbikten damlayan iksir, sırayla yanan rünler, kristal kürenin nabız gibi atan çekirdeği ve çevresindeki ışıltılar,
+  süzülen kitaplar ve mumlar, başını çeviren baykuş, dönen gök küresi, pencerelerde bulutlar ve gece parıldayan yıldızlar
+  (`alchemist/AlchemyEffect.jsx`) ile çay buharı tek zamanlayıcıyla saniyede 12 kare ister (~12 draw call/kare, efektin tamamı
+  5 instanced mesh; yıldızlar yalnızca akşam/gece çizilir). `reducedMotion` ile durur. En büyük oda ~1670 kutu, en fazla 3
+  renkli nokta ışık (kazan yeşil, kristal mor, masa mumu).
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`, `cyber`), kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`, `cyber`, `alchemist`), kapasite ve gün zamanı seçilebilir.
 Parametresiz adres sitenin sade test arayüzünü açar (`src/site/`): Lobi, Odam, Oda oluştur (tema ve kapasite seçimi, canlı
 3D önizleme). Temaların listesi (ad, kısa açıklama, oda bileşeni, en büyük kapasite) `themes.js` içinde; iki taraf da onu okur.
