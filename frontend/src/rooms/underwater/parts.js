@@ -12,16 +12,15 @@ export const WALL = 0.25
 export const FLOOR_BOTTOM = -0.36
 export const WALL_HEIGHT = 3.0
 export const SEAT_HEIGHT = 0.5
-const SEAT_WIDTH = 0.85
-const TABLE_DEPTH = 1.1
 const TABLE_HEIGHT = 0.76
-const PENDANT_HEIGHT = 2.45
-const SILL = 0.45
-const WINDOW_TOP = 2.5
+const PENDANT_HEIGHT = 2.4
 const PANEL_TOP = 2.6
-// Cam boşluğunun duvar uçlarından payı; balıklar bu payların içinde (duvarda) kaybolur.
-const WINDOW_MARGIN = 0.45
-// Camın arkasındaki deniz duvar kalınlığının içinde sığ bir dioramadır: su fonu BACK'te, kum,
+// Lomboz: sekizgen açıklık, PORT_R iç yarıçap (kenar ortasına), merkezi PORT_Y yüksekliğinde.
+// Açıklık ilk panel sırasının üstünde başlar.
+export const PORT_R = 0.6
+const PORT_Y = 1.7
+const PORT_RING = 0.14
+// Lombozun arkasındaki deniz duvar kalınlığının içinde sığ bir dioramadır: su fonu BACK'te, kum,
 // yosun, balık ve kabarcıklar onunla cam (GLASS_PLANE) arasında. Kamera dönünce öndekiler daha
 // çok kayar, derinlik hissi verir.
 const BACK = -WALL + 0.005
@@ -160,57 +159,76 @@ function wallShell(f, from, length) {
   f.box(from, WALL_HEIGHT, -WALL, length - from, 0.04, WALL, C.trim)
 }
 
-// Arka duvar: z = 0 boyunca, x = -WALL'dan width'e. Tepe bandının önünde bakır ve çelik boru
-// hattı, aralıklı kelepçelerle.
-export function backWall(f, width) {
-  wallShell(f, -WALL, width)
-  f.box(-WALL, 0, -WALL, width + WALL, WALL_HEIGHT, WALL - 0.02, C.seam)
-  panels(f, 0, width, FULL_PANELS)
-  f.box(0, 2.76, 0.02, width, 0.08, 0.08, C.copper)
-  f.box(0, 2.68, 0.03, width, 0.05, 0.05, C.pipe)
-  const clamps = Math.max(2, Math.round(width / 1.4))
+// Gövde duvarı: [from, length] boyunca, ports: lomboz merkezleri (u). Lomboz açıklıklarında duvar
+// gövdesi ve panel yoktur; köşeler sekizgene pahlanır, arkada deniz dioraması görünür. pipes: tepe
+// bandının önünde bakır ve çelik boru hattı, aralıklı kelepçelerle.
+function hullWall(f, from, length, ports, rnd, fx, pipes) {
+  wallShell(f, from, length)
+  const t = WALL - 0.02
+  const y0 = PORT_Y - PORT_R
+  const y1 = PORT_Y + PORT_R
+  const holes = [...ports].sort((a, b) => a - b).map((u) => [u - PORT_R, u + PORT_R])
+  f.box(from, 0, -WALL, length - from, y0, t, C.seam)
+  f.box(from, y1, -WALL, length - from, WALL_HEIGHT - y1, t, C.seam)
+  let u = from
+  for (const [a, b] of [...holes, [length, length]]) {
+    if (a > u) f.box(u, y0, -WALL, a - u, y1 - y0, t, C.seam)
+    u = b
+  }
+  // paneller: alt sıra boydan boya, üst sıra lombozların arasında ve üstünde
+  panels(f, 0, length, [FULL_PANELS[0]])
+  u = 0
+  for (const [a, b] of [...holes, [length, length]]) {
+    if (a > u + 0.05) panels(f, u, a, [FULL_PANELS[1]])
+    if (b < length) panels(f, a, b, [[y1, PANEL_TOP]])
+    u = b
+  }
+  ports.forEach((u, i) => porthole(f, u, rnd, fx, i))
+
+  if (!pipes) return
+  f.box(0, 2.76, 0.02, length, 0.08, 0.08, C.copper)
+  f.box(0, 2.68, 0.03, length, 0.05, 0.05, C.pipe)
+  const clamps = Math.max(2, Math.round(length / 1.4))
   for (let i = 0; i < clamps; i++) {
-    const x = ((i + 0.5) * width) / clamps
+    const x = ((i + 0.5) * length) / clamps
+    if (holes.some(([a, b]) => x > a - 0.1 && x < b + 0.1)) continue
     f.box(x - 0.025, 2.66, 0, 0.05, 0.2, 0.12, C.steelDark)
   }
 }
 
-// Sol duvar: boydan boya akvaryum camı ve arkasında deniz. Yerel u duvar boyunca (0 = ön kenar),
-// iç yüzey v = 0. Balık, yosun, kabarcık ve denizanaları fx listesine gider.
-export function aquariumWall(f, length, rnd, fx) {
-  const a = WINDOW_MARGIN
-  const b = length - WINDOW_MARGIN
-  const t = WALL - 0.02
-  wallShell(f, 0, length)
-  f.box(0, 0, -WALL, a, WALL_HEIGHT, t, C.seam)
-  f.box(b, 0, -WALL, length - b, WALL_HEIGHT, t, C.seam)
-  f.box(a, 0, -WALL, b - a, SILL, t, C.seam)
-  f.box(a, WINDOW_TOP, -WALL, b - a, WALL_HEIGHT - WINDOW_TOP, t, C.seam)
-  panels(f, 0, a, FULL_PANELS)
-  panels(f, b, length, FULL_PANELS)
-  panels(f, a, b, [[0.14, SILL - 0.14]])
+// Arka duvar: z = 0 boyunca, x = -WALL'dan width'e; ports: lomboz merkezleri (x).
+export function backWall(f, width, ports, rnd, fx) {
+  hullWall(f, -WALL, width, ports, rnd, fx, true)
+}
 
-  // Kasa: alt pervaz odaya taşar, kayıtlar camın önünde. Hiçbir yüz duvar gövdesiyle aynı düzlemde
-  // değil; pahlı köşeler kasanın arkasında kalır.
-  const panes = Math.max(2, Math.round((b - a) / 1.6))
-  const pw = (b - a) / panes
-  f.box(a - 0.06, SILL - 0.12, -0.07, b - a + 0.12, 0.13, 0.19, C.trim)
-  f.box(a - 0.06, WINDOW_TOP, -0.07, b - a + 0.12, 0.12, 0.11, C.trim)
-  for (const u of [a, b - 0.06]) f.box(u, SILL, -0.07, 0.06, WINDOW_TOP - SILL, 0.11, C.trim)
-  for (let i = 1; i < panes; i++) f.box(a + i * pw - 0.05, SILL, -0.07, 0.1, WINDOW_TOP - SILL, 0.12, C.trim)
-  for (let i = 0; i <= panes; i++) {
-    for (const y of [SILL, WINDOW_TOP]) {
-      f.box(a + i * pw - 0.08, y - 0.08, -0.07, 0.16, 0.16, 0.065, C.trim, { rot: [0, 0, Math.PI / 4] })
+// Sol duvar: yerel u duvar boyunca (0 = ön kenar), iç yüzey v = 0; ports: lomboz merkezleri (u).
+export function leftWall(f, length, ports, rnd, fx) {
+  hullWall(f, 0, length, ports, rnd, fx, false)
+}
+
+// Lomboz; u merkezde. Açıklığın köşelerinde sekizgen pahlar (panel renginde), önde cıvatalı pirinç
+// çerçeve, camda parıltı; arkasında deniz (seaView). i: lombozun sırası, balık sürüsünü seçer.
+function porthole(f, u, rnd, fx, i) {
+  const R = PORT_R
+  const cut = (2 * R) / (2 + Math.SQRT2)
+  const k = cut * Math.SQRT2
+  for (const sx of [-1, 1]) {
+    for (const sy of [-1, 1]) {
+      f.box(u + sx * R - k / 2, PORT_Y + sy * R - k / 2, -0.06, k, k, 0.056, C.panel[0], { rot: [0, 0, Math.PI / 4] })
     }
   }
-  // camdaki eğik parıltı çizgileri
-  for (let i = 0; i < panes; i++) {
-    const u = a + i * pw
-    f.box(u + pw * 0.22, SILL + 0.9, GLASS_PLANE, 0.035, 0.75, 0.002, C.glare, { ...GLASS, rot: [0, 0, -0.55] })
-    f.box(u + pw * 0.22 + 0.12, SILL + 1.0, GLASS_PLANE, 0.018, 0.4, 0.002, C.glare, { ...GLASS, rot: [0, 0, -0.55] })
+  const mid = R + 0.02
+  const seg = 2 * (mid + PORT_RING / 2) * Math.tan(Math.PI / 8)
+  for (let e = 0; e < 8; e++) {
+    const a = (e * Math.PI) / 4
+    f.frame(u + Math.cos(a) * mid, PORT_Y + Math.sin(a) * mid, 0, 0, 0, a + Math.PI / 2).box(-seg / 2, -PORT_RING / 2, -0.03, seg, PORT_RING, 0.09, C.brass)
+    const b = a + Math.PI / 8
+    const r = (mid + 0.01) / Math.cos(Math.PI / 8)
+    f.box(u + Math.cos(b) * r - 0.02, PORT_Y + Math.sin(b) * r - 0.02, 0.06, 0.04, 0.04, 0.012, C.copperDark)
   }
-
-  seaView(f, a, b, rnd, fx)
+  f.box(u - 0.3, PORT_Y - 0.05, GLASS_PLANE, 0.03, 0.5, 0.002, C.glare, { ...GLASS, rot: [0, 0, -0.6] })
+  f.box(u - 0.18, PORT_Y + 0.02, GLASS_PLANE, 0.016, 0.28, 0.002, C.glare, { ...GLASS, rot: [0, 0, -0.6] })
+  seaView(f, u - R, u + R, rnd, fx, PORT_Y - R, PORT_Y + R, i)
 }
 
 // Balık: gövde, renk şeridi, göz ve elmas kuyruk; burnu +u (dir 1) ya da -u (dir -1) yönünde.
@@ -254,23 +272,24 @@ function kelpStrand(f, fx, { u, v, base, height, w }, rnd) {
   }
 }
 
-// Camın arkasındaki deniz: arkada yukarıdan aşağı koyulaşan su bantları ve eğik ışık huzmeleri,
-// dipte iki sıra kum tepeciği, kaya ve mercanlar; aralarında salınan yosunlar, geçen balık
-// sürüleri ve deniz kaplumbağası, yükselen kabarcıklar, süzülen denizanaları. Gece suyun rengi
-// koyulaşır; plankton (night) ve denizanaları ışır.
-function seaView(f, a, b, rnd, fx) {
+// Lombozun arkasındaki deniz ([a, b] x [y0, y1]): arkada yukarıdan aşağı koyulaşan su bantları ve
+// eğik ışık huzmeleri, dipte iki sıra kum tepeciği, kaya ve mercanlar; aralarında salınan
+// yosunlar, geçen balık sürüsü (school: SCHOOLS sırası), yükselen kabarcıklar, süzülen denizanası.
+// Açıklığın dışına taşanlar duvar gövdesinin içinde kalır. Gece suyun rengi koyulaşır; plankton
+// (night) ve denizanaları ışır.
+function seaView(f, a, b, rnd, fx, y0, y1, school) {
   const length = b - a
-  const height = WINDOW_TOP - SILL
+  const height = y1 - y0
   const bh = height / C.water.length
-  C.water.forEach((color, i) => f.box(a - 0.01, WINDOW_TOP - (i + 1) * bh, BACK, length + 0.02, bh, 0.004, color, GLASS))
+  C.water.forEach((color, i) => f.box(a - 0.01, y1 - (i + 1) * bh, BACK, length + 0.02, bh, 0.004, color, GLASS))
 
-  const rays = Math.max(2, Math.round(length / 1.2))
+  const rays = 2
   for (let i = 0; i < rays; i++) {
     const u = a + ((i + 0.3 + rnd() * 0.4) * length) / rays
-    const w = 0.07 + rnd() * 0.06
-    const ray = f.frame(u, WINDOW_TOP, BACK + 0.006, 0, 0, 0.3)
-    ray.box(-w / 2, -0.55, 0, w, 0.85, 0.002, C.ray[0], GLASS)
-    ray.box(-w / 2, -1.15, 0, w, 0.6, 0.002, C.ray[1], GLASS)
+    const w = 0.06 + rnd() * 0.05
+    const ray = f.frame(u, y1, BACK + 0.006, 0, 0, 0.3)
+    ray.box(-w / 2, -0.45, 0, w, 0.55, 0.002, C.ray[0], GLASS)
+    ray.box(-w / 2, -0.85, 0, w, 0.4, 0.002, C.ray[1], GLASS)
   }
 
   // kum: arka sıra yüksek, ön sıra alçak tepecikler
@@ -280,8 +299,8 @@ function seaView(f, a, b, rnd, fx) {
   const step = 0.15
   for (let u = a; u < b - 1e-3; u += step) {
     const w = Math.min(step, b - u)
-    f.box(u, SILL, BACK, w, backH(u + w / 2), -0.155 - BACK, pick(rnd, C.sand), GLASS)
-    f.box(u, SILL, -0.155, w, frontH(u + w / 2), 0.085, pick(rnd, C.sand), GLASS)
+    f.box(u, y0, BACK, w, backH(u + w / 2), -0.155 - BACK, pick(rnd, C.sand), GLASS)
+    f.box(u, y0, -0.155, w, frontH(u + w / 2), 0.085, pick(rnd, C.sand), GLASS)
   }
 
   const rocks = Math.max(2, Math.round(length / 1.5))
@@ -289,7 +308,7 @@ function seaView(f, a, b, rnd, fx) {
     const u = a + 0.15 + ((i + rnd() * 0.6) * (length - 0.45)) / rocks
     const w = 0.14 + rnd() * 0.14
     const h = 0.07 + rnd() * 0.08
-    const y = SILL + frontH(u + w / 2) - 0.04
+    const y = y0 + frontH(u + w / 2) - 0.04
     f.box(u, y, -0.15, w, h, 0.06, pick(rnd, C.rock), GLASS)
     f.box(u + w * 0.3, y + h - 0.01, -0.145, w * 0.5, 0.05, 0.045, pick(rnd, C.rock), GLASS)
   }
@@ -300,7 +319,7 @@ function seaView(f, a, b, rnd, fx) {
     const u = a + 0.12 + ((i + rnd()) * (length - 0.24)) / corals
     const color = pick(rnd, C.coral)
     const front = i % 2 === 0
-    const y = SILL + (front ? frontH(u) : backH(u)) - 0.02
+    const y = y0 + (front ? frontH(u) : backH(u)) - 0.02
     const v = front ? -0.121 : -0.2
     if (rnd() < 0.55) {
       const n = 3 + Math.floor(rnd() * 2)
@@ -320,12 +339,12 @@ function seaView(f, a, b, rnd, fx) {
   const backKelp = Math.max(3, Math.round(length / 0.55))
   for (let i = 0; i < backKelp; i++) {
     const u = a + 0.08 + ((i + 0.2 + rnd() * 0.6) * (length - 0.16)) / backKelp
-    strands.push({ u, v: -0.215, base: SILL + backH(u) - 0.03, height: 0.9 + rnd() * 0.9, w: 0.035 })
+    strands.push({ u, v: -0.215, base: y0 + backH(u) - 0.03, height: (0.45 + rnd() * 0.45) * height, w: 0.035 })
   }
   const frontKelp = Math.max(1, Math.round(length / 1.8))
   for (let i = 0; i < frontKelp; i++) {
     const u = a + 0.2 + ((i + 0.3 + rnd() * 0.4) * (length - 0.4)) / frontKelp
-    strands.push({ u, v: -0.088, base: SILL + frontH(u) - 0.02, height: 0.45 + rnd() * 0.4, w: 0.045 })
+    strands.push({ u, v: -0.088, base: y0 + frontH(u) - 0.02, height: (0.25 + rnd() * 0.2) * height, w: 0.045 })
   }
   for (const s of strands) kelpStrand(f, fx, s, rnd)
 
@@ -333,43 +352,39 @@ function seaView(f, a, b, rnd, fx) {
   // girer ve baştan döner (duvarın dışına hiç taşmaz). Aynı hız ve kaydırılmış faz sürüyü bir arada
   // tutar; duvara yaklaşan balık küçülerek kaybolur.
   const axis = axisOf(f, 1, 0, 0)
-  const schools = Math.min(SCHOOLS.length, 1 + Math.floor(length / 2))
+  const s = SCHOOLS[school % SCHOOLS.length]
+  const dir = school % 2 === 0 ? 1 : -1
   const pad = 0.2
   const travel = length + 2 * pad
-  for (let i = 0; i < schools; i++) {
-    const s = SCHOOLS[i]
-    const dir = i % 2 === 0 ? 1 : -1
-    const y = SILL + 0.6 + ((i + 0.5) * (height - 0.95)) / schools
-    const v = i % 2 === 0 ? -0.175 : -0.135
-    const start = dir > 0 ? a - pad : b + pad
-    const phase = rnd()
-    const bob = { axis: [0, 1, 0], amp: 0.03, period: 3.5 + rnd() }
-    for (let k = 0; k < s.count; k++) {
-      const du = k * 0.13 + rnd() * 0.05
-      const dy = (rnd() - 0.5) * (s.count > 2 ? 0.2 : 0.08)
-      fx.view.movers.push({
-        items: fishBoxes(f, start, y + dy, v + (k % 2) * 0.014, dir, s.size, s.body, s.stripe),
-        axis: axis.map((c) => c * dir),
-        travel,
-        period: travel / s.speed,
-        phase: phase - du / travel,
-        fade: 0.3 / travel,
-        bob,
-      })
-    }
+  const y = y0 + 0.35 + rnd() * (height - 0.75)
+  const start = dir > 0 ? a - pad : b + pad
+  const phase = rnd()
+  const bob = { axis: [0, 1, 0], amp: 0.03, period: 3.5 + rnd() }
+  for (let k = 0; k < s.count; k++) {
+    const du = k * 0.13 + rnd() * 0.05
+    const dy = (rnd() - 0.5) * (s.count > 2 ? 0.2 : 0.08)
+    fx.view.movers.push({
+      items: fishBoxes(f, start, y + dy, -0.175 + (k % 2) * 0.014, dir, s.size, s.body, s.stripe),
+      axis: axis.map((c) => c * dir),
+      travel,
+      period: travel / s.speed,
+      phase: phase - du / travel,
+      fade: 0.3 / travel,
+      bob,
+    })
   }
-  if (length > 5) seaTurtle(f, fx, a, b, axis, rnd)
+  if (school === 1) seaTurtle(f, fx, a, b, y1, axis, rnd)
 
   // kabarcıklar: kumdaki deliklerden yükselip camın üst kasasında kaybolur
-  const vents = Math.max(2, Math.round(length / 2.4))
+  const vents = 1
   for (let i = 0; i < vents; i++) {
     const u = a + ((i + 0.3 + rnd() * 0.4) * length) / vents
-    const y0 = SILL + frontH(u) - 0.02
-    const travel = WINDOW_TOP + 0.1 - y0
+    const yb = y0 + frontH(u) - 0.02
+    const travel = y1 + 0.1 - yb
     for (let k = 0; k < 4; k++) {
       const s = 0.018 + rnd() * 0.014
       fx.view.movers.push({
-        items: [fxBox(f, u - s / 2, y0, -0.112, s, s, 0.004, C.bubble)],
+        items: [fxBox(f, u - s / 2, yb, -0.112, s, s, 0.004, C.bubble)],
         axis: [0, 1, 0],
         travel,
         period: travel / 0.28,
@@ -384,7 +399,7 @@ function seaView(f, a, b, rnd, fx) {
   const jellies = Math.max(1, Math.round(length / 3.5))
   for (let i = 0; i < jellies; i++) {
     const u = a + ((i + 0.5) * length) / jellies + (rnd() - 0.5) * 0.4
-    const y = SILL + 1.0 + rnd() * (height - 1.4)
+    const y = y0 + 0.55 + rnd() * (height - 0.85)
     const color = C.jelly[i % C.jelly.length]
     const items = [
       fxBox(f, u - 0.055, y, -0.165, 0.11, 0.05, 0.03, color),
@@ -406,18 +421,18 @@ function seaView(f, a, b, rnd, fx) {
   const specks = Math.round(length * 7)
   for (let i = 0; i < specks; i++) {
     const u = a + 0.05 + rnd() * (length - 0.1)
-    const y = SILL + 0.4 + rnd() * (height - 0.45)
+    const y = y0 + 0.4 + rnd() * (height - 0.45)
     const s = 0.012 + rnd() * 0.012
     f.box(u, y, -0.23 + rnd() * 0.12, s, s, 0.004, pick(rnd, C.plankton), NIGHT)
   }
 }
 
 // Deniz kaplumbağası: kabuk, karın, baş ve yüzgeçler; uzun camlarda tek başına, çok yavaş geçer.
-function seaTurtle(f, fx, a, b, axis, rnd) {
+function seaTurtle(f, fx, a, b, y1, axis, rnd) {
   const dir = rnd() < 0.5 ? 1 : -1
   const pad = 0.24
   const u = dir > 0 ? a - pad : b + pad
-  const y = WINDOW_TOP - 0.55
+  const y = y1 - 0.4
   const v = -0.105
   const part = (du, dy, w, h, dv, d, color, roll = 0) =>
     fxBox(f, u + dir * du - w / 2, y + dy - h / 2, v + dv, w, h, d, color, roll ? { rot: [0, 0, dir * roll] } : {})
@@ -443,7 +458,7 @@ function seaTurtle(f, fx, a, b, axis, rnd) {
   })
 }
 
-// ---------------------------------------------------------------- arka duvar
+// ---------------------------------------------------------------- duvar donanımı
 
 // Basınç kapısı; orijin kapının ortası. Cıvatalı tek kanat, ortada sarı el çarkı, üstte pirinç
 // çerçeveli lomboz, sağda tuş paneli (durum ışığı yanıp söner), üstte tabela, önde ikaz şeritli eşik.
@@ -481,7 +496,7 @@ export function pressureHatch(f, fx) {
   // tabela ve tuş paneli
   f.box(-0.32, H + J + 0.07, -0.02, 0.64, 0.14, 0.05, C.screenBody)
   f.box(-0.28, H + J + 0.1, 0.03, 0.56, 0.08, 0.003, C.tealLight, BULB)
-  const k = W / 2 + J + 0.07
+  const k = W / 2 + J + 0.075
   f.box(k, 1.05, -0.02, 0.17, 0.27, 0.05, C.screenBody)
   f.box(k + 0.025, 1.17, 0.03, 0.12, 0.08, 0.003, C.screen, BULB)
   for (let i = 0; i < 3; i++) f.box(k + 0.025 + i * 0.045, 1.08, 0.03, 0.03, 0.05, 0.006, C.steel)
@@ -517,79 +532,6 @@ export function divingSuit(f) {
   s.box(0.16, 1.47, -0.06, 0.02, 0.13, 0.12, C.brass)
   s.box(0.18, 1.49, -0.04, 0.003, 0.09, 0.08, C.porthole, GLASS)
   s.box(-0.02, 1.58, -0.3, 0.04, 0.04, 0.15, C.copperDark)
-}
-
-// Sonar paneli; orijin ortası. Altta dolap ve eğik tuş paneli, duvarda yuvarlak sonar ekranı
-// (tarama çizgisi döner, geçtiği hedef noktaları yanar) ve yanlarda derinlik grafikleri.
-export function sonarConsole(f, length, rnd, fx) {
-  const L = length
-  f.box(-L / 2, 0, 0, L, 0.08, 0.5, C.kick)
-  f.box(-L / 2, 0.08, 0, L, 0.74, 0.55, C.steel)
-  const doors = Math.max(2, Math.round(L / 0.6))
-  for (let i = 1; i < doors; i++) f.box(-L / 2 + (i * L) / doors - 0.004, 0.12, 0.55, 0.008, 0.66, 0.004, C.steelDark)
-  f.box(-L / 2 - 0.02, 0.82, 0, L + 0.04, 0.04, 0.62, C.trim)
-  f.box(-L / 2 + 0.05, 0.86, 0.02, L - 0.1, 0.15, 0.1, C.screenBody)
-  const p = f.frame(0, 1.03, 0.08, 0, 0.6)
-  p.box(-L / 2 + 0.05, -0.05, 0, L - 0.1, 0.05, 0.3, C.screenBody)
-  const keys = Math.floor((L - 0.2) / 0.14)
-  for (let r = 0; r < 2; r++) {
-    for (let i = 0; i < keys; i++) {
-      const x = -((keys - 1) * 0.14) / 2 + i * 0.14 - 0.03
-      const color = C.ui[(i + r * 2) % 4]
-      if ((i + r) % 5 === 2) {
-        fx.room.blinkers.push(fxBox(p, x, 0, 0.07 + r * 0.12, 0.06, 0.012, 0.05, color, { rate: 0.4 + ((i * 7 + r) % 5) * 0.15, duty: 0.55, phase: (i * 0.37) % 1 }))
-      } else {
-        p.box(x, 0, 0.07 + r * 0.12, 0.06, 0.012, 0.05, color, BULB)
-      }
-    }
-  }
-
-  // sonar ekranı
-  const R = 0.28
-  const cy = 1.66
-  const S = 2 * R + 0.12
-  f.box(-S / 2, cy - S / 2, -0.02, S, S, 0.06, C.screenBody)
-  disk(f, 0, cy, 0.04, R, 0.035, 0.003, C.sonar, BULB)
-  for (const [r, n] of [[R * 0.45, 12], [R * 0.85, 22]]) {
-    for (let i = 0; i < n; i++) {
-      const t = (i / n) * TAU
-      f.box(Math.cos(t) * r - 0.009, cy + Math.sin(t) * r - 0.009, 0.043, 0.018, 0.018, 0.002, C.sonarDim, BULB)
-    }
-  }
-  f.box(-R + 0.02, cy - 0.003, 0.043, 2 * R - 0.04, 0.006, 0.0015, C.sonarDim, BULB)
-  f.box(-0.003, cy - R + 0.02, 0.043, 0.006, 2 * R - 0.04, 0.0015, C.sonarDim, BULB)
-  const sweep = 4
-  const pivot = f.point(0, cy, 0)
-  const axis = axisOf(f, 0, 0, 1)
-  C.sonarLine.forEach((color, i) => {
-    fx.room.spinners.push({
-      items: [fxBox(f, 0, cy - 0.005, 0.0475 - i * 0.0006, R * 0.95, 0.01, 0.0005, color)],
-      pivot,
-      axis,
-      period: sweep,
-      phase: -i * 0.025,
-    })
-  })
-  // hedef noktaları: tarama çizgisi üstlerinden geçince yanar, bir süre sonra söner
-  for (let i = 0; i < 3; i++) {
-    const r = R * (0.3 + rnd() * 0.55)
-    const t = rnd() * TAU
-    fx.room.blinkers.push(fxBox(f, Math.cos(t) * r - 0.014, cy + Math.sin(t) * r - 0.014, 0.045, 0.028, 0.028, 0.002, C.ui[2], { rate: 1 / sweep, duty: 0.35, phase: -t / TAU }))
-  }
-
-  // yan ekranlar: derinlik grafikleri
-  const sw = Math.min(0.42, (L - S) / 2 - 0.12)
-  if (sw < 0.2) return
-  for (const s of [-1, 1]) {
-    const cx = s * (S / 2 + 0.1 + sw / 2)
-    f.box(cx - sw / 2 - 0.02, 1.5, -0.02, sw + 0.04, 0.36, 0.05, C.screenBody)
-    f.box(cx - sw / 2, 1.52, 0.03, sw, 0.32, 0.003, C.screen, BULB)
-    const bars = Math.floor((sw - 0.04) / 0.06)
-    for (let i = 0; i < bars; i++) {
-      const bh = 0.06 + rnd() * 0.2
-      f.box(cx - sw / 2 + 0.03 + i * 0.06, 1.55, 0.034, 0.035, bh, 0.002, s < 0 ? C.ui[0] : C.ui[1], BULB)
-    }
-  }
 }
 
 // Kupa; orijin dibinin ortası. Üstte kahve yüzeyi, yanda kulp.
@@ -700,92 +642,90 @@ export function kelpFarm(f, length, rnd) {
 
 // ---------------------------------------------------------------- çalışma alanı
 
-// Araştırma masası; orijin masanın ortası. back: duvar tarafı (kameraya bakar), front: karşı sıra,
-// ends: uçlardaki koltuklar (1 = sağ uç, 2 = iki uç). Ortada masa akvaryumu, üstte sarkıt armatür.
-export function researchTable(c, { back = 0, front = 0, ends = 0 }, room, fx) {
-  const seats = Math.max(back, front, 1)
-  const L = seats * SEAT_WIDTH + 0.55
-  const D = TABLE_DEPTH
+// Lomboz masası; orijin duvar dibinde lombozun ortası, yerel +z odanın içi. Duvara dayalı tabla,
+// yanlarda dolap ayakları, lombozun altında LED şerit; önünde lomboza bakan döner koltuk.
+// light: masanın üstüne nokta ışık ekle.
+export function portDesk(f, room, light) {
+  const W = 1.0
+  const D = 0.56
   const H = TABLE_HEIGHT
-  const top = H - 0.06
+  for (const x of [-W / 2, W / 2 - 0.08]) f.box(x, 0, 0.04, 0.08, H - 0.05, D - 0.06, C.steelDark)
+  f.box(-W / 2 + 0.08, H - 0.2, 0.04, W - 0.16, 0.15, D - 0.1, C.steel)
+  f.box(-W / 2 - 0.02, H - 0.05, 0.02, W + 0.04, 0.05, D, C.white)
+  f.box(-W / 2, H - 0.035, D + 0.02, W, 0.02, 0.006, C.tealLight, BULB)
+  f.box(-0.35, PORT_Y - PORT_R - 0.11, 0.035, 0.7, 0.025, 0.03, C.led, BULB)
+  f.glow(-W / 2, H + 0.003, 0.02, W, D)
+  if (light) room.lights.push(f.point(0, 1.55, 0.6).toArray())
 
-  for (const x of L > 2.2 ? [-L / 2 + 0.6, L / 2 - 0.6] : [0]) {
-    c.box(x - 0.3, 0, -0.3, 0.6, 0.04, 0.6, C.trim)
-    c.box(x - 0.14, 0.04, -0.2, 0.28, top - 0.04, 0.4, C.steelDark)
-  }
-  c.box(-L / 2 + 0.2, top, -D / 2, L - 0.4, 0.06, D, C.white)
-  for (const s of [-1, 1]) {
-    c.box(s < 0 ? -L / 2 : L / 2 - 0.2, top, -D / 2 + 0.2, 0.2, 0.06, D - 0.4, C.white)
-    for (const t of [-1, 1]) {
-      c.box(s * (L / 2 - 0.2) - 0.1415, top, t * (D / 2 - 0.2) - 0.1415, 0.283, 0.06, 0.283, C.white, { rot: [0, Math.PI / 4, 0] })
-    }
-  }
-  for (const z of [-D / 2 - 0.006, D / 2 - 0.009]) c.box(-L / 2 + 0.21, top + 0.015, z, L - 0.42, 0.02, 0.015, C.tealLight, BULB)
-
-  deskAquarium(c.frame(0, H, 0), fx)
-
-  pendant(c, Math.min(L - 0.3, 2.6))
-  c.glow(-L / 2, H + 0.003, -D / 2, L, D)
-  const lights = L > 3 ? [-L / 4, L / 4] : [0]
-  for (const x of lights) room.lights.push(c.point(x, PENDANT_HEIGHT - 0.15, 0).toArray())
-
-  const row = (count) => Array.from({ length: count }, (_, i) => (i - (count - 1) / 2) * SEAT_WIDTH)
-  const places = [
-    ...row(back).map((x) => c.frame(x, 0, -D / 2 - 0.42)),
-    ...row(front).map((x) => c.frame(x, 0, D / 2 + 0.42, Math.PI)),
-    ...(ends > 0 ? [c.frame(L / 2 + 0.42, 0, 0, -Math.PI / 2)] : []),
-    ...(ends > 1 ? [c.frame(-L / 2 - 0.42, 0, 0, Math.PI / 2)] : []),
-  ]
-  places.forEach((seat, i) => {
-    labChair(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
-    tablet(seat.frame(0, H, 0.42), i)
-  })
+  const seat = f.frame(0, 0, D + 0.4, Math.PI)
+  labChair(seat)
+  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'chair' })
+  tablet(seat.frame(0, H, 0.4), room.seats.length - 1)
 }
 
-// Masa akvaryumu; orijin tabanın ortası (masa yüzeyi), dünya eksenine hizalı. Arka iki cam su
-// rengi (kameranın karşısında), ön camlar açık; kumda mercan, içinde dönen iki palyaço balığı ve
-// yükselen kabarcıklar.
-function deskAquarium(f, fx) {
-  const A = 0.24
-  const T = 0.32
-  const B = 0.04
-  f.box(-A - 0.02, 0, -A - 0.02, 2 * A + 0.04, B, 2 * A + 0.04, C.trim)
-  f.box(-A + 0.003, B, -A + 0.003, 2 * A - 0.006, 0.04, 2 * A - 0.006, C.sand[0])
-  f.box(-A, B, -A, 2 * A - 0.024, T, 0.006, C.tank[1], BULB)
-  f.box(-A, B, -A + 0.006, 0.006, T, 2 * A - 0.03, C.tank[1], BULB)
-  for (const x of [-A, A - 0.024]) {
-    for (const z of [-A, A - 0.024]) f.box(x, B, z, 0.024, T + 0.01, 0.024, C.trim)
-  }
-  f.box(-A, B + T, -A, 2 * A, 0.02, 0.024, C.trim)
-  f.box(-A, B + T, A - 0.024, 2 * A, 0.02, 0.024, C.trim)
-  f.box(-A, B + T, -A + 0.024, 0.024, 0.02, 2 * A - 0.048, C.trim)
-  f.box(A - 0.024, B + T, -A + 0.024, 0.024, 0.02, 2 * A - 0.048, C.trim)
-  f.box(-0.17, B + 0.04, -0.16, 0.035, 0.12, 0.035, C.coral[0])
-  f.box(-0.12, B + 0.04, -0.18, 0.05, 0.07, 0.05, C.coral[2])
-  f.box(0.08, B + 0.04, -0.17, 0.09, 0.05, 0.07, C.rock[0])
+const TAN8 = Math.tan(Math.PI / 8)
 
-  const fishAt = (x, y, dir) => [
-    fxBox(f, x - 0.006, y - 0.018, -0.035, 0.012, 0.036, 0.07, C.fish.orange),
-    fxBox(f, x - 0.0065, y - 0.018, -0.006, 0.013, 0.036, 0.012, C.fish.white),
-    fxBox(f, x - 0.005, y - 0.014, dir * 0.047 - 0.014, 0.01, 0.028, 0.028, C.fish.orange, { rot: [Math.PI / 4, 0, 0] }),
-  ]
-  fx.room.spinners.push({
-    items: [...fishAt(0.13, 0.2, 1), ...fishAt(-0.13, 0.16, -1)],
-    pivot: f.point(0, 0, 0),
-    axis: axisOf(f, 0, 1, 0),
-    period: 10,
-    phase: 0,
+// Yatay sekizgen; orijin merkezi, a kenar ortasına uzaklık. Düz kenarlar ±x, ±z ve köşegenlerde.
+function octagon(f, y, a, h, color, opts = {}) {
+  f.box(-a, y, -a * TAN8, 2 * a, h, 2 * a * TAN8, color, opts)
+  f.box(-a * TAN8, y, -a, 2 * a * TAN8, h, 2 * a, color, opts)
+  const b = 2 * a * TAN8
+  f.box(-b / 2, y, -a, b, h, 2 * a, color, { ...opts, rot: [0, Math.PI / 4, 0] })
+  f.box(-a, y, -b / 2, 2 * a, h, b, color, { ...opts, rot: [0, Math.PI / 4, 0] })
+}
+
+// Yuvarlak sonar masası; orijin ortası, n koltuk çevrede eşit aralıkla, hepsi masaya bakar (ilki
+// sol-arkada, kameraya dönük). Sekizgen beyaz tabla ve altında camgöbeği LED, ortada sonar ekranı
+// (tarama çizgisi döner, geçtiği hedefler yanar), üstünde masanın çevresinde yavaşça yüzen balina
+// hologramı; zeminde sekizgen güverte levhası, tavanda kubbe lamba (nokta ışık).
+export function sonarTable(f, n, room, fx) {
+  const R = n <= 2 ? 0.5 : n <= 4 ? 0.62 : n === 5 ? 0.75 : 0.85
+  const H = TABLE_HEIGHT
+  const rs = R + 0.42
+  octagon(f, 0, rs + 0.5, 0.008, C.counter)
+  octagon(f, 0.008, 0.36, 0.04, C.trim)
+  f.box(-0.12, 0.048, -0.12, 0.24, H - 0.14, 0.24, C.steelDark)
+  octagon(f, H - 0.1, R * 0.55, 0.04, C.steel)
+  octagon(f, H - 0.06, R + 0.03, 0.024, C.tealLight, BULB)
+  octagon(f, H - 0.036, R, 0.036, C.white)
+
+  // sonar ekranı
+  const S = Math.max(0.15, R - 0.36)
+  octagon(f, H, S + 0.04, 0.006, C.screenBody)
+  octagon(f, H + 0.006, S, 0.003, C.sonar, BULB)
+  const axis = axisOf(f, 0, 1, 0)
+  const pivot = f.point(0, 0, 0)
+  C.sonarLine.forEach((color, i) => {
+    fx.room.spinners.push({ items: [fxBox(f, 0, H + 0.01 + i * 0.0006, -0.005, S * 0.95, 0.0015, 0.01, color)], pivot, axis, period: 4, phase: -i * 0.025 })
   })
-  for (let k = 0; k < 3; k++) {
-    fx.room.movers.push({
-      items: [fxBox(f, 0.14, B + 0.08, -0.15, 0.016, 0.016, 0.016, C.bubble)],
-      axis: [0, 1, 0],
-      travel: T - 0.08,
-      period: 1.6,
-      phase: k / 3,
-      fade: 0.08,
-    })
+  for (let i = 0; i < 3; i++) {
+    const r = S * (0.35 + 0.18 * i)
+    const t = 1.1 + i * 2.1
+    fx.room.blinkers.push(fxBox(f, Math.cos(t) * r - 0.012, H + 0.01, -Math.sin(t) * r - 0.012, 0.024, 0.002, 0.024, C.ui[2], { rate: 0.25, duty: 0.35, phase: t / TAU }))
+  }
+
+  // balina hologramı: masanın üstünde yavaşça daire çizer (burnu +z, dönüş yönüne)
+  const w = f.frame(Math.max(0.2, S), 1.22, 0)
+  const whale = [
+    fxBox(w, -0.06, -0.04, -0.12, 0.12, 0.08, 0.24, C.tealLight),
+    fxBox(w, -0.045, -0.035, 0.12, 0.09, 0.06, 0.06, C.tealLight),
+    fxBox(w, -0.03, -0.02, -0.2, 0.06, 0.04, 0.08, C.tealLight),
+    fxBox(w, -0.07, -0.005, -0.27, 0.14, 0.012, 0.05, C.tealLight),
+    fxBox(w, -0.13, -0.03, 0.02, 0.07, 0.008, 0.05, C.tealLight, { rot: [0, 0.4, -0.3] }),
+    fxBox(w, 0.06, -0.03, 0.02, 0.07, 0.008, 0.05, C.tealLight, { rot: [0, -0.4, 0.3] }),
+  ]
+  fx.room.spinners.push({ items: whale, pivot, axis, period: 18, phase: 0 })
+
+  domeLamp(f)
+  f.glow(-R, H + 0.003, -R, 2 * R, 2 * R)
+  room.lights.push(f.point(0, PENDANT_HEIGHT - 0.2, 0).toArray())
+
+  for (let i = 0; i < n; i++) {
+    const a = -0.75 * Math.PI + (i * TAU) / n
+    const seat = f.frame(Math.sin(a) * rs, 0, Math.cos(a) * rs, a + Math.PI)
+    labChair(seat)
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'chair' })
+    tablet(seat.frame(0, H, rs - R), room.seats.length - 1)
   }
 }
 
@@ -816,15 +756,13 @@ export function labChair(f) {
   }
 }
 
-// Sarkıt LED armatür; orijin masanın ortası (zemin seviyesi), tavana kablolarla asılı.
-function pendant(f, length) {
+// Kubbe lamba; orijin altındaki zemin. Tavana kabloyla asılı çelik kubbe, altı parlar.
+function domeLamp(f) {
   const y = PENDANT_HEIGHT
-  f.box(-length / 2, y, -0.16, length, 0.05, 0.32, C.steel)
-  f.box(-length / 2 + 0.04, y - 0.008, -0.12, length - 0.08, 0.01, 0.24, '#ffffff', BULB)
-  f.box(-length / 2 + 0.04, y + 0.05, -0.08, length - 0.08, 0.008, 0.16, '#ffffff', BULB)
-  for (const x of [-length / 2 + 0.15, length / 2 - 0.16]) {
-    f.box(x, y + 0.05, -0.004, 0.008, WALL_HEIGHT - y - 0.05, 0.008, C.dark)
-  }
+  octagon(f, y, 0.26, 0.06, C.steel)
+  octagon(f, y + 0.06, 0.16, 0.08, C.steel)
+  octagon(f, y - 0.008, 0.22, 0.008, '#ffffff', BULB)
+  f.box(-0.006, y + 0.14, -0.006, 0.012, WALL_HEIGHT - y - 0.14, 0.012, C.dark)
 }
 
 // ---------------------------------------------------------------- zemin eşyaları
@@ -897,42 +835,27 @@ export function jellyTank(f, fx) {
   }
 }
 
-// Pencere önü minderli bank; orijin ortası, oturan +z'ye bakar. Sırt minderi pencere pervazının
-// önünde kalır, manzarayı kapatmaz. Cam kasasının altında bank boyunca LED okuma şeridi (tek ışık).
-export function windowBench(f, length, room) {
+// Lomboz altı kanepe; orijin duvar dibinde ortası, oturan +z'ye bakar. Kaide, oturak ve sırt
+// minderleri, iki yanda kolçak; sağ yanda üstünde kupa olan sehpa.
+export function sofa(f, length) {
   const L = length
-  f.box(-L / 2, 0, -0.3, L, 0.08, 0.56, C.trim)
-  f.box(-L / 2, 0.08, -0.3, L, 0.3, 0.6, C.white)
+  f.box(-L / 2, 0, 0.04, L, 0.08, 0.66, C.trim)
+  f.box(-L / 2, 0.08, 0.04, L, 0.3, 0.68, C.white)
   const n = Math.max(2, Math.round(L / 0.8))
-  const w = L / n
+  const w = (L - 0.2) / n
   for (let i = 0; i < n; i++) {
-    const x = -L / 2 + i * w
-    f.box(x + 0.02, 0.38, -0.14, w - 0.04, 0.08, 0.42, C.teal)
-    f.box(x + 0.04, 0.4, -0.29, w - 0.08, 0.16, 0.12, C.tealLight, { rot: [-0.2, 0, 0] })
-    if (i % 2 === 0) f.box(x + 0.12, 0.46, -0.17, 0.22, 0.18, 0.08, C.yellow, { rot: [-0.2, 0.2, 0] })
+    const x = -L / 2 + 0.1 + i * w
+    f.box(x + 0.01, 0.38, 0.2, w - 0.02, 0.08, 0.5, C.teal)
+    f.box(x + 0.02, 0.38, 0.04, w - 0.04, 0.42, 0.16, C.tealLight, { rot: [-0.12, 0, 0] })
   }
-  f.box(-L / 2, 2.484, -0.43, L, 0.012, 0.03, '#ffffff', BULB)
-  f.glow(-L / 2, 0.465, -0.3, L, 0.6)
-  room.lights.push(f.point(0, 1.7, 0.35).toArray())
-}
+  for (const x of [-L / 2, L / 2 - 0.1]) f.box(x, 0.38, 0.04, 0.1, 0.22, 0.68, C.white)
+  f.box(-0.12 - L / 4, 0.46, 0.08, 0.24, 0.2, 0.08, C.yellow, { rot: [-0.25, 0.25, 0] })
 
-// Gözlem kamerası; sualtı muhafazalı kamera üç ayak üstünde, objektif yerel +z'ye (cama) bakar.
-export function surveyCamera(f) {
-  for (const a of [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3]) {
-    const leg = f.frame(Math.sin(a) * 0.28, 0, Math.cos(a) * 0.28, a, -0.27)
-    leg.box(-0.015, 0, -0.015, 0.03, 1.02, 0.03, C.steelDark)
-  }
-  f.box(-0.05, 0.96, -0.05, 0.1, 0.1, 0.1, C.trim)
-  const cam = f.frame(0, 1.16, 0, 0, -0.12)
-  cam.box(-0.13, -0.1, -0.17, 0.26, 0.2, 0.3, C.yellow)
-  cam.box(-0.135, -0.03, -0.12, 0.27, 0.04, 0.2, C.yellowDark)
-  cam.box(-0.08, -0.08, 0.13, 0.16, 0.16, 0.08, C.dark)
-  cam.box(-0.06, -0.06, 0.21, 0.12, 0.12, 0.004, C.lens, GLASS)
-  cam.box(-0.11, 0.1, -0.06, 0.22, 0.03, 0.05, C.dark)
-  for (const x of [-0.11, 0.07]) {
-    cam.box(x, 0.13, -0.05, 0.04, 0.06, 0.1, C.steel)
-    cam.box(x + 0.005, 0.135, 0.05, 0.03, 0.05, 0.004, '#ffffff', BULB)
-  }
+  const t = f.frame(L / 2 + 0.32, 0, 0.36)
+  octagon(t, 0, 0.18, 0.03, C.trim)
+  t.box(-0.03, 0.03, -0.03, 0.06, 0.42, 0.06, C.steelDark)
+  octagon(t, 0.45, 0.22, 0.03, C.white)
+  mug(t.frame(0, 0.48, 0), -0.04, 0, C.mug[1])
 }
 
 // Dalış tüpü; orijin dibinin ortası. Yuvarlak kesit için iki kesişen kutu, etiket bandı, vana.
@@ -964,10 +887,11 @@ export function tankCage(f) {
 }
 
 // Dalış havuzu (moon pool); orijin merkezi, dünya eksenine hizalı. Sekizgen yüksek kenar, içinde
-// su yüzeyi (deniz manzarasıyla aynı rengi alır) ve parıldayan dalgacıklar; arkada ve sağda
-// korkuluk ve can simidi, sağ-arkada iniş merdiveni, sağ-önde yüzen sarı ROV.
+// su yüzeyi (deniz manzarasıyla aynı rengi alır) ve parıldayan dalgacıklar; sol ve arka kenarda
+// (duvar tarafı) korkuluk ve can simidi, sağda iniş merdiveni. Suda yüzen sarı batiskaf: önde
+// kubbe cam ve farlar, üstte kule, arkada dönen pervane.
 export function moonPool(f, fx, rnd) {
-  const R = 0.72
+  const R = 0.82
   const H = 0.3
   const WATER = 0.2
   const seg = 2 * (R + 0.1) * Math.tan(Math.PI / 8)
@@ -990,27 +914,27 @@ export function moonPool(f, fx, rnd) {
     f.box(-half, WATER - 0.04, z, 2 * half, 0.04, d, C.water[1], GLASS)
   }
   for (let i = 0; i < 8; i++) {
-    const r = rnd() * (R - 0.15)
+    const r = R * 0.55 + rnd() * (R * 0.35)
     const t = rnd() * TAU
     fx.view.blinkers.push(fxBox(f, Math.cos(t) * r - 0.03, WATER, Math.sin(t) * r - 0.01, 0.06, 0.004, 0.02, C.glare, { rate: 0.3 + rnd() * 0.3, duty: 0.45, phase: rnd() }))
   }
 
-  // korkuluk: arka (-z), sağ (+x) ve aradaki çapraz kenar
+  // korkuluk: sol (-x), sol-arka ve arka (-z) kenar
   const vertex = (k) => {
     const a = ((k + 0.5) * Math.PI) / 4
     const r = (R + 0.05) / Math.cos(Math.PI / 8)
     return [Math.cos(a) * r, Math.sin(a) * r]
   }
-  for (const k of [5, 6, 7, 0]) {
+  for (const k of [3, 4, 5, 6]) {
     const [x, z] = vertex(k)
     f.box(x - 0.02, H + 0.03, z - 0.02, 0.04, 0.92, 0.04, C.yellow)
   }
-  for (const i of [6, 7, 0]) {
+  for (const i of [4, 5, 6]) {
     const e = edge(i)
     e.box(-seg / 2, H + 0.9, -0.02, seg, 0.04, 0.04, C.yellow)
     e.box(-seg / 2, H + 0.45, -0.015, seg, 0.03, 0.03, C.yellowDark)
   }
-  const ladder = edge(7)
+  const ladder = edge(1)
   for (const x of [-0.17, 0.13]) {
     ladder.box(x, WATER - 0.05, -0.12, 0.04, H + 0.4 - WATER, 0.03, C.steel)
     ladder.box(x, H + 0.32, -0.12, 0.04, 0.03, 0.14, C.steel)
@@ -1026,14 +950,24 @@ export function moonPool(f, fx, rnd) {
     ring.box(x, y, -0.003, w, h, 0.066, C.white)
   }
 
-  // ROV: koyu çerçevesi suyun içinde, üstte sarı yüzdürme bloğu; objektifi ve farları öne bakar
-  const rov = f.frame(0.2, WATER, 0.2, -0.5)
-  rov.box(-0.21, -0.08, -0.15, 0.42, 0.12, 0.3, C.dark)
-  rov.box(-0.2, 0.04, -0.14, 0.4, 0.13, 0.28, C.yellow)
-  rov.box(-0.205, 0.1, -0.145, 0.41, 0.025, 0.29, C.yellowDark)
-  rov.box(-0.06, 0.17, -0.02, 0.12, 0.03, 0.04, C.dark)
-  for (const x of [-0.26, 0.21]) rov.box(x, -0.02, -0.08, 0.05, 0.08, 0.16, C.dark)
-  rov.box(-0.07, -0.04, 0.15, 0.14, 0.1, 0.03, C.dark)
-  rov.box(-0.05, -0.02, 0.18, 0.1, 0.07, 0.004, C.lens, GLASS)
-  for (const x of [-0.17, 0.11]) rov.box(x, 0.0, 0.15, 0.06, 0.035, 0.004, '#ffffff', BULB)
+  // batiskaf: burnu yerel +x'te, havuzun içinde hafif çapraz
+  const sub = f.frame(0, WATER - 0.1, 0, -0.45)
+  sub.box(-0.42, 0, -0.2, 0.84, 0.34, 0.4, C.yellow)
+  sub.box(-0.36, -0.05, -0.14, 0.72, 0.44, 0.28, C.yellow)
+  sub.box(-0.423, 0.24, -0.203, 0.846, 0.04, 0.406, C.yellowDark)
+  sub.box(0.42, 0.04, -0.15, 0.08, 0.28, 0.3, C.dark)
+  sub.box(0.5, 0.08, -0.11, 0.06, 0.2, 0.22, C.lens, GLASS)
+  for (const z of [-0.17, 0.13]) sub.box(0.42, 0.3, z, 0.08, 0.05, 0.04, '#ffffff', BULB)
+  sub.box(-0.12, 0.39, -0.1, 0.26, 0.14, 0.2, C.yellow)
+  sub.box(-0.1, 0.53, -0.08, 0.22, 0.02, 0.16, C.steel)
+  sub.box(-0.01, 0.55, -0.01, 0.02, 0.12, 0.02, C.dark)
+  for (const z of [-0.205, 0.201]) sub.box(-0.12, 0.16, z, 0.12, 0.08, 0.004, C.porthole, GLASS)
+  sub.box(-0.54, 0.08, -0.12, 0.12, 0.2, 0.24, C.dark)
+  fx.room.spinners.push({
+    items: [fxBox(sub, -0.575, 0.17, -0.11, 0.012, 0.03, 0.22, C.steelDark), fxBox(sub, -0.575, 0.07, -0.015, 0.012, 0.22, 0.03, C.steelDark)],
+    pivot: sub.point(-0.57, 0.185, 0),
+    axis: axisOf(sub, 1, 0, 0),
+    period: 1.6,
+    phase: 0,
+  })
 }

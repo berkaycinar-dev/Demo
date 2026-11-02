@@ -267,7 +267,7 @@ export function readingTable(f, { length, depth, back = 0, front = 0 }, rnd, roo
 function seat(f, u, v, yaw, tableHeight, rnd, room) {
   const c = f.frame(u, 0, v, yaw)
   chair(c)
-  room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+  room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'book', kind: 'chair' })
 
   // masadaki eşyalar, koltuğa bakan kenardan masanın içine doğru (+z)
   const t = f.frame(u, tableHeight + 0.006, yaw === 0 ? 0 : v - 0.3, yaw)
