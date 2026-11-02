@@ -540,7 +540,7 @@ export function podDesk(f, room, fx, light) {
 
   const seat = f.frame(0, 0, DESK_CHAIR, Math.PI)
   podChair(seat)
-  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'chair' })
   studyItems(seat.frame(0, TABLE_HEIGHT, DESK_CHAIR - front), room.seats.length - 1, fx)
 }
 
@@ -578,8 +578,56 @@ export function holoTable(f, room, fx, light) {
   for (const s of [-1, 1]) {
     const seat = f.frame(s * 0.75, 0, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2)
     podChair(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'chair' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.25), room.seats.length - 1, fx)
+  }
+}
+
+// Hologram adası; orijin ortası. Uzun koyu tabla (x boyunca), neon kenarlar ve iki ayak; ortada
+// projektör şeridi, üstünde dönen tel kafes küre ve iki yanında yükselip alçalan veri çubukları;
+// zemine eflatun ışık vurur. İki uzun yanda (±z) ikişer kapsül sandalye. light: camgöbeği nokta
+// ışık ekle.
+export function holoIsland(f, room, fx, light) {
+  const L = 2.1
+  const D = 1.0
+  for (const x of [-0.6, 0.6]) {
+    f.box(x - 0.2, 0, -0.25, 0.4, 0.04, 0.5, C.metal)
+    f.box(x - 0.08, 0.04, -0.14, 0.16, TABLE_HEIGHT - 0.1, 0.28, C.black)
+    f.box(x - 0.006, 0.1, 0.14, 0.012, TABLE_HEIGHT - 0.22, 0.004, N.cyan, BULB)
+  }
+  f.box(-L / 2 + 0.03, TABLE_HEIGHT - 0.06, -D / 2 + 0.03, L - 0.06, 0.02, D - 0.06, N.cyan, BULB)
+  f.box(-L / 2, TABLE_HEIGHT - 0.04, -D / 2, L, 0.04, D, C.tableTop)
+  f.box(-0.5, TABLE_HEIGHT, -0.07, 1.0, 0.02, 0.14, C.metal)
+  f.box(-0.48, TABLE_HEIGHT + 0.02, -0.04, 0.96, 0.004, 0.08, N.cyan, BULB)
+
+  const cy = 1.15
+  const r = 0.17
+  const seg = 2 * r * Math.tan(Math.PI / 12) + 0.004
+  const globe = [fxBox(f, -0.045, cy - 0.045, -0.045, 0.09, 0.09, 0.09, N.magenta, { rot: [0.6, 0, 0.6] })]
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * TAU
+    globe.push(fxBox(f.frame(0, cy, 0, a), -seg / 2, -0.005, r - 0.005, seg, 0.01, 0.01, N.cyan))
+    for (const yaw of [0, Math.PI / 2]) globe.push(fxBox(f.frame(0, cy, 0, yaw, 0, a), -seg / 2, r - 0.005, -0.005, seg, 0.01, 0.01, N.cyan))
+  }
+  fx.room.spinners.push({ items: globe, pivot: f.point(0, cy, 0), axis: axisOf(f, 0, 1, 0), period: 8, phase: 0 })
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const x = s * (0.3 + i * 0.05) - 0.012
+      fx.room.bars.push({ items: [fxBox(f, x, TABLE_HEIGHT + 0.024, -0.012, 0.024, 0.3, 0.024, i % 2 ? N.magenta : N.cyan)], period: 2.2 + i * 0.35, phase: (i + (s > 0 ? 2 : 0)) * 0.21 })
+    }
+  }
+
+  f.glow(-L / 2, TABLE_HEIGHT + 0.003, -D / 2, L, D, N.cyan)
+  f.glow(-L / 2 - 0.4, 0.008, -D / 2 - 0.6, L + 0.8, D + 1.2, N.magenta)
+  if (light) room.lights.push({ position: f.point(0, 1.9, 0).toArray(), color: LIGHT.cyan })
+
+  for (const s of [-1, 1]) {
+    for (const x of [-0.52, 0.52]) {
+      const seat = f.frame(x, 0, s * 0.8, s > 0 ? Math.PI : 0)
+      podChair(seat)
+      room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'chair' })
+      studyItems(seat.frame(0, TABLE_HEIGHT, 0.3), room.seats.length - 1, fx)
+    }
   }
 }
 
@@ -606,7 +654,7 @@ export function lounge(f, room, fx) {
   for (const s of [-1, 1]) {
     const seat = f.frame(0, 0.01, s * 0.8, s > 0 ? Math.PI : 0)
     loungeChair(seat)
-    room.seats.push({ position: seat.point(0, LOUNGE_SEAT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, LOUNGE_SEAT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'armchair' })
     studyItems(seat.frame(0, LOW_TABLE - 0.01, 0.5), room.seats.length - 1, fx)
   }
 }

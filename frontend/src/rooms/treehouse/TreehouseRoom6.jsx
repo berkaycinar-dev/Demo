@@ -1,6 +1,6 @@
 import TreehouseScene from './TreehouseScene'
 
-// 6 kişi · 8.5x7 · 2 pencere masası, 2 kütük masa; giriş kapağı, kitaplık, kakao köşesi, hamak, teleskop.
+// 6 kişi · 8.5x7 · 2 pencere masası, yuvarlak kütük masa; giriş kapağı, kitaplık, kakao köşesi, hamak, teleskop.
 const LAYOUT = {
   width: 8.5,
   depth: 7,
@@ -14,8 +14,7 @@ const LAYOUT = {
   ],
   windows: [2.5, 4.1],
   tables: [
-    { x: 3.7, z: 3.3 },
-    { x: 5.4, z: 5 },
+    { x: 4.6, z: 4, round: true },
   ],
   props: [
     { type: 'telescope', x: 7.75, z: 3.2, facing: '-x' },

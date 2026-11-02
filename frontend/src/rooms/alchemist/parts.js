@@ -658,7 +658,7 @@ export function readingDesk(f, room, fx, light) {
 
   const seat = f.frame(0, 0, DESK_CHAIR, Math.PI)
   gothicChair(seat)
-  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'book', kind: 'chair' })
   studyItems(seat.frame(0, TABLE_HEIGHT, DESK_CHAIR - front), room.seats.length - 1, fx)
 }
 
@@ -694,7 +694,7 @@ export function studyTable(f, room, fx, light) {
   for (const s of [-1, 1]) {
     const seat = f.frame(s * 0.72, 0, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2)
     gothicChair(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'book', kind: 'chair' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.27), room.seats.length - 1, fx)
   }
 }
@@ -734,7 +734,7 @@ export function readingCorner(f, room, fx) {
   for (const s of [-1, 1]) {
     const seat = f.frame(0, 0.014, s * 0.8, s > 0 ? Math.PI : 0)
     wingChair(seat)
-    room.seats.push({ position: seat.point(0, 0.46, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, 0.46, 0).toArray(), yaw: seat.facing(), desk: 'book', kind: 'armchair' })
     studyItems(seat.frame(0, 0.546, 0.48), room.seats.length - 1, fx)
   }
 }

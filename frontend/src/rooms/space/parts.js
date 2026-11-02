@@ -524,7 +524,7 @@ export function missionTable(c, { back = 0, front = 0, ends = 0 }, room, fx) {
   ]
   places.forEach((seat, i) => {
     spaceChair(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'screen', kind: 'chair' })
     tablet(seat.frame(0, H, 0.42), i)
   })
 }

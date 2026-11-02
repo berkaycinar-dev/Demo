@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { THEMES } from '../rooms/themes'
+import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { ACCESS_LABELS } from './access'
 
 const DEFAULT_THEME = 'library'
@@ -33,7 +33,7 @@ export default function CreateRoomPage({ onCreate }) {
           <fieldset className="field">
             <legend className="field__label">Tema</legend>
             <div className="theme-grid">
-              {Object.entries(THEMES).map(([key, t]) => (
+              {LISTED_THEMES.map(([key, t]) => (
                 <button
                   key={key}
                   type="button"

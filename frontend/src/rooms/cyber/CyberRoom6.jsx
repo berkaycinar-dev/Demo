@@ -1,6 +1,6 @@
 import CyberScene from './CyberScene'
 
-// 6 kişi · 9x7 · 2 kapsül masa, 2 hologram masası; zırhlı kapı, sunucular, veri duvarı, drone, ramen otomatı, VR istasyonu.
+// 6 kişi · 9x7 · 2 kapsül masa, hologram adası; zırhlı kapı, sunucular, veri duvarı, drone, ramen otomatı, VR istasyonu.
 const LAYOUT = {
   width: 9,
   depth: 7,
@@ -14,12 +14,14 @@ const LAYOUT = {
   ],
   pods: [2.3, 3.9],
   tables: [
-    { x: 3.9, z: 3.4 },
-    { x: 5.8, z: 5 },
+    { x: 4.8, z: 4, island: true },
   ],
   props: [
     { type: 'vr', x: 8.1, z: 3.3, facing: '-x' },
     { type: 'terrarium', x: 8.4, z: 4.75 },
+  ],
+  spots: [
+    { id: 'window', label: 'Pencere kenarı', x: 0.85, z: 6.15 },
   ],
 }
 

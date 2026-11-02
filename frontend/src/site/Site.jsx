@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import AvatarPage from './AvatarPage'
+import { loadAvatar, saveAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import LobbyPage from './LobbyPage'
 import MyRoomPage from './MyRoomPage'
@@ -30,6 +32,7 @@ export default function Site() {
   const [page, setPage] = useState(pageFromHash)
   const [rooms, setRooms] = useState(SAMPLE_ROOMS)
   const [currentId, setCurrentId] = useState(null)
+  const [avatar, setAvatar] = useState(loadAvatar)
   const current = rooms.find((r) => r.id === currentId) ?? null
 
   // Geri / ileri düğmeleri ve elle değiştirilen adres.
@@ -74,6 +77,7 @@ export default function Site() {
         {page === 'odam' && (
           <MyRoomPage
             room={current}
+            avatar={avatar}
             onLeave={() => {
               setCurrentId(null)
               go('lobi')
@@ -82,7 +86,15 @@ export default function Site() {
           />
         )}
         {page === 'olustur' && <CreateRoomPage onCreate={create} />}
-        {page === 'avatar' && <Placeholder title="Avatarım" />}
+        {page === 'avatar' && (
+          <AvatarPage
+            avatar={avatar}
+            onChange={(next) => {
+              setAvatar(next)
+              saveAvatar(next)
+            }}
+          />
+        )}
         {page === 'siralama' && <Placeholder title="Sıralama" />}
       </main>
     </div>

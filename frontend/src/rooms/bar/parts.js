@@ -522,7 +522,7 @@ export function barCounter(f, { length, stools }, room, fx) {
   for (let i = 0; i < stools; i++) {
     const s = f.frame((i - (stools - 1) / 2) * pitch, 0, STOOL_Z, Math.PI)
     barStool(s)
-    room.seats.push({ position: s.point(0, STOOL_HEIGHT, 0).toArray(), yaw: s.facing() })
+    room.seats.push({ position: s.point(0, STOOL_HEIGHT, 0).toArray(), yaw: s.facing(), desk: 'notebook', kind: 'stool' })
     studyItems(s.frame(0, COUNTER_HEIGHT, STOOL_Z - D - 0.23), room.seats.length - 1, fx)
   }
 }
@@ -543,7 +543,7 @@ export function booth(f, room, fx, light) {
     f.box(0.04, 0.5, s > 0 ? 0.87 : -0.93, 1.2, 0.55, 0.06, C.leatherLight)
     f.box(0, 1.15, back - 0.01, 1.28, 0.04, 0.14, C.woodDark)
     const seat = f.frame(0.62, 0, s * 0.68, s > 0 ? Math.PI : 0)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'bench' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.32), room.seats.length - 1, fx)
   }
   f.box(0.12, TABLE_HEIGHT, -0.07, 0.14, 0.02, 0.14, C.brass)
@@ -586,11 +586,28 @@ export function roundTable(f, room, fx) {
   for (const s of [-1, 1]) {
     const seat = f.frame(s * 0.68, 0, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2)
     cafeChair(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'chair' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.23), room.seats.length - 1, fx)
   }
   ceilingFan(f, fx)
   room.lights.push(f.point(0, 2.3, 0).toArray())
+}
+
+// Ayakta içilen yüksek masa; orijin ortası. Haç ayak, demir direk, ayak dayama halkası, yuvarlak
+// tabla; üstünde iki kupa ve bir altlık.
+export function highTable(f) {
+  const H = 1.05
+  f.box(-0.28, 0, -0.04, 0.56, 0.04, 0.08, C.iron)
+  f.box(-0.04, 0, -0.28, 0.08, 0.04, 0.56, C.iron)
+  f.box(-0.035, 0.04, -0.035, 0.07, H - 0.08, 0.07, C.iron)
+  for (const [x, z, w, d] of [[-0.2, -0.015, 0.4, 0.03], [-0.015, -0.2, 0.03, 0.4]]) f.box(x, 0.3, z, w, 0.025, d, C.brassDark)
+  diskXZ(f, H - 0.04, 0.34, 0.085, 0.04, C.woodRed)
+  f.box(-0.05, H, 0.04, 0.12, 0.004, 0.12, C.paper)
+  for (const [x, z, drink] of [[-0.14, -0.08, C.drink.cola], [0.1, -0.12, C.drink.lemon]]) {
+    f.box(x - 0.035, H, z - 0.035, 0.07, 0.12, 0.07, C.frosted)
+    f.box(x - 0.03, H + 0.12, z - 0.03, 0.06, 0.003, 0.06, drink)
+    f.box(x + 0.035, H + 0.03, z - 0.01, 0.025, 0.06, 0.02, C.frosted)
+  }
 }
 
 // Tavan vantilatörü; orijin altındaki zemin. Çubuk, pirinç motor, ışık kâsesi ve yavaş dönen

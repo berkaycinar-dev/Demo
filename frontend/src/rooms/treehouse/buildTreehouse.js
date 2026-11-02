@@ -1,10 +1,12 @@
 import { Euler, Quaternion, Vector3 } from 'three'
 import { createVoxelBuilder, pick, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   C,
   CANOPY_TOP,
   FLOOR_BOTTOM,
   HATCH_HOLE,
+  LOG_BENCH_SEAT,
   TRUNK_R,
   WALL,
   backWall,
@@ -16,6 +18,8 @@ import {
   hammock,
   hatch,
   kilim,
+  logBench,
+  roundTable,
   stumpTable,
   telescope,
   trunk,
@@ -31,15 +35,26 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 
 // Arka duvar boyunca dizilen parçalar; at: merkez x. spot: önünde mola halkası açılır.
 const WALLS = {
-  hatch: { draw: (f) => hatch(f), spot: { id: 'hatch', label: 'Giriş', distance: 1.55 } },
-  shelf: { draw: (f, rnd, fx) => crateShelf(f, rnd, fx) },
+  hatch: { draw: (f) => hatch(f) },
+  shelf: { draw: (f, rnd, fx) => crateShelf(f, rnd, fx), spot: { id: 'shelf', label: 'Kitaplık', distance: 0.95 } },
   cocoa: { draw: (f, rnd, fx) => cocoaCorner(f, fx), spot: { id: 'cocoa', label: 'Kakao köşesi', distance: 1.1 } },
 }
 
 // Zemine konan eşyalar; dünya eksenine hizalı çizilir, facing yalnızca mola halkasının yönünü
 // belirler.
 const PROPS = {
-  telescope: { draw: (f) => telescope(f), spot: { id: 'telescope', label: 'Teleskop', distance: 0.95 } },
+  // mercek yerel -x ucunda
+  telescope: { draw: (f) => telescope(f), spot: { id: 'telescope', label: 'Teleskop', distance: 0.95, stations: [[-0.62, 0, 0.05, Math.PI / 2, 'stand']] } },
+  // sol duvar dibinde, oturanlar odaya (+x) bakar
+  bench: {
+    draw: (f, rnd, fx, item) => logBench(f, item.length),
+    spot: {
+      id: 'bench',
+      label: 'Kütük bank',
+      distance: 1.05,
+      stations: (item) => [-1, 1].map((s) => [0.3, LOG_BENCH_SEAT, (s * item.length) / 4, Math.PI / 2, 'sit']),
+    },
+  },
 }
 
 /**
@@ -53,8 +68,8 @@ const PROPS = {
  *                                           (hatch) zemindeki deliği de açar
  *   windows: [z]                            sol duvardaki pencere merkezleri; her pencerenin
  *                                           altında tabureli masa (1 kişi)
- *   tables: [{ x, z }]                      kütük masa (2 kişi), üstünde asılı fener; hepsinin
- *                                           altında tek kilim
+ *   tables: [{ x, z, round? }]              kütük masa (2 kişi; round: büyük yuvarlak masa, 4 kişi),
+ *                                           üstünde asılı fener; hepsinin altında tek kilim
  *   nook: { x, z }                          minder köşesi (2 kişi), isteğe bağlı
  *   props: [{ type, x, z, facing? }]        zemin eşyaları (PROPS)
  *   spots: [{ id, label, x, z }]            ek mola noktaları
@@ -70,9 +85,10 @@ export function buildTreehouse(layout) {
   const fx = { view: group(), night: group(), room: group(), lit: group(), steams: [] }
   const windows = layout.windows ?? []
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   const entry = (layout.wall ?? []).find((w) => w.type === 'hatch')
@@ -94,32 +110,38 @@ export function buildTreehouse(layout) {
     const part = WALLS[item.type]
     const f = root.frame(item.at, 0, 0)
     part.draw(f, rnd, fx)
-    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance))
+    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance), stations(part.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   if (layout.hammock) {
     const { x, length } = layout.hammock
-    hammock(root.frame(x, 0, tree.z), length, tree.z, fx)
-    addSpot('hammock', 'Hamak', root.point(x + length / 2, 0, tree.z + 1.0))
+    const frame = root.frame(x, 0, tree.z)
+    const { lie, swing } = hammock(frame, length, tree.z, fx)
+    addSpot('hammock', 'Hamak', root.point(x + length / 2, 0, tree.z + 1.0), stations([lie], frame, null, { swing }), Math.PI)
   }
   trunk(root.frame(tree.x, 0, tree.z), rnd, fx, room, { back: tree.z, reach: Math.min(width * 0.5, 5) })
 
   windows.forEach((z, i) => windowDesk(root.frame(0, 0, z, Math.PI / 2), room, fx, i === 0))
   const tables = layout.tables ?? []
-  tables.forEach(({ x, z }, i) => stumpTable(root.frame(x, 0, z), room, fx, i === 0))
+  tables.forEach(({ x, z, round }, i) => (round ? roundTable : stumpTable)(root.frame(x, 0, z), room, fx, i === 0))
   if (tables.length) {
-    const xs = tables.map((t) => t.x)
-    const zs = tables.map((t) => t.z)
-    kilim(root, Math.min(...xs) - 1.05, Math.min(...zs) - 0.85, Math.max(...xs) + 1.05, Math.max(...zs) + 0.85)
+    const pad = (t) => (t.round ? [1.4, 1.4] : [1.05, 0.85])
+    const x0 = Math.min(...tables.map((t) => t.x - pad(t)[0]))
+    const x1 = Math.max(...tables.map((t) => t.x + pad(t)[0]))
+    const z0 = Math.min(...tables.map((t) => t.z - pad(t)[1]))
+    const z1 = Math.max(...tables.map((t) => t.z + pad(t)[1]))
+    kilim(root, x0, z0, x1, z1)
   }
   if (layout.nook) cushionNook(root.frame(layout.nook.x, 0, layout.nook.z), room, fx)
 
   for (const item of layout.props ?? []) {
     const prop = PROPS[item.type]
-    prop.draw(root.frame(item.x, 0, item.z), rnd, fx)
+    // eşya dünya eksenine hizalı çizilir; facing yalnızca halkanın hangi yanda açılacağı
+    const body = root.frame(item.x, 0, item.z)
+    prop.draw(body, rnd, fx, item)
     if (prop.spot) {
       const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
-      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, body, item), f.facing() + Math.PI)
     }
   }
 
