@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   COUNTER_Z,
   FLOOR_BOTTOM,
@@ -8,6 +9,7 @@ import {
   backWall,
   barCounter,
   bigPlant,
+  highTable,
   booth,
   dartboard,
   entryDoor,
@@ -26,7 +28,7 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 
 // Arka duvar boyunca dizilen parçalar; at: merkez x. spot: önünde mola halkası açılır.
 const WALLS = {
-  door: { draw: (f) => entryDoor(f), spot: { id: 'door', label: 'Giriş', distance: 0.95 } },
+  door: { draw: (f) => entryDoor(f) },
   darts: { draw: (f) => dartboard(f), spot: { id: 'darts', label: 'Dart', distance: 2.1 } },
   jukebox: { draw: (f, rnd, fx) => jukebox(f, fx), spot: { id: 'jukebox', label: 'Müzik kutusu', distance: 1.05 } },
 }
@@ -34,8 +36,28 @@ const WALLS = {
 // Zemine konan eşyalar; dünya eksenine hizalı çizilir, facing yalnızca mola halkasının yönünü
 // belirler.
 const PROPS = {
-  pool: { draw: (f) => poolTable(f), spot: { id: 'pool', label: 'Bilardo masası', distance: 1.15 } },
+  // iki oyuncu masanın çevresinde: uçlar ve yanlar sırayla denenir, yürünebilen ilk ikisi
+  pool: {
+    draw: (f) => poolTable(f),
+    spot: {
+      id: 'pool',
+      label: 'Bilardo masası',
+      distance: 1.15,
+      stations: [
+        [0, 0, 1.45, Math.PI, 'stand'],
+        [0.95, 0, 0.35, -Math.PI / 2, 'stand'],
+        [-0.95, 0, -0.35, Math.PI / 2, 'stand'],
+        [0, 0, -1.45, 0, 'stand'],
+        [-0.95, 0, 0.35, Math.PI / 2, 'stand'],
+      ],
+    },
+  },
   plant: { draw: (f) => bigPlant(f) },
+  // iki kişi masanın iki yanında, masaya dönük
+  hightable: {
+    draw: (f) => highTable(f),
+    spot: { id: 'hightable', label: 'Ayakta masa', distance: 0.95, stations: [[-0.5, 0, 0, Math.PI / 2, 'stand'], [0.5, 0, 0, -Math.PI / 2, 'stand']] },
+  },
 }
 
 /**
@@ -62,9 +84,10 @@ export function buildBar(layout) {
   const group = () => ({ movers: [], spinners: [], blinkers: [], pulsers: [] })
   const fx = { view: group(), room: group(), lit: group(), steams: [] }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   floor(root, width, depth)
@@ -81,7 +104,7 @@ export function buildBar(layout) {
     const part = WALLS[item.type]
     const f = root.frame(item.at, 0, 0)
     part.draw(f, rnd, fx)
-    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance))
+    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance), stations(part.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   if (counter) {
@@ -93,10 +116,12 @@ export function buildBar(layout) {
 
   for (const item of layout.props ?? []) {
     const prop = PROPS[item.type]
-    prop.draw(root.frame(item.x, 0, item.z), rnd, fx)
+    // eşya dünya eksenine hizalı çizilir; facing yalnızca halkanın hangi yanda açılacağı
+    const body = root.frame(item.x, 0, item.z)
+    prop.draw(body, rnd, fx)
     if (prop.spot) {
       const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
-      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, body, item), f.facing() + Math.PI)
     }
   }
 

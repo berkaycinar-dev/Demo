@@ -1,0 +1,21 @@
+.avatar-preview {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #f6f2ea, #e2dbcf);
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+
+.avatar-preview__hint {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  margin: 0;
+  color: rgba(40, 32, 24, 0.55);
+  font-size: 12px;
+  pointer-events: none;
+}

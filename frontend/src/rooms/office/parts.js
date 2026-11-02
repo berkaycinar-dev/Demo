@@ -181,13 +181,13 @@ export function deskPod(center, { back = 0, front = 0 }, rnd, room) {
   for (const u of seatsAt(back)) {
     const c = f.frame(u, 0, -0.42)
     officeChair(c, rnd)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'keyboard', kind: 'chair' })
     workstation(f.frame(u, H, 0), rnd, room)
   }
   for (const u of seatsAt(front)) {
     const c = f.frame(u, 0, depth + 0.42, Math.PI)
     officeChair(c, rnd)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'keyboard', kind: 'chair' })
     workstation(f.frame(u, H, depth, Math.PI), rnd, room)
   }
 

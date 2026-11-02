@@ -11,7 +11,9 @@ import { TREEHOUSE_MAX_CAPACITY, TreehouseRoom } from './treehouse'
 import { UNDERWATER_MAX_CAPACITY, UnderwaterRoom } from './underwater'
 
 // Tüm oda temaları: geliştirme önizlemesi ve sitedeki tema seçimi buradan okur.
-// Room: kapasiteye göre (1-max) doğru odayı seçen bileşen.
+// Room: kapasiteye göre (1-max) doğru odayı seçen bileşen. Avatarların odadaki davranışı tema
+// anahtarına göre avatars/activities.js'te. hidden: tema seçim listelerinde gösterilmez (dosyalar
+// duruyor, ?theme= ile açılabilir).
 export const THEMES = {
   library: { label: 'Kütüphane', description: 'kitap rafları, okuma köşesi, çay', Room: LibraryRoom, max: LIBRARY_MAX_CAPACITY },
   cabin: { label: 'Dağ Evi', description: 'şömine, karlı pencereler, kakao', Room: CabinRoom, max: CABIN_MAX_CAPACITY },
@@ -23,5 +25,8 @@ export const THEMES = {
   bar: { label: 'Bar', description: 'yağmurlu sokak, neon, müzik kutusu', Room: BarRoom, max: BAR_MAX_CAPACITY },
   treehouse: { label: 'Ağaç Ev', description: 'ağaç gövdesi, hamak, ateş böcekleri', Room: TreehouseRoom, max: TREEHOUSE_MAX_CAPACITY },
   cyber: { label: 'Siber Loft', description: 'neon kent manzarası, hologram masa, sunucular', Room: CyberRoom, max: CYBER_MAX_CAPACITY },
-  alchemist: { label: 'Simyacı Odası', description: 'taş kule, kazan, iksirler, kristal küre', Room: AlchemistRoom, max: ALCHEMIST_MAX_CAPACITY },
+  alchemist: { label: 'Simyacı Odası', description: 'taş kule, kazan, iksirler, kristal küre', Room: AlchemistRoom, max: ALCHEMIST_MAX_CAPACITY, hidden: true },
 }
+
+// Seçim listelerinde gösterilen temalar.
+export const LISTED_THEMES = Object.entries(THEMES).filter(([, t]) => !t.hidden)

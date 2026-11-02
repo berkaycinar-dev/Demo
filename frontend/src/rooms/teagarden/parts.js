@@ -673,7 +673,7 @@ export function teaTable(f, { sides = ['back'], cloth, extra }, rnd, room) {
     const [dx, dz, yaw] = SIDES[side]
     const c = f.frame(dx * CHAIR_DISTANCE, 0, dz * CHAIR_DISTANCE, yaw)
     chair(c, rnd)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'tea', kind: 'chair' })
     teaGlass(f.frame(dx * 0.2, top, dz * 0.2, yaw).frame(0.06, 0, 0))
   }
 

@@ -14,6 +14,9 @@ const LAYOUT = {
   props: [
     { type: 'vr', x: 4.6, z: 2.8, facing: '-x' },
   ],
+  spots: [
+    { id: 'window', label: 'Pencere kenarı', x: 0.85, z: 3.65 },
+  ],
 }
 
 export default function CyberRoom1(props) {
