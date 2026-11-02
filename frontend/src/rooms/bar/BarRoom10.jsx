@@ -1,6 +1,6 @@
 import BarScene from './BarScene'
 
-// 10 kişi · 11x9 · 4 tabureli bar tezgâhı, 2 sedir, yuvarlak masa; arka bar, müzik kutusu, dart, bilardo.
+// 10 kişi · 11x9 · 4 tabureli bar tezgâhı, 2 sedir, yuvarlak masa; arka bar, müzik kutusu, dart, bilardo, ayakta masa.
 const LAYOUT = {
   width: 11,
   depth: 9,
@@ -18,6 +18,7 @@ const LAYOUT = {
   ],
   props: [
     { type: 'pool', x: 9.6, z: 5.5, facing: '-x' },
+    { type: 'hightable', x: 6.8, z: 7.3, facing: '-z' },
   ],
   spots: [
     { id: 'window', label: 'Pencere kenarı', x: 0.85, z: 8.15 },

@@ -20,6 +20,9 @@ const LAYOUT = {
     { type: 'vr', x: 6.6, z: 3.4, facing: '-x' },
     { type: 'terrarium', x: 6.9, z: 4.85 },
   ],
+  spots: [
+    { id: 'window', label: 'Pencere kenarı', x: 0.85, z: 5.15 },
+  ],
 }
 
 export default function CyberRoom4(props) {

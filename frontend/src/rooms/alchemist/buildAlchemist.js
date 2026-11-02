@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   FLOOR_BOTTOM,
   WALL,
@@ -29,7 +30,7 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 // Arka duvar boyunca dizilen parçalar; at: merkez x. spot: önünde mola halkası açılır.
 // İlk iksir dolabının tepesinde baykuş oturur.
 const WALLS = {
-  door: { draw: (f) => archDoor(f), spot: { id: 'door', label: 'Giriş', distance: 1.0 } },
+  door: { draw: (f) => archDoor(f) },
   books: { draw: (f, rnd, fx) => bookshelf(f, rnd, fx) },
   potions: { draw: (f, rnd, fx, first) => potionCabinet(f, rnd, fx, first) },
   bench: { draw: (f, rnd, fx) => alchemyBench(f, rnd, fx), spot: { id: 'bench', label: 'Simya tezgâhı', distance: 1.25 } },
@@ -73,9 +74,10 @@ export function buildAlchemist(layout) {
   const fx = { view: group(), night: group(), room: group(), lit: group(), mist: group(), steams: [] }
   const tables = layout.tables ?? []
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   floor(root, width, depth, rnd)
@@ -93,7 +95,7 @@ export function buildAlchemist(layout) {
     const part = WALLS[item.type]
     const f = root.frame(item.at, 0, 0)
     part.draw(f, rnd, fx, item.type === 'potions' && cabinets++ === 0)
-    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance))
+    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance), stations(part.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   for (const item of layout.props ?? []) {
@@ -101,7 +103,7 @@ export function buildAlchemist(layout) {
     prop.draw(root.frame(item.x, 0, item.z), rnd, fx, room, item)
     if (prop.spot) {
       const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
-      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, f, item), f.facing() + Math.PI)
     }
   }
 

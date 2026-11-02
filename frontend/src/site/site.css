@@ -269,7 +269,47 @@
 }
 
 .myroom__room {
-  height: max(420px, calc(100svh - 230px));
+  height: max(420px, calc(100svh - 270px));
+}
+
+/* odadakiler listesi; nokta biçimleri avatar etiketleriyle aynı */
+.roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.roster__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.roster__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3ddc84;
+}
+
+.roster__item--break .roster__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #f5a623;
+  transform: rotate(45deg);
+}
+
+.roster__item--away .roster__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 3px #9a9a9a;
 }
 
 @media (max-width: 900px) {
@@ -285,4 +325,34 @@
   .create-preview__room {
     height: 380px;
   }
+}
+
+/* avatar atölyesi */
+
+.avatar-page__preview {
+  height: min(520px, 62svh);
+}
+
+.avatar-page__sub {
+  margin-top: 8px;
+}
+
+.swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.swatch[aria-pressed='true'] {
+  border-color: #222;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #222;
 }

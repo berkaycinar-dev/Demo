@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   FLOOR_BOTTOM,
   WALL,
@@ -28,7 +29,7 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 
 // Arka duvar boyunca dizilen donanım; at: merkez x. spot: önünde mola halkası açılır.
 const WALLS = {
-  hatch: { draw: (f, rnd, item, fx) => hatch(f, fx), spot: { id: 'airlock', label: 'Hava kilidi', distance: 0.95 } },
+  hatch: { draw: (f, rnd, item, fx) => hatch(f, fx) },
   suit: { draw: (f) => evaSuit(f) },
   console: {
     draw: (f, rnd, item, fx) => controlConsole(f, item.length, rnd, fx),
@@ -44,10 +45,16 @@ const WALLS = {
 
 // Zemine konan eşyalar.
 const PROPS = {
-  treadmill: { draw: (f) => treadmill(f), spot: { id: 'treadmill', label: 'Koşu bandı', distance: 1.5 } },
+  // koşan bandın üstünde, konsola (-z) dönük
+  treadmill: { draw: (f) => treadmill(f), spot: { id: 'treadmill', label: 'Koşu bandı', distance: 1.5, stations: [[0, 0.18, 0.1, Math.PI, 'mount']] } },
   bench: {
     draw: (f, rnd, item, room) => windowBench(f, item.length, room),
-    spot: { id: 'bench', label: 'Dinlenme bankı', distance: 0.95 },
+    spot: {
+      id: 'bench',
+      label: 'Dinlenme bankı',
+      distance: 0.95,
+      stations: (item) => [-1, 1].map((s) => [s * Math.min(Math.max(0.3, item.length / 4), item.length / 2 - 0.25), 0.46, 0.06]),
+    },
   },
   bike: { draw: (f) => exerciseBike(f) },
   telescope: { draw: (f) => telescope(f) },
@@ -73,9 +80,10 @@ export function buildSpace(layout) {
   const room = { seats: [], spots: [], lights: [] }
   const fx = { movers: [], blinkers: [], holos: [] }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   floor(root, width, depth, rnd)
@@ -86,7 +94,7 @@ export function buildSpace(layout) {
     const part = WALLS[item.type]
     const f = root.frame(item.at, 0, 0)
     part.draw(f, rnd, item, fx)
-    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance))
+    if (part.spot) addSpot(part.spot.id, part.spot.label, f.point(0, 0, part.spot.distance), stations(part.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   if (table) missionTable(root.frame(table.x, 0, table.z), table, room, fx)
@@ -95,7 +103,7 @@ export function buildSpace(layout) {
     const prop = PROPS[item.type]
     const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
     prop.draw(f, rnd, item, room)
-    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   for (const { id, label, x, z } of layout.spots ?? []) addSpot(id, label, { x, z })
