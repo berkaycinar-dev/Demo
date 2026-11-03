@@ -70,6 +70,9 @@ function CameraRig({ bounds, view }) {
       target.z + Math.cos(azimuth) * flat,
     )
     camera.lookAt(target)
+    // lookAt dünya matrisini dönüşten önce günceller; aynı karede kamerayla izdüşüm yapanlar (avatar
+    // etiketleri) eski dönüşü görmesin
+    camera.updateMatrixWorld()
     const nextZoom = fit * zoom
     if (camera.zoom !== nextZoom) {
       camera.zoom = nextZoom

@@ -7,8 +7,11 @@ import {
   HAIR_COLORS,
   HEADPHONE_HATS,
   METALS,
+  NO_BANGS,
+  OVER_HEAD,
   SHOE_COLORS,
   SKIN_TONES,
+  browColorOf,
   colorOf,
 } from './options'
 
@@ -49,6 +52,11 @@ export const PROPS = [
 const BOOK_COVERS = ['#7a2a24', '#24503a', '#2a3556', '#8a5a1e', '#5a2a5e', '#1f5a66', '#a0522d', '#3d3d3d']
 const MUG_COLORS = ['#f2efe8', '#d9534f', '#3a7bd5', '#f0ad4e', '#5cb85c', '#2a2a2e']
 
+// hırkanın altındaki tişört, süveterin altındaki gömlek, kulaklık gövdesi
+const TEE = '#efe9df'
+const SHIRT = '#f2efe8'
+const PHONE = '#2a2a2e'
+
 const mix = (a, b, k) => `#${new Color(a).lerp(new Color(b), k).getHexString()}`
 const darker = (c, k = 0.28) => mix(c, '#000000', k)
 const lighter = (c, k = 0.3) => mix(c, '#ffffff', k)
@@ -65,6 +73,8 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
   const config = { ...DEFAULT_AVATAR, ...avatar }
   const skin = colorOf(SKIN_TONES, config.skin)
   const hair = colorOf(HAIR_COLORS, config.hairColor)
+  // ikinci saç rengi (ombre): parlama şeritleri ve saç uçları
+  const hair2 = config.hairColor2 && config.hairColor2 !== 'none' ? colorOf(HAIR_COLORS, config.hairColor2) : null
   const eye = colorOf(EYE_COLORS, config.eyes)
   const top = colorOf(CLOTH_COLORS, config.topColor)
   const bottom = colorOf(CLOTH_COLORS, config.bottomColor)
@@ -91,26 +101,137 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
   // ---------------- gövde ve kıyafet (gövde: x ±0.19, y 0..0.42, z ±0.11; kadında bel 0.33 geniş)
   const female = config.body === 'female'
   const waist = female ? 0.33 : 0.38
-  const longSleeves = config.top !== 'tshirt'
-  if (female) {
-    add('torso', [0, 0.29, 0], [0.37, 0.26, 0.22], top)
-    add('torso', [0, 0.085, 0], [waist, 0.17, 0.22], top)
-  } else add('torso', [0, 0.21, 0], [0.38, 0.42, 0.22], top)
-  if (config.top === 'hoodie') {
+  // tek parça: elbise ve hayvanlı tulum üstün ve altın, salopet altın yerine geçer
+  const outfit = config.outfit ?? 'none'
+  const topStyle = outfit === 'dress' || outfit === 'onesie' ? outfit : config.top
+  const bottomStyle = outfit === 'none' ? config.bottom : outfit
+  const sleeves = { tshirt: 'short', dress: 'short', cami: 'none', robe: 'wide' }[topStyle] ?? 'long'
+  const longSleeves = sleeves === 'long' || sleeves === 'wide'
+  // gövde parçaları [yarı genişlik, y0, y1]: kadında üst gövde ve bel
+  const segs = female ? [[0.185, 0.16, 0.42], [waist / 2, 0, 0.17]] : [[0.19, 0, 0.42]]
+  const halfAt = (y0, y1) => Math.max(...segs.filter(([, a, b]) => b > y0 && a < y1).map(([h]) => h))
+  // gövdeyi y0..y1 arasında saran kaplama; yanlarda, önde ve arkada d kadar dışarı taşar
+  const wrap = (y0, y1, d, color) => {
+    const h = halfAt(y0, y1) + d
+    box('torso', [-h, h], [y0, y1], [-0.11 - d, 0.11 + d], color)
+  }
+  // askılı bluzda omuzlar ve göğsün üstü ten; hırkanın altında açık renk tişört
+  const skinAbove = topStyle === 'cami' ? 0.33 : 1
+  const torsoColor = topStyle === 'cardigan' ? TEE : top
+  for (const [h, y0, y1] of segs) {
+    if (y1 > skinAbove) box('torso', [-h, h], [Math.max(y0, skinAbove), y1], [-0.11, 0.11], skin)
+    if (y0 < skinAbove) box('torso', [-h, h], [y0, Math.min(y1, skinAbove)], [-0.11, 0.11], torsoColor)
+  }
+  if (topStyle === 'hoodie') {
     add('torso', [0, 0.4, -0.12], [0.3, 0.12, 0.08], darker(top, 0.12))
     add('torso', [0, 0.1, 0.113], [0.22, 0.1, 0.014], darker(top, 0.15))
     for (const x of [-0.04, 0.04]) add('torso', [x, 0.33, 0.114], [0.012, 0.09, 0.012], '#f2f2f2')
-  } else if (config.top === 'sweater') {
+  } else if (topStyle === 'sweater') {
     add('torso', [0, 0.415, 0], [0.22, 0.04, 0.2], darker(top, 0.18))
     add('torso', [0, 0.025, 0], [waist + 0.01, 0.04, 0.23], darker(top, 0.18))
-  } else if (config.top === 'shirt') {
-    for (const s of [-1, 1]) add('torso', [s * 0.05, 0.4, 0.1], [0.08, 0.05, 0.03], lighter(top, 0.45), { rot: [0, 0, s * 0.35] })
+  } else if (topStyle === 'pullover') {
+    // süveter: V yakadan gömlek görünür, gömleğin yaka uçları dışarıda; altı ribanalı
+    const rib = darker(top, 0.18)
+    box('torso', [-0.05, 0.05], [0.33, 0.42], [0.11, 0.114], SHIRT)
+    for (const s of [-1, 1]) {
+      add('torso', [s * 0.035, 0.37, 0.117], [0.022, 0.1, 0.01], rib, { rot: [0, 0, s * 0.55] })
+      add('torso', [s * 0.05, 0.405, 0.107], [0.08, 0.045, 0.034], SHIRT, { rot: [0, 0, s * 0.35] })
+    }
+    wrap(0.005, 0.045, 0.005, rib)
+  } else if (topStyle === 'cardigan') {
+    // hırka: önü açık, içteki tişört (gövde) arada görünür; düğmeli pervaz ve cepler
+    const band = darker(top, 0.2)
+    for (const [h, y0, y1] of segs) {
+      const a = y0 === 0 ? -0.005 : y0
+      const b = y1 === 0.42 ? 0.415 : y1
+      box('torso', [-h - 0.005, h + 0.005], [a, b], [-0.116, 0.104], top)
+      for (const s of [-1, 1]) {
+        box('torso', sx(s, 0.045, h + 0.005), [a, b], [0.1, 0.118], top)
+        box('torso', sx(s, 0.045, 0.065), [a, b], [0.118, 0.122], band)
+      }
+    }
+    for (const y of [0.1, 0.2, 0.3]) box('torso', [0.049, 0.061], [y - 0.006, y + 0.006], [0.122, 0.125], darker(top, 0.45))
+    for (const s of [-1, 1]) box('torso', sx(s, 0.085, 0.145), [0.04, 0.11], [0.118, 0.122], band)
+  } else if (topStyle === 'shirt' || topStyle === 'flannel') {
+    const plaid = topStyle === 'flannel'
+    for (const s of [-1, 1]) add('torso', [s * 0.05, 0.4, 0.1], [0.08, 0.05, 0.03], plaid ? darker(top, 0.35) : lighter(top, 0.45), { rot: [0, 0, s * 0.35] })
     add('torso', [0, 0.2, 0.112], [0.012, 0.3, 0.012], darker(top, 0.25))
-  } else if (config.top === 'jacket') {
+    if (plaid) {
+      // ekose: gövdeyi saran yatay şeritler, önde ve arkada dikey şeritler, kesişimler koyu
+      const across = darker(top, 0.35)
+      const down = darker(top, 0.22)
+      const cross = darker(top, 0.55)
+      const rows = [0.07, 0.215, 0.33]
+      for (const y of rows) wrap(y - 0.025, y + 0.025, 0.004, across)
+      for (const [h, y0, y1] of segs) {
+        for (const s of [-1, 1]) {
+          for (const z of [-1, 1]) box('torso', sx(s, 0.08, 0.12), [y0, y1], z > 0 ? [0.11, 0.118] : [-0.118, -0.11], down)
+          box('torso', sx(s, h - 0.01, h + 0.008), [y0, y1], [-0.02, 0.02], down)
+        }
+      }
+      for (const y of rows) for (const s of [-1, 1]) for (const z of [-1, 1]) box('torso', sx(s, 0.078, 0.122), [y - 0.025, y + 0.025], z > 0 ? [0.114, 0.122] : [-0.122, -0.114], cross)
+    }
+  } else if (topStyle === 'fleece') {
+    // polar: dik yaka, yarım fermuar, omuzlarda açık renk parça, göğüs cebi
+    wrap(0.3, 0.424, 0.004, lighter(top, 0.18))
+    box('torso', [-0.12, 0.12], [0.41, 0.46], [-0.1, 0.118], top)
+    box('torso', [-0.007, 0.007], [0.2, 0.424], [0.11, 0.12], '#c9ced6')
+    box('torso', [-0.012, 0.012], [0.39, 0.415], [0.12, 0.126], '#c9ced6')
+    box('torso', [0.05, 0.13], [0.19, 0.265], [0.11, 0.116], darker(top, 0.15))
+    wrap(0.005, 0.04, 0.005, darker(top, 0.2))
+  } else if (topStyle === 'cami') {
+    // askılı bluz: omuzlar açık, ince askılar, üst kenarda açık renk şerit
+    wrap(0.326, 0.345, 0.004, lighter(top, 0.35))
+    for (const s of [-1, 1]) {
+      box('torso', sx(s, 0.07, 0.095), [0.345, 0.42], [0.11, 0.115], top)
+      box('torso', sx(s, 0.07, 0.095), [0.345, 0.42], [-0.115, -0.11], top)
+      box('torso', sx(s, 0.07, 0.095), [0.42, 0.424], [-0.115, 0.115], top)
+    }
+  } else if (topStyle === 'robe') {
+    // bornoz: önde çapraz şal yaka, belde kuşak; etekleri kalçayı örter (aşağıda)
+    const trim = lighter(top, 0.25)
+    const belt = darker(top, 0.15)
+    box('torso', [-0.045, 0.045], [0.34, 0.42], [0.11, 0.114], skin)
+    for (const s of [-1, 1]) add('torso', [s * 0.04, 0.3, 0.1155], [0.06, 0.26, 0.015], trim, { rot: [0, 0, -s * 0.3] })
+    wrap(0.1, 0.14, 0.006, belt)
+    box('torso', [-0.03, 0.03], [0.095, 0.145], [0.116, 0.13], belt)
+    for (const s of [-1, 1]) add('torso', [s * 0.025, 0.05, 0.123], [0.025, 0.09, 0.008], belt, { rot: [0, 0, s * 0.2] })
+  } else if (topStyle === 'dress') {
+    // elbise: yuvarlak yaka, belde kurdele, arkada fiyonk
+    const ribbon = lighter(top, 0.35)
+    box('torso', [-0.07, 0.07], [0.375, 0.42], [0.11, 0.114], skin)
+    wrap(0.1, 0.14, 0.005, ribbon)
+    box('torso', [-0.02, 0.02], [0.095, 0.145], [-0.125, -0.115], ribbon)
+    for (const s of [-1, 1]) box('torso', sx(s, 0.02, 0.075), [0.105, 0.135], [-0.121, -0.113], ribbon)
+  } else if (topStyle === 'onesie') {
+    // hayvanlı tulum: açık renk karın, arkada kapüşon, kapüşonun iki yanında kulaklar (kalçada kuyruk).
+    // Kulaklar kapüşonun derinliği içinde: arkaya yaslanınca koltuğa girmez.
+    const belly = lighter(top, 0.45)
+    box('torso', [-0.09, 0.09], [0.06, 0.3], [0.11, 0.116], belly)
+    add('torso', [0, 0.4, -0.12], [0.3, 0.12, 0.08], darker(top, 0.12))
+    for (const s of [-1, 1]) {
+      box('torso', sx(s, 0.145, 0.175), [0.395, 0.455], [-0.145, -0.095], top)
+      box('torso', sx(s, 0.175, 0.179), [0.405, 0.445], [-0.135, -0.105], belly)
+    }
+  } else if (topStyle === 'jacket') {
     add('torso', [0, 0.215, 0.112], [0.1, 0.39, 0.012], '#f2efe8')
     for (const s of [-1, 1]) add('torso', [s * 0.07, 0.32, 0.116], [0.04, 0.16, 0.012], darker(top, 0.25), { rot: [0, 0, s * 0.3] })
   } else {
     add('torso', [0, 0.405, 0.1], [0.14, 0.02, 0.03], darker(top, 0.2))
+  }
+  // salopet: önde göğüslük ve askılar, belde saran kemer kısmı (üst içinde görünür)
+  if (bottomStyle === 'overalls') {
+    const denim = bottom
+    box('torso', [-0.125, 0.125], [0.0, 0.27], [0.108, 0.136], denim)
+    box('torso', [-0.125, 0.125], [0.0, 0.2], [-0.136, -0.108], denim)
+    wrap(-0.01, 0.1, 0.01, denim)
+    for (const s of [-1, 1]) {
+      box('torso', sx(s, 0.072, 0.108), [0.27, 0.42], [0.108, 0.139], denim)
+      box('torso', sx(s, 0.072, 0.108), [0.2, 0.42], [-0.139, -0.108], denim)
+      box('torso', sx(s, 0.072, 0.108), [0.4, 0.428], [-0.14, 0.14], denim)
+      box('torso', sx(s, 0.075, 0.105), [0.25, 0.28], [0.136, 0.142], '#c9ced6')
+    }
+    box('torso', [-0.055, 0.055], [0.145, 0.225], [0.136, 0.14], darker(denim, 0.15))
   }
   const neck = config.neck
   if (neck === 'scarf') {
@@ -138,25 +259,47 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
     box('torso', [-0.017, 0.017], [0.285, 0.322], [0.116, 0.13], metal)
     box('torso', [-0.008, 0.008], [0.294, 0.313], [0.128, 0.135], '#d04a6a')
   }
+  // boyunda duran kulaklık: bant ensede, kulaklıklar göğsün üstünde öne bakar
+  const phones = config.headphones ?? 'none'
+  if (phones === 'neck') {
+    box('torso', [-0.112, 0.112], [0.422, 0.447], [-0.085, -0.06], PHONE)
+    for (const s of [-1, 1]) {
+      box('torso', sx(s, 0.09, 0.112), [0.422, 0.447], [-0.06, 0.07], PHONE)
+      box('torso', sx(s, 0.066, 0.15), [0.385, 0.445], [0.07, 0.142], acc)
+      box('torso', sx(s, 0.085, 0.135), [0.4, 0.43], [0.142, 0.146], darker(acc, 0.3))
+    }
+  }
 
   // kollar
+  const cuff = { sweater: darker(top, 0.18), pullover: SHIRT, fleece: darker(top, 0.2), onesie: lighter(top, 0.45) }[topStyle] ?? darker(top, 0.08)
   for (const side of ['L', 'R']) {
     const arm = `arm${side}`
     const fore = `fore${side}`
-    if (longSleeves) {
+    if (sleeves === 'wide') {
+      add(arm, [0, -0.09, 0], [0.125, 0.22, 0.125], top)
+      add(fore, [0, -0.1, 0], [0.11, 0.2, 0.11], top)
+      add(fore, [0, -0.18, 0], [0.124, 0.05, 0.124], lighter(top, 0.25))
+    } else if (sleeves === 'long') {
       add(arm, [0, -0.09, 0], [0.11, 0.22, 0.11], top)
       add(fore, [0, -0.1, 0], [0.1, 0.2, 0.1], top)
-      add(fore, [0, -0.1875, 0], [0.108, 0.035, 0.108], darker(top, config.top === 'sweater' ? 0.18 : 0.08))
-    } else {
+      add(fore, [0, -0.1875, 0], [0.108, 0.035, 0.108], cuff)
+      if (topStyle === 'flannel') {
+        box(arm, [-0.059, 0.059], [-0.13, -0.09], [-0.059, 0.059], darker(top, 0.35))
+        box(fore, [-0.052, 0.052], [-0.1, -0.06], [-0.052, 0.052], darker(top, 0.35))
+      }
+    } else if (sleeves === 'short') {
       add(arm, [0, -0.04, 0], [0.12, 0.12, 0.12], top)
       add(arm, [0, -0.14, 0], [0.095, 0.12, 0.095], skin)
+      add(fore, [0, -0.1, 0], [0.09, 0.2, 0.09], skin)
+    } else {
+      add(arm, [0, -0.09, 0], [0.095, 0.22, 0.095], skin)
       add(fore, [0, -0.1, 0], [0.09, 0.2, 0.09], skin)
     }
     add(fore, [0, -0.245, 0], [0.09, 0.09, 0.09], skin)
   }
   // bilek (sol önkol, kolun dış yüzü +x): bant kolun 7 mm dışında, kadran bandın dışında
   if (config.wrist !== 'none') {
-    const hb = longSleeves ? 0.057 : 0.052
+    const hb = sleeves === 'wide' ? 0.06 : longSleeves ? 0.057 : 0.052
     const band = config.wrist === 'bracelet' ? metal : config.wrist === 'smartwatch' ? '#1e1e24' : darker(acc, 0.2)
     const [y0, y1] = config.wrist === 'bracelet' ? [-0.163, -0.15] : [-0.166, -0.144]
     box('foreL', [-hb, hb], [y0, y1], [-hb, hb], band)
@@ -171,20 +314,59 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
 
   // kalça ve bacaklar (kalça: x ±0.17, y -0.09..0.03; kadında ±0.18)
   const hipW = female ? 0.36 : 0.34
-  if (config.bottom === 'skirt') {
-    add('hips', [0, -0.08, 0], [hipW + 0.05, 0.2, 0.25], bottom)
-    add('hips', [0, -0.177, 0], [hipW + 0.06, 0.02, 0.26], darker(bottom, 0.2))
-  } else {
-    add('hips', [0, -0.03, 0], [hipW, 0.12, 0.2], bottom)
-    add('hips', [0, 0.02, 0], [hipW + 0.01, 0.03, 0.21], darker(bottom, 0.3))
+  const legCloth = bottomStyle === 'onesie' ? top : bottom
+  // etek (elbise ve bornoz eteği de): kalçada bel bandı, iki uylukta birer panel. Paneller uylukla döner;
+  // oturunca kucağa yatar, uyluğun arkasında (oturak tarafı) 4 mm'den fazla taşmaz; etek ucu (hem) arkada
+  // uyluğun içinde kalır (eğik oturakta diz yanı aşağıda). half: yarı genişlik, len: uyluk boyunca boy.
+  const skirt = (color, hem, half, len) => {
+    box('hips', [-half, half], [-0.095, 0.02], [-0.12, 0.12], color)
+    for (const side of ['L', 'R']) {
+      const s = side === 'L' ? 1 : -1
+      const out = half - 0.095
+      box(`thigh${side}`, sx(s, -0.095, out), [-len + 0.02, -0.01], [-0.084, 0.12], color)
+      box(`thigh${side}`, sx(s, -0.095, out + 0.005), [-len, -len + 0.02], [-0.066, 0.125], hem)
+    }
   }
+  if (bottomStyle === 'skirt') skirt(bottom, darker(bottom, 0.2), hipW / 2 + 0.025, 0.2)
+  else if (bottomStyle === 'dress') skirt(top, darker(top, 0.2), hipW / 2 + 0.035, 0.21)
+  else {
+    add('hips', [0, -0.03, 0], [hipW, 0.12, 0.2], legCloth)
+    if (bottomStyle !== 'overalls' && bottomStyle !== 'onesie') add('hips', [0, 0.02, 0], [hipW + 0.01, 0.03, 0.21], darker(bottom, 0.3))
+    if (bottomStyle === 'joggers') for (const x of [-0.02, 0.02]) box('hips', [x - 0.005, x + 0.005], [-0.035, 0.005], [0.105, 0.11], '#f2f2f2')
+    if (bottomStyle === 'onesie') box('hips', [-0.035, 0.035], [-0.07, -0.01], [-0.16, -0.1], lighter(top, 0.45))
+  }
+  // bornozun etekleri: etekle aynı biçimde (uyluklarla döner); alt etekse etek görünür
+  if (topStyle === 'robe' && bottomStyle !== 'skirt') skirt(top, lighter(top, 0.25), hipW / 2 + 0.025, 0.2)
+  const fullLeg = ['pants', 'joggers', 'pajama', 'overalls', 'onesie'].includes(bottomStyle)
+  const bareThigh = bottomStyle === 'skirt' || bottomStyle === 'dress'
+  const stripe = lighter(bottom, 0.55)
+  const sole = darker(shoe, 0.35)
+  const footwear = config.footwear ?? 'sneakers'
   for (const side of ['L', 'R']) {
     const thigh = `thigh${side}`
     const shin = `shin${side}`
-    add(thigh, [0, -0.14, 0], [0.145, 0.28, 0.16], config.bottom === 'skirt' ? skin : bottom)
-    add(shin, [0, -0.1, 0], [0.13, 0.2, 0.14], config.bottom === 'pants' ? bottom : skin)
-    add(shin, [0, -0.235, 0.02], [0.14, 0.07, 0.2], shoe)
-    add(shin, [0, -0.266, 0.02], [0.146, 0.016, 0.206], darker(shoe, 0.35))
+    // bacağın dış yanı: sol bacakta +x
+    const outer = side === 'L' ? 1 : -1
+    if (bottomStyle === 'pajama') {
+      // pijama: dikey çizgiler bacağın dilimleri olarak (dışarı taşmaz; önde ve arkada görünür)
+      for (const [bone, hx, hz, y0] of [[thigh, 0.0725, 0.08, -0.28], [shin, 0.065, 0.07, -0.2]]) {
+        const cuts = [-hx, -0.043, -0.027, 0.027, 0.043, hx]
+        for (let i = 0; i < 5; i++) box(bone, [cuts[i], cuts[i + 1]], [y0, 0], [-hz, hz], i % 2 ? stripe : bottom)
+      }
+    } else {
+      add(thigh, [0, -0.14, 0], [0.145, 0.28, 0.16], bareThigh ? skin : legCloth)
+      add(shin, [0, -0.1, 0], [0.13, 0.2, 0.14], fullLeg ? legCloth : skin)
+    }
+    if (bottomStyle === 'joggers') {
+      // eşofman: dış yanda beyaz şerit, bilekte lastikli paça
+      box(thigh, sx(outer, 0.0725, 0.0765), [-0.27, -0.01], [-0.012, 0.012], '#f2f2f2')
+      box(shin, sx(outer, 0.065, 0.069), [-0.17, -0.005], [-0.012, 0.012], '#f2f2f2')
+      box(shin, [-0.069, 0.069], [-0.204, -0.17], [-0.074, 0.074], darker(bottom, 0.25))
+    } else if (bottomStyle === 'overalls' || bottomStyle === 'onesie') {
+      // salopette kıvrık paça; tulumda açık renk pati
+      box(shin, [-0.069, 0.069], [-0.204, -0.165], [-0.074, 0.074], bottomStyle === 'onesie' ? lighter(top, 0.45) : lighter(bottom, 0.2))
+    }
+    footParts(box, shin, footwear, shoe, sole, skin)
   }
 
   // ---------------- baş (baş: x ±0.17, y 0.03..0.37, z -0.155..0.165)
@@ -195,7 +377,7 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
   for (const s of [-1, 1]) {
     add('head', [s * 0.075, 0.2, 0.166], [0.052, 0.062, 0.012], eye)
     add('head', [s * 0.075 + 0.012, 0.215, 0.172], [0.018, 0.018, 0.004], '#ffffff')
-    const brow = darker(hair, 0.1)
+    const brow = darker(browColorOf(config), 0.1)
     if (female) {
       box('head', sx(s, 0.045, 0.092), [0.25, 0.262], [0.162, 0.174], brow)
       box('head', sx(s, 0.088, 0.118), [0.256, 0.268], [0.162, 0.174], brow)
@@ -269,7 +451,11 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
   // saç: hairParts kutuları; top: şapka (örten başlık) varken gizlenen tepe parçaları. Alın çizgisi
   // başın ön yüzünün 7 mm önünde (aynı düzlemde kalmaz).
   const hatDef = HAT_KINDS[config.hat] ?? HAT_KINDS.none
-  const hairBoxes = hairParts(config.hairStyle, female, { hair, light: mix(hair, '#f0d8a8', 0.13), dark: darker(hair, 0.2), shaved: mix(skin, hair, 0.55), tie: darker(hair, 0.55) })
+  const light = hair2 ?? mix(hair, '#f0d8a8', 0.13)
+  const dark = darker(hair, 0.2)
+  const hairColors = { hair, light, dark, shaved: mix(skin, hair, 0.55), tie: darker(hair, 0.55), tip: hair2 ?? light, tipDark: hair2 ?? dark }
+  const bangs = config.bangs && !NO_BANGS.includes(config.hairStyle)
+  const hairBoxes = hairParts(config.hairStyle, female, hairColors, { bangs, hatCovers: hatDef.covers })
   const shown = hairBoxes.filter((h) => !(h.top && hatDef.covers))
   for (const h of shown) box('head', h.x, h.y, h.z, h.color)
   // başın tepesindeki saç yüksekliği: tepenin ortasını örten geniş parçaların üstü (taç, kedi kulağı
@@ -279,7 +465,8 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
     ...shown.filter((h) => h.x[1] - h.x[0] >= 0.2 && h.x[0] < 0 && h.x[1] > 0 && h.z[0] < 0 && h.z[1] > 0).map((h) => h.y[1]),
   )
   // orta çizgideki en yüksek saç (kulaklık bandı bunun üstünden geçer)
-  const ridgeY = Math.max(0.37, ...shown.filter((h) => h.z[0] < 0.04 && h.z[1] > -0.04 && h.x[0] < 0.16 && h.x[1] > -0.16).map((h) => h.y[1]))
+  // (çift topuzda bant topuzların arasından geçer)
+  const ridgeY = Math.max(0.37, ...shown.filter((h) => !h.side && h.z[0] < 0.04 && h.z[1] > -0.04 && h.x[0] < 0.16 && h.x[1] > -0.16).map((h) => h.y[1]))
 
   // saçın y0..y1 arasındaki dış sınırı (+7 mm): taç ve çiçek tacı bunu dıştan sarar
   const fit = (y0, y1) => {
@@ -296,20 +483,57 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
   // başlık
   hatDef.build({ box, sx, color: hatColor, metal, crownY, fit })
 
-  // kulaklık: bant saçın / şapkanın üstünden, yan çubuklar saçın dışından geçer
-  if (config.headphones && HEADPHONE_HATS.includes(config.hat)) {
+  // kafa üstü kulaklık: bant saçın / şapkanın üstünden, yan çubuklar saçın dışından geçer; kulaklıklar
+  // kulak çıkıntısını (x 0.165..0.195, y 0.155..0.225, z ±0.03) tümüyle içine alır
+  const overHead = OVER_HEAD.includes(phones) && HEADPHONE_HATS.includes(config.hat)
+  if (overHead) {
     const bandY = config.hat === 'beanie' ? 0.47 : config.hat === 'cap' ? 0.452 : ridgeY + 0.021
     const sideHair = shown.filter((h) => h.z[0] < 0.03 && h.z[1] > -0.03 && h.y[1] > 0.25 && h.y[0] < bandY)
     const barX = Math.max(config.hat === 'none' ? 0.2 : 0.222, ...sideHair.map((h) => Math.max(h.x[1], -h.x[0]) + 0.017))
-    add('head', [0, bandY, 0], [barX * 2, 0.035, 0.064], '#2a2a2e')
+    const retro = phones === 'retro'
+    // retro: ince metal bant, süngerli küçük kulaklık; oyuncu ve kedi kulaklı: büyük kulaklık
+    const frame = retro ? '#c9ced6' : PHONE
+    const bandLow = bandY - 0.0175
+    box('head', [-barX, barX], [bandLow, bandLow + (retro ? 0.022 : 0.035)], retro ? [-0.018, 0.018] : [-0.032, 0.032], frame)
+    const bar = retro ? 0.008 : 0.012
     for (const s of [-1, 1]) {
-      add('head', [s * barX, (bandY + 0.25) / 2, 0], [0.024, bandY - 0.25, 0.045], '#2a2a2e')
-      add('head', [s * (barX + 0.008), 0.2, 0], [0.06, 0.12, 0.11], acc)
+      box('head', sx(s, barX - bar, barX + bar), [0.25, bandLow + 0.01], retro ? [-0.015, 0.015] : [-0.0225, 0.0225], frame)
+      if (retro) {
+        const o = barX + 0.03
+        box('head', sx(s, 0.168, o), [0.15, 0.25], [-0.05, 0.05], acc)
+        box('head', sx(s, o, o + 0.01), [0.17, 0.23], [-0.03, 0.03], '#9aa0a8')
+      } else {
+        const o = barX + 0.045
+        const cat = phones === 'cat'
+        box('head', sx(s, 0.168, o), [0.125, 0.275], [-0.058, 0.058], acc)
+        box('head', sx(s, o, o + 0.006), [0.145, 0.255], [-0.045, 0.045], cat ? '#ff6ad5' : PHONE)
+        box('head', sx(s, o + 0.006, o + 0.01), [0.175, 0.225], [-0.018, 0.018], cat ? '#6ae8ff' : '#5ad0ff')
+        if (cat) {
+          // bantta parlayan kedi kulakları
+          const y = bandLow + 0.035
+          box('head', sx(s, 0.05, 0.125), [y - 0.004, y + 0.05], [-0.022, 0.022], acc)
+          box('head', sx(s, 0.065, 0.11), [y + 0.05, y + 0.078], [-0.018, 0.018], acc)
+          box('head', sx(s, 0.07, 0.105), [y + 0.006, y + 0.06], [0.022, 0.026], '#ff6ad5')
+        } else if (s > 0) {
+          // mikrofon: sol kulaklıktan öne, ağzın önüne uzanır (sakalın ve gözlüğün önünden)
+          box('head', [o - 0.035, o - 0.019], [0.14, 0.156], [0.06, 0.198], PHONE)
+          box('head', [0.1, o - 0.019], [0.14, 0.156], [0.184, 0.198], PHONE)
+          box('head', [0.07, 0.105], [0.13, 0.166], [0.18, 0.205], '#3a3a40')
+        }
+      }
+    }
+  }
+  // kablosuz kulak içi: kulak çıkıntısına oturur, sapı aşağı; kulağı örten saçta görünmez
+  const earsOpen = !EAR_COVERING.includes(config.hairStyle)
+  if (phones === 'earbuds' && earsOpen) {
+    for (const s of [-1, 1]) {
+      box('head', sx(s, 0.19, 0.206), [0.178, 0.204], [0.002, 0.026], '#f4f4f2')
+      box('head', sx(s, 0.196, 0.203), [0.14, 0.18], [0.008, 0.02], '#f4f4f2')
     }
   }
 
-  // küpe: kulak memesinin altında; saç kulağı örtüyorsa ya da kulaklık takılıysa yok
-  if (config.earrings !== 'none' && !EAR_COVERING.includes(config.hairStyle) && !config.headphones) {
+  // küpe: kulak memesinin altında; saç kulağı örtüyorsa ya da kafa üstü kulaklık takılıysa yok
+  if (config.earrings !== 'none' && earsOpen && !overHead) {
     for (const s of [-1, 1]) {
       if (config.earrings === 'studs') {
         box('head', sx(s, 0.192, 0.204), [0.158, 0.172], [-0.007, 0.007], metal)
@@ -356,6 +580,33 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
     }
     if (config.glasses === 'round') box('head', [-0.025, 0.025], [0.212, 0.222], [0.17, 0.182], g)
     else box('head', [-0.135, -0.125], [0.06, 0.15], [0.171, 0.178], metal)
+  } else if (config.glasses === 'rimless') {
+    // çerçevesiz: ince gümüş köprü ve saplar; camın yalnızca kenarları ve bir parıltı görünür, göz açıkta
+    const wire = '#c9ced6'
+    const lens = '#dcebf3'
+    box('head', [-0.02, 0.02], [0.21, 0.218], [0.176, 0.182], wire)
+    for (const s of [-1, 1]) {
+      const x = s * 0.075
+      box('head', [x - 0.045, x + 0.045], [0.236, 0.24], [0.176, 0.179], lens)
+      box('head', [x - 0.045, x + 0.045], [0.16, 0.164], [0.176, 0.179], lens)
+      for (const d of [-1, 1]) box('head', [x + d * 0.045 - 0.002, x + d * 0.045 + 0.002], [0.164, 0.236], [0.176, 0.179], lens)
+      box('head', [x + s * 0.03 - 0.004, x + s * 0.03 + 0.004], [0.2, 0.226], [0.176, 0.18], '#ffffff')
+      box('head', sx(s, 0.122, 0.176), [0.222, 0.23], [0.172, 0.18], wire)
+      box('head', sx(s, 0.172, 0.18), [0.222, 0.23], [-0.01, 0.172], wire)
+    }
+  } else if (config.glasses === 'pixel') {
+    // piksel gözlük: basamaklı siyah camlar, üstte düz çubuk, camda beyaz piksel parıltı
+    const px = '#0e0e10'
+    box('head', [-0.135, 0.135], [0.226, 0.252], [0.172, 0.19], px)
+    for (const s of [-1, 1]) {
+      const x = s * 0.075
+      box('head', [x - 0.05, x + 0.05], [0.188, 0.226], [0.172, 0.19], px)
+      box('head', [x - 0.035, x + 0.035], [0.17, 0.188], [0.172, 0.19], px)
+      box('head', [x - 0.04, x - 0.026], [0.21, 0.222], [0.19, 0.194], '#f4f4f4')
+      box('head', [x - 0.026, x - 0.012], [0.198, 0.21], [0.19, 0.194], '#f4f4f4')
+      box('head', sx(s, 0.137, 0.184), [0.226, 0.246], [0.168, 0.18], px)
+      box('head', sx(s, 0.172, 0.184), [0.22, 0.232], [-0.01, 0.17], px)
+    }
   }
 
   // ---------------- eşyalar
@@ -469,13 +720,16 @@ export function buildAvatarParts(avatar, { props, seed = 0 } = {}) {
 const sx = (s, a, b) => (s > 0 ? [a, b] : [-b, -a])
 
 /**
- * Saç kutuları, baş kemiğine göre min/max aralıklarıyla: { x, y, z, color, top }. top: örten şapka
- * varken gizlenen tepe parçası. c: renkler (hair, light, dark, shaved, tie). Baş x ±0.17, y 0.03..0.37,
- * z -0.155..0.165; kaşlar y 0.246..0.27 (perçem alt ucu 0.27'nin üstünde kalır).
+ * Saç kutuları, baş kemiğine göre min/max aralıklarıyla: { x, y, z, color, top, side }. top: örten
+ * şapka varken gizlenen tepe parçası; side: başın yanındaki topuz (kulaklık bandı arasından geçer).
+ * c: renkler (hair, light, dark, shaved, tie; tip ve tipDark saç uçları, ombre rengi bunlara ve
+ * light'a gelir). Baş x ±0.17, y 0.03..0.37, z -0.155..0.165; kaşlar y 0.246..0.27 (perçem ve kahkül
+ * alt ucu 0.27'nin üstünde kalır). opts.bangs: alna kahkül; opts.hatCovers: örten başlık varken
+ * kahkülün şapkanın altında kalan üst kısmı kurulmaz.
  */
-function hairParts(style, female, c) {
+function hairParts(style, female, c, { bangs = false, hatCovers = false } = {}) {
   const out = []
-  const P = (x, y, z, opts = {}) => out.push({ x, y, z, color: c[opts.tone ?? 'hair'], top: !!opts.top })
+  const P = (x, y, z, opts = {}) => out.push({ x, y, z, color: c[opts.tone ?? 'hair'], top: !!opts.top, side: !!opts.side })
   const cap = (y0 = 0.355, y1 = 0.415) => P([-0.18, 0.18], [y0, y1], [-0.175, 0.172], { top: true })
   const back = (y0 = 0.2) => P([-0.18, 0.18], [y0, 0.38], [-0.185, -0.145])
   const sides = (y0 = 0.23, out1 = 0.191) => {
@@ -609,8 +863,22 @@ function hairParts(style, female, c) {
       P([-0.185, 0.185], [-0.09, 0.34], [-0.202, -0.142])
       for (const s of [-1, 1]) P(sx(s, 0.167, 0.207), [-0.06, 0.33], [-0.17, 0.11])
       centerFringe(0.2)
-      P([-0.18, 0.18], [-0.12, -0.09], [-0.198, -0.146], { tone: 'light' })
-      for (const s of [-1, 1]) P(sx(s, 0.17, 0.204), [-0.09, -0.06], [-0.165, 0.105], { tone: 'light' })
+      P([-0.18, 0.18], [-0.12, -0.09], [-0.198, -0.146], { tone: 'tip' })
+      for (const s of [-1, 1]) P(sx(s, 0.17, 0.204), [-0.09, -0.06], [-0.165, 0.105], { tone: 'tip' })
+      break
+    case 'halfup':
+      // yarım toplu: üst kısım arkada küçük topuzda, kalanı omuzlara iner
+      cap()
+      back()
+      sides()
+      P([-0.185, 0.185], [-0.06, 0.34], [-0.202, -0.142])
+      for (const s of [-1, 1]) P(sx(s, 0.167, 0.207), [-0.03, 0.33], [-0.17, 0.11])
+      centerFringe(0.22)
+      P([-0.055, 0.055], [0.33, 0.43], [-0.25, -0.19], { top: true })
+      P([-0.065, 0.065], [0.36, 0.385], [-0.21, -0.185], { tone: 'tie', top: true })
+      P([-0.035, 0.035], [0.43, 0.44], [-0.235, -0.205], { tone: 'light', top: true })
+      P([-0.18, 0.18], [-0.09, -0.06], [-0.198, -0.146], { tone: 'tip' })
+      for (const s of [-1, 1]) P(sx(s, 0.17, 0.204), [-0.06, -0.03], [-0.165, 0.105], { tone: 'tip' })
       break
     case 'wavy': {
       cap()
@@ -622,8 +890,8 @@ function hairParts(style, female, c) {
         for (const s of [-1, 1]) P(sx(s, 0.167, w), [y0, y1], [-0.17, 0.11 - (w > 0.21 ? 0.01 : 0)])
         P([-0.188, 0.188], [y0, y1], [w > 0.21 ? -0.214 : -0.204, -0.142])
       })
-      for (const s of [-1, 1]) P(sx(s, 0.17, 0.212), [-0.13, -0.08], [-0.165, 0.09], { tone: 'light' })
-      P([-0.17, 0.17], [-0.13, -0.08], [-0.21, -0.146], { tone: 'light' })
+      for (const s of [-1, 1]) P(sx(s, 0.17, 0.212), [-0.13, -0.08], [-0.165, 0.09], { tone: 'tip' })
+      P([-0.17, 0.17], [-0.13, -0.08], [-0.21, -0.146], { tone: 'tip' })
       // yana taranmış perçem
       P([-0.18, 0.1], [0.32, 0.372], [0.166, 0.182], { top: true })
       P([0.1, 0.18], [0.29, 0.372], [0.166, 0.182], { top: true })
@@ -638,8 +906,8 @@ function hairParts(style, female, c) {
       for (const s of [-1, 1]) P(sx(s, 0.167, 0.215), [0.07, 0.33], [-0.17, 0.13])
       // düz kesik perçem
       P([-0.17, 0.17], [0.29, 0.372], [0.166, 0.184], { top: true })
-      P([-0.2, 0.2], [0.05, 0.075], [-0.205, -0.15], { tone: 'dark' })
-      for (const s of [-1, 1]) P(sx(s, 0.171, 0.219), [0.05, 0.075], [-0.165, 0.125], { tone: 'dark' })
+      P([-0.2, 0.2], [0.05, 0.075], [-0.205, -0.15], { tone: 'tipDark' })
+      for (const s of [-1, 1]) P(sx(s, 0.171, 0.219), [0.05, 0.075], [-0.165, 0.125], { tone: 'tipDark' })
       break
     case 'pixie':
       cap(0.35, 0.41)
@@ -658,7 +926,7 @@ function hairParts(style, female, c) {
       P([-0.05, 0.05], [0.31, 0.37], [-0.218, -0.175], { tone: 'tie' })
       P([-0.045, 0.045], [0.24, 0.33], [-0.25, -0.19])
       P([-0.055, 0.055], [0.1, 0.24], [-0.265, -0.2])
-      P([-0.04, 0.04], [0.0, 0.1], [-0.255, -0.205], { tone: 'light' })
+      P([-0.04, 0.04], [0.0, 0.1], [-0.255, -0.205], { tone: 'tip' })
       break
     case 'bun':
       cap()
@@ -669,6 +937,19 @@ function hairParts(style, female, c) {
       P([-0.085, 0.085], [0.41, 0.445], [-0.15, 0.02], { tone: 'dark', top: true })
       P([-0.05, 0.05], [0.526, 0.538], [-0.12, -0.01], { tone: 'light', top: true })
       break
+    case 'spacebuns':
+      // çift topuz: tepenin iki yanında, dipte lastik
+      cap()
+      back()
+      sides()
+      centerFringe()
+      for (const s of [-1, 1]) {
+        P(sx(s, 0.075, 0.19), [0.405, 0.51], [-0.1, 0.02], { top: true, side: true })
+        P(sx(s, 0.085, 0.18), [0.51, 0.535], [-0.09, 0.01], { top: true, side: true })
+        P(sx(s, 0.065, 0.2), [0.405, 0.43], [-0.11, 0.03], { tone: 'tie', top: true, side: true })
+        P(sx(s, 0.11, 0.15), [0.535, 0.545], [-0.06, -0.02], { tone: 'light', top: true, side: true })
+      }
+      break
     case 'pigtails':
       cap()
       back()
@@ -678,7 +959,7 @@ function hairParts(style, female, c) {
         // kulaklık kapağının (z ±0.055) arkasında
         P(sx(s, 0.18, 0.23), [0.26, 0.31], [-0.125, -0.065], { tone: 'tie' })
         P(sx(s, 0.185, 0.245), [0.1, 0.262], [-0.13, -0.06])
-        P(sx(s, 0.19, 0.24), [0.04, 0.1], [-0.125, -0.065], { tone: 'light' })
+        P(sx(s, 0.19, 0.24), [0.04, 0.1], [-0.125, -0.065], { tone: 'tip' })
       }
       break
     case 'braid':
@@ -692,12 +973,79 @@ function hairParts(style, female, c) {
         P([x - 0.038, x + 0.038], [y1 - 0.085, y1], [-0.235, -0.165], { tone: i % 2 ? 'dark' : 'hair' })
       }
       P([-0.03, 0.03], [-0.13, -0.105], [-0.228, -0.172], { tone: 'tie' })
-      P([-0.035, 0.035], [-0.18, -0.13], [-0.23, -0.17], { tone: 'light' })
+      P([-0.035, 0.035], [-0.18, -0.13], [-0.23, -0.17], { tone: 'tip' })
       break
     default:
       break
   }
+  // kahkül: alnı örten düz kesik saç, perçemin önünde; uçları basamaklı. Örten başlığın altında
+  // yalnızca şapka kenarının altındaki kısmı kalır.
+  if (bangs) {
+    const yTop = hatCovers ? 0.335 : 0.378
+    P([-0.172, 0.172], [0.29, yTop], [0.17, 0.2])
+    ;[[-0.165, 0.272], [-0.098, 0.28], [-0.03, 0.272], [0.038, 0.28], [0.106, 0.272]].forEach(([x, y]) => P([x, x + 0.059], [y, 0.29], [0.172, 0.198]))
+  }
   return out
+}
+
+// ---------------------------------------------------------------- ayakkabılar
+
+/**
+ * Ayak kutuları (baldır kemiğine göre; baldır x ±0.065, y -0.2..0, z ±0.07). Tabanın altı -0.274'te
+ * (yer). Terliklerde bilek açıkta kalır; botun ve çorabın konçu paçanın dışından geçer.
+ */
+function footParts(box, shin, style, shoe, sole, skin) {
+  const B = (x, y, z, color) => box(shin, x, y, z, color)
+  const ink = '#1e1e22'
+  if (style === 'boots') {
+    // ev botu (panduf): kalın taban, yüksek konç, örgü şerit ve yumuşak ağız
+    B([-0.083, 0.083], [-0.274, -0.258], [-0.098, 0.138], sole)
+    B([-0.08, 0.08], [-0.262, -0.19], [-0.095, 0.135], shoe)
+    B([-0.078, 0.078], [-0.2, -0.13], [-0.085, 0.083], shoe)
+    B([-0.082, 0.082], [-0.18, -0.168], [-0.08, 0.087], lighter(shoe, 0.35))
+    B([-0.084, 0.084], [-0.14, -0.115], [-0.091, 0.09], lighter(shoe, 0.45))
+  } else if (style === 'socks') {
+    // kalın yün çorap: konç paçanın dışında, ağzı ribanalı; burnu koyu
+    B([-0.068, 0.068], [-0.274, -0.205], [-0.078, 0.115], shoe)
+    B([-0.0725, 0.0725], [-0.21, -0.15], [-0.078, 0.078], shoe)
+    B([-0.0765, 0.0765], [-0.16, -0.135], [-0.074, 0.082], lighter(shoe, 0.3))
+    B([-0.072, 0.072], [-0.272, -0.212], [0.095, 0.119], darker(shoe, 0.2))
+  } else if (style === 'sneakers') {
+    B([-0.07, 0.07], [-0.27, -0.2], [-0.08, 0.12], shoe)
+    B([-0.073, 0.073], [-0.274, -0.258], [-0.083, 0.123], sole)
+  } else {
+    // terlikler: bilek açık
+    B([-0.058, 0.058], [-0.222, -0.195], [-0.06, 0.06], skin)
+    if (style === 'clogs') {
+      // delikli kalın terlik; kayış topuğun iki yanında perçinli
+      B([-0.075, 0.075], [-0.258, -0.205], [-0.07, 0.135], shoe)
+      B([-0.079, 0.079], [-0.274, -0.254], [-0.075, 0.14], sole)
+      for (const x of [-0.04, 0, 0.04]) for (const z of [0.06, 0.1]) B([x - 0.01, x + 0.01], [-0.205, -0.201], [z - 0.01, z + 0.01], darker(shoe, 0.3))
+      for (const s of [-1, 1]) {
+        B(sx(s, 0.075, 0.079), [-0.245, -0.225], [-0.055, -0.015], darker(shoe, 0.15))
+        B(sx(s, 0.079, 0.083), [-0.241, -0.229], [-0.041, -0.029], sole)
+      }
+    } else {
+      // hayvan figürlü peluş terlik: önde yüz, üstte kulaklar
+      B([-0.075, 0.075], [-0.262, -0.215], [-0.085, 0.14], shoe)
+      B([-0.078, 0.078], [-0.274, -0.258], [-0.088, 0.143], sole)
+      if (style === 'bunny') {
+        for (const e of [-1, 1]) {
+          B([e * 0.03 - 0.008, e * 0.03 + 0.008], [-0.24, -0.228], [0.14, 0.144], ink)
+          B([e * 0.035 - 0.015, e * 0.035 + 0.015], [-0.215, -0.125], [0.085, 0.105], shoe)
+          B([e * 0.035 - 0.008, e * 0.035 + 0.008], [-0.205, -0.135], [0.105, 0.109], '#f2a0b4')
+        }
+        B([-0.01, 0.01], [-0.252, -0.242], [0.14, 0.146], '#e88aa8')
+      } else {
+        for (const e of [-1, 1]) {
+          B([e * 0.045 - 0.008, e * 0.045 + 0.008], [-0.232, -0.22], [0.14, 0.144], ink)
+          B([e * 0.048 - 0.014, e * 0.048 + 0.014], [-0.215, -0.196], [0.08, 0.1], shoe)
+        }
+        B([-0.028, 0.028], [-0.252, -0.225], [0.14, 0.156], lighter(shoe, 0.4))
+        B([-0.011, 0.011], [-0.24, -0.229], [0.156, 0.16], ink)
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------- başlıklar

@@ -10,19 +10,31 @@ export const SKIN_TONES = [
   { id: 'ebony', label: 'Çok koyu', color: '#55341f' },
 ]
 
+// natural: doğal saç rengi. Otomatik kaş rengi doğal renklerde saçın bir ton koyusu, açık ve
+// fantastik renklerde (gri, platin, pembe, mavi, mor, yeşil) doğal koyu kahve olur.
 export const HAIR_COLORS = [
-  { id: 'black', label: 'Siyah', color: '#1e1b1a' },
-  { id: 'brown', label: 'Kahverengi', color: '#4a2e1c' },
-  { id: 'auburn', label: 'Kızıl kahve', color: '#8a3e1e' },
-  { id: 'blonde', label: 'Sarı', color: '#d8b060' },
+  { id: 'black', label: 'Siyah', color: '#1e1b1a', natural: true },
+  { id: 'brown', label: 'Kahverengi', color: '#4a2e1c', natural: true },
+  { id: 'auburn', label: 'Kızıl kahve', color: '#8a3e1e', natural: true },
+  { id: 'blonde', label: 'Sarı', color: '#d8b060', natural: true },
   { id: 'gray', label: 'Gri', color: '#b8b8b8' },
-  { id: 'ginger', label: 'Kızıl', color: '#c8602a' },
+  { id: 'ginger', label: 'Kızıl', color: '#c8602a', natural: true },
+  { id: 'copper', label: 'Bakır', color: '#d9823e', natural: true },
   { id: 'platinum', label: 'Platin', color: '#ece4cf' },
   { id: 'pink', label: 'Pembe', color: '#e87aa8' },
   { id: 'blue', label: 'Mavi', color: '#4a7ad8' },
   { id: 'purple', label: 'Mor', color: '#8a5ac8' },
   { id: 'green', label: 'Yeşil', color: '#3a9a6a' },
 ]
+
+// Kaş rengi: otomatik (yukarıya bak), saçla aynı, doğal koyu ya da ayrı seçilen renk (browColor).
+export const BROW_MODES = [
+  { id: 'auto', label: 'Otomatik' },
+  { id: 'hair', label: 'Saçla aynı' },
+  { id: 'natural', label: 'Doğal koyu' },
+  { id: 'custom', label: 'Ayrı seçim' },
+]
+export const NATURAL_BROW = '#3a2618'
 
 export const EYE_COLORS = [
   { id: 'brown', label: 'Kahverengi', color: '#4a2a18' },
@@ -33,38 +45,41 @@ export const EYE_COLORS = [
 ]
 
 // Beden tipi: model bazı ayrıntıları buna göre kurar (kadında daha ince bel, kirpik, dolgun dudak;
-// erkekte kalın kaş, sakal ve bıyık). Saç modelleri de bedene göre listelenir.
+// erkekte kalın kaş, sakal ve bıyık). Saç modelleri iki beden için ortak.
 export const BODIES = [
   { id: 'male', label: 'Erkek' },
   { id: 'female', label: 'Kadın' },
 ]
 
-// for: hangi beden için listelenir ('both' ikisi de). Atölyede seçili bedenin listesi gösterilir.
+// Unisex havuz: her beden tüm modelleri seçebilir.
 export const HAIR_STYLES = [
-  { id: 'short', label: 'Kısa', for: 'both' },
-  { id: 'sidepart', label: 'Yan ayrık', for: 'male' },
-  { id: 'quiff', label: 'Kabarık', for: 'male' },
-  { id: 'spiky', label: 'Dikenli', for: 'male' },
-  { id: 'undercut', label: 'Undercut', for: 'male' },
-  { id: 'manbun', label: 'Erkek topuzu', for: 'male' },
-  { id: 'mohawk', label: 'Mohikan', for: 'both' },
-  { id: 'buzz', label: 'Asker', for: 'both' },
-  { id: 'curly', label: 'Kıvırcık', for: 'both' },
-  { id: 'afro', label: 'Afro', for: 'both' },
-  { id: 'long', label: 'Uzun düz', for: 'both' },
-  { id: 'wavy', label: 'Uzun dalgalı', for: 'female' },
-  { id: 'bob', label: 'Küt', for: 'female' },
-  { id: 'pixie', label: 'Pixie', for: 'female' },
-  { id: 'ponytail', label: 'At kuyruğu', for: 'female' },
-  { id: 'bun', label: 'Topuz', for: 'female' },
-  { id: 'pigtails', label: 'İki kuyruk', for: 'female' },
-  { id: 'braid', label: 'Örgü', for: 'female' },
-  { id: 'bald', label: 'Kel', for: 'both' },
+  { id: 'short', label: 'Kısa' },
+  { id: 'sidepart', label: 'Yan ayrık' },
+  { id: 'quiff', label: 'Kabarık' },
+  { id: 'spiky', label: 'Dikenli' },
+  { id: 'undercut', label: 'Undercut' },
+  { id: 'manbun', label: 'Erkek topuzu' },
+  { id: 'mohawk', label: 'Mohikan' },
+  { id: 'buzz', label: 'Asker' },
+  { id: 'curly', label: 'Kıvırcık' },
+  { id: 'afro', label: 'Afro' },
+  { id: 'long', label: 'Uzun düz' },
+  { id: 'wavy', label: 'Uzun dalgalı' },
+  { id: 'halfup', label: 'Yarım toplu' },
+  { id: 'bob', label: 'Küt' },
+  { id: 'pixie', label: 'Pixie' },
+  { id: 'ponytail', label: 'At kuyruğu' },
+  { id: 'bun', label: 'Topuz' },
+  { id: 'spacebuns', label: 'Çift topuz' },
+  { id: 'pigtails', label: 'İki kuyruk' },
+  { id: 'braid', label: 'Örgü' },
+  { id: 'bald', label: 'Kel' },
 ]
-export const hairStylesFor = (body) => HAIR_STYLES.filter((h) => h.for === 'both' || h.for === body)
 
-// Kulakları örten saçlar: küpe görünmez.
-export const EAR_COVERING = ['long', 'wavy', 'bob']
+// Kulakları örten saçlar: küpe ve kulak içi kulaklık görünmez.
+export const EAR_COVERING = ['long', 'wavy', 'bob', 'halfup']
+// Kahkül eklenemeyen modeller (alında saç yok ya da tepesi traşlı).
+export const NO_BANGS = ['bald', 'buzz', 'mohawk']
 
 // Sakal ve bıyık ayrı seçilir (erkek bedende).
 export const BEARDS = [
@@ -91,14 +106,42 @@ export const TOPS = [
   { id: 'tshirt', label: 'Tişört' },
   { id: 'hoodie', label: 'Kapüşonlu' },
   { id: 'sweater', label: 'Kazak' },
+  { id: 'pullover', label: 'Süveter (gömlek üstü)' },
+  { id: 'cardigan', label: 'Hırka' },
   { id: 'shirt', label: 'Gömlek' },
+  { id: 'flannel', label: 'Oduncu gömleği' },
+  { id: 'fleece', label: 'Polar' },
+  { id: 'cami', label: 'Askılı bluz' },
   { id: 'jacket', label: 'Ceket' },
+  { id: 'robe', label: 'Bornoz / battaniye' },
 ]
 
 export const BOTTOMS = [
   { id: 'pants', label: 'Pantolon' },
+  { id: 'joggers', label: 'Eşofman altı' },
+  { id: 'pajama', label: 'Pijama altı' },
   { id: 'shorts', label: 'Şort' },
   { id: 'skirt', label: 'Etek' },
+]
+
+// Tek parça: elbise ve hayvanlı tulum üstün ve altın yerine geçer (üst rengini kullanır); salopet
+// altın yerine geçer, üst içinde görünür (alt rengini kullanır).
+export const OUTFITS = [
+  { id: 'none', label: 'Yok' },
+  { id: 'dress', label: 'Elbise' },
+  { id: 'overalls', label: 'Salopet' },
+  { id: 'onesie', label: 'Hayvanlı tulum' },
+]
+// Seçilen tek parçanın yerine geçtiği alanlar.
+export const OUTFIT_REPLACES = { dress: ['top', 'bottom'], onesie: ['top', 'bottom'], overalls: ['bottom'] }
+
+export const FOOTWEAR = [
+  { id: 'sneakers', label: 'Spor ayakkabı' },
+  { id: 'boots', label: 'Ev botu (panduf)' },
+  { id: 'bunny', label: 'Tavşanlı terlik' },
+  { id: 'bear', label: 'Ayılı terlik' },
+  { id: 'clogs', label: 'Crocs tarzı terlik' },
+  { id: 'socks', label: 'Kalın yün çorap' },
 ]
 
 export const CLOTH_COLORS = [
@@ -124,6 +167,10 @@ export const SHOE_COLORS = [
   { id: 'brown', label: 'Kahve', color: '#6a4228' },
   { id: 'red', label: 'Kırmızı', color: '#c03a32' },
   { id: 'blue', label: 'Mavi', color: '#3a5ab0' },
+  { id: 'cream', label: 'Krem', color: '#efe4cc' },
+  { id: 'pink', label: 'Pembe', color: '#eaa0bc' },
+  { id: 'gray', label: 'Gri', color: '#9a9ca4' },
+  { id: 'green', label: 'Yeşil', color: '#5a9a6a' },
 ]
 
 // Takılar ve aksesuarlar bölgeye göre; her bölgeden bir tane seçilir. group: atölyede alt başlık.
@@ -142,14 +189,28 @@ export const HATS = [
   { id: 'flowers', label: 'Çiçek tacı', group: 'Fantastik' },
 ]
 
-// Kulaklıkla birlikte takılabilen başlıklar (bant üstlerinden geçer).
+// Kulaklıklar. over: bandı başın üstünden geçer (yalnızca HEADPHONE_HATS ile); boyundaki ve kulak
+// içi her başlıkla takılır.
+export const HEADPHONES = [
+  { id: 'none', label: 'Yok' },
+  { id: 'gaming', label: 'Oyuncu kulaklığı (mikrofonlu)', over: true },
+  { id: 'cat', label: 'Kedi kulaklı RGB', over: true },
+  { id: 'retro', label: 'Retro süngerli', over: true },
+  { id: 'neck', label: 'Boyunda' },
+  { id: 'earbuds', label: 'Kablosuz kulak içi' },
+]
+export const OVER_HEAD = HEADPHONES.filter((h) => h.over).map((h) => h.id)
+
+// Kafa üstü kulaklıkla birlikte takılabilen başlıklar (bant üstlerinden geçer).
 export const HEADPHONE_HATS = ['none', 'beanie', 'cap']
 
 export const GLASSES = [
   { id: 'none', label: 'Yok' },
   { id: 'square', label: 'Kare' },
   { id: 'round', label: 'Yuvarlak' },
+  { id: 'rimless', label: 'Çerçevesiz' },
   { id: 'sun', label: 'Güneş gözlüğü' },
+  { id: 'pixel', label: 'Piksel gözlük' },
   { id: 'monocle', label: 'Monokl' },
 ]
 
@@ -190,12 +251,18 @@ export const DEFAULT_AVATAR = {
   eyes: 'brown',
   hairStyle: 'short',
   hairColor: 'brown',
+  hairColor2: 'none',
+  bangs: false,
+  brows: 'auto',
+  browColor: 'brown',
   beard: 'none',
   mustache: 'none',
   top: 'hoodie',
   topColor: 'teal',
   bottom: 'pants',
   bottomColor: 'denim',
+  outfit: 'none',
+  footwear: 'sneakers',
   shoes: 'white',
   hat: 'none',
   hatColor: 'brown',
@@ -203,7 +270,7 @@ export const DEFAULT_AVATAR = {
   neck: 'none',
   wrist: 'none',
   earrings: 'none',
-  headphones: true,
+  headphones: 'gaming',
   accessoryColor: 'orange',
   metal: 'gold',
 }
@@ -215,12 +282,17 @@ const FIELDS = {
   eyes: ids(EYE_COLORS),
   hairStyle: ids(HAIR_STYLES),
   hairColor: ids(HAIR_COLORS),
+  hairColor2: ['none', ...ids(HAIR_COLORS)],
+  brows: ids(BROW_MODES),
+  browColor: ids(HAIR_COLORS),
   beard: ids(BEARDS),
   mustache: ids(MUSTACHES),
   top: ids(TOPS),
   topColor: ids(CLOTH_COLORS),
   bottom: ids(BOTTOMS),
   bottomColor: ids(CLOTH_COLORS),
+  outfit: ids(OUTFITS),
+  footwear: ids(FOOTWEAR),
   shoes: ids(SHOE_COLORS),
   hat: ids(HATS),
   hatColor: ids(CLOTH_COLORS),
@@ -228,16 +300,18 @@ const FIELDS = {
   neck: ids(NECKWEAR),
   wrist: ids(WRISTWEAR),
   earrings: ids(EARRINGS),
+  headphones: ids(HEADPHONES),
   accessoryColor: ids(CLOTH_COLORS),
   metal: ids(METALS),
 }
 
-// Eski kayıt biçimi (accessories listesi, bıyığı içeren sakallar) yeni alanlara çevrilir.
+// Eski kayıt biçimi (accessories listesi, bıyığı içeren sakallar, var/yok kulaklık) yeni alanlara
+// çevrilir.
 function migrate(input) {
   const out = { ...input }
   if (Array.isArray(input.accessories)) {
     const has = (a) => input.accessories.includes(a)
-    out.headphones ??= has('headphones')
+    out.headphones ??= has('headphones') ? 'gaming' : 'none'
     out.glasses ??= has('glasses') ? 'square' : 'none'
     out.neck ??= has('scarf') ? 'scarf' : 'none'
     out.hat ??= has('cap') ? 'cap' : has('beanie') ? 'beanie' : 'none'
@@ -245,6 +319,7 @@ function migrate(input) {
   }
   if (input.mustache == null && ['mustache', 'goatee', 'short', 'full'].includes(input.beard)) out.mustache = 'classic'
   if (input.beard === 'mustache') out.beard = 'none'
+  if (typeof out.headphones === 'boolean') out.headphones = out.headphones ? 'gaming' : 'none'
   return out
 }
 
@@ -256,13 +331,15 @@ export function sanitizeAvatar(input) {
   const src = migrate(input)
   if (typeof src.name === 'string' && src.name.trim()) out.name = src.name.trim().slice(0, 24)
   for (const [key, allowed] of Object.entries(FIELDS)) if (allowed.includes(src[key])) out[key] = src[key]
-  if (typeof src.headphones === 'boolean') out.headphones = src.headphones
+  if (typeof src.bangs === 'boolean') out.bangs = src.bangs
   return resolveConflicts(out)
 }
 
 /**
- * Birbirini dışlayan seçimler: kadın bedende sakal ve bıyık yok; kulaklık yalnızca HEADPHONE_HATS
- * ile. changed: kullanıcının az önce değiştirdiği alan (o kalır, çakışan öbürü kaldırılır).
+ * Birbirini dışlayan seçimler: kadın bedende sakal ve bıyık yok; kafa üstü kulaklık yalnızca
+ * HEADPHONE_HATS ile; boyundaki kulaklık atkıyla olmaz; kahkül traşlı / saçsız modellerde yok; tek
+ * parçanın yerine geçtiği üst ya da alt seçilirse tek parça çıkar. changed: kullanıcının az önce
+ * değiştirdiği alan (o kalır, çakışan öbürü kaldırılır).
  */
 export function resolveConflicts(avatar, changed = null) {
   const out = { ...avatar }
@@ -270,14 +347,32 @@ export function resolveConflicts(avatar, changed = null) {
     out.beard = 'none'
     out.mustache = 'none'
   }
-  if (out.headphones && !HEADPHONE_HATS.includes(out.hat)) {
+  if (OVER_HEAD.includes(out.headphones) && !HEADPHONE_HATS.includes(out.hat)) {
     if (changed === 'headphones') out.hat = 'none'
-    else out.headphones = false
+    else out.headphones = 'none'
   }
+  if (out.headphones === 'neck' && out.neck === 'scarf') {
+    if (changed === 'headphones') out.neck = 'none'
+    else out.headphones = 'none'
+  }
+  if (NO_BANGS.includes(out.hairStyle)) out.bangs = false
+  if (out.outfit !== 'none' && OUTFIT_REPLACES[out.outfit]?.includes(changed)) out.outfit = 'none'
   return out
 }
 
-// Tohumlu rastgele avatar (simüle edilen oda arkadaşları için).
+// Kaşın rengi (model ve atölye aynı kuralı kullanır).
+export function browColorOf(avatar) {
+  const hair = HAIR_COLORS.find((h) => h.id === avatar.hairColor) ?? HAIR_COLORS[0]
+  if (avatar.brows === 'hair') return hair.color
+  if (avatar.brows === 'natural') return NATURAL_BROW
+  if (avatar.brows === 'custom') return colorOf(HAIR_COLORS, avatar.browColor)
+  return hair.natural ? hair.color : NATURAL_BROW
+}
+
+const MALE_COMMON_HAIR = ['short', 'sidepart', 'quiff', 'spiky', 'undercut', 'manbun', 'buzz', 'curly', 'afro', 'bald']
+const FEMALE_COMMON_HAIR = ['long', 'wavy', 'halfup', 'bob', 'pixie', 'ponytail', 'bun', 'spacebuns', 'pigtails', 'braid', 'curly', 'afro']
+
+// Tohumlu rastgele avatar (simüle edilen oda arkadaşları için; atölyede "Rastgele").
 export function randomAvatar(rnd, name) {
   const pickId = (list) => list[Math.floor(rnd() * list.length)].id
   const some = (p, list) => (rnd() < p ? pickId(list.filter((o) => o.id !== 'none')) : 'none')
@@ -286,19 +381,28 @@ export function randomAvatar(rnd, name) {
   // fantastik başlıklar seyrek
   const r = rnd()
   const hat = r < 0.2 ? pickId(HATS.filter((h) => h.group === 'Şapka' && h.id !== 'none')) : r < 0.26 ? pickId(HATS.filter((h) => h.group === 'Fantastik')) : 'none'
+  const o = rnd()
+  // saç çoğunlukla bedende yaygın modellerden; tek parça ve ev terlikleri seyrek
+  const hairPool = male ? MALE_COMMON_HAIR : FEMALE_COMMON_HAIR
   return resolveConflicts({
     name,
     body,
     skin: pickId(SKIN_TONES),
     eyes: pickId(EYE_COLORS),
-    hairStyle: pickId(hairStylesFor(body)),
-    hairColor: rnd() < 0.85 ? pickId(HAIR_COLORS.slice(0, 7)) : pickId(HAIR_COLORS),
+    hairStyle: rnd() < 0.85 ? hairPool[Math.floor(rnd() * hairPool.length)] : pickId(HAIR_STYLES),
+    hairColor: rnd() < 0.85 ? pickId(HAIR_COLORS.filter((h) => h.natural)) : pickId(HAIR_COLORS),
+    hairColor2: rnd() < 0.12 ? pickId(HAIR_COLORS) : 'none',
+    bangs: rnd() < 0.2,
+    brows: 'auto',
+    browColor: 'brown',
     beard: male ? some(0.35, BEARDS) : 'none',
     mustache: male ? some(0.3, MUSTACHES) : 'none',
     top: pickId(TOPS),
     topColor: pickId(CLOTH_COLORS),
-    bottom: rnd() < 0.7 ? 'pants' : pickId(BOTTOMS),
+    bottom: rnd() < 0.6 ? 'pants' : pickId(BOTTOMS),
     bottomColor: pickId(CLOTH_COLORS),
+    outfit: o < 0.06 ? 'dress' : o < 0.1 ? 'overalls' : o < 0.12 ? 'onesie' : 'none',
+    footwear: rnd() < 0.75 ? 'sneakers' : pickId(FOOTWEAR),
     shoes: pickId(SHOE_COLORS),
     hat,
     hatColor: pickId(CLOTH_COLORS),
@@ -306,7 +410,7 @@ export function randomAvatar(rnd, name) {
     neck: some(0.25, NECKWEAR),
     wrist: some(0.3, WRISTWEAR),
     earrings: some(male ? 0.1 : 0.45, EARRINGS),
-    headphones: rnd() < 0.22,
+    headphones: rnd() < 0.25 ? pickId(HEADPHONES.filter((h) => h.id !== 'none')) : 'none',
     accessoryColor: pickId(CLOTH_COLORS),
     metal: pickId(METALS),
   })
