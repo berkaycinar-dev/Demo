@@ -46,10 +46,18 @@ function boxes(room) {
       const e = m3.elements
       if (Math.abs(e[4]) > 0.999 && Math.abs(e[0]) < 0.999 && Math.abs(e[0]) > 0.001) {
         Object.assign(box, { cx: c.x, cz: c.z, ux: e[0], uz: e[2], hw: item.size[0] / 2, hd: item.size[2] / 2 })
-      }
+      } else if (Math.abs(e[4]) < 0.999) box.tilt = true // x ya da z ekseninde eğik: sınırlar gerçek izden geniş
       out.push(box)
     }
   }
+  return out
+}
+
+// Kutunun taban izinin köşeleri (y ekseninde dönmüş kutularda gerçek dikdörtgen).
+function corners(b) {
+  if (b.ux == null) return [[b.x0, b.z0], [b.x1, b.z0], [b.x0, b.z1], [b.x1, b.z1]]
+  const out = []
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) out.push([b.cx + b.ux * b.hw * sx - b.uz * b.hd * sz, b.cz + b.uz * b.hw * sx + b.ux * b.hd * sz])
   return out
 }
 
@@ -520,4 +528,118 @@ export function deskHeight(nav, seat) {
     }
   }
   return best
+}
+
+/**
+ * Koltuğun önündeki masanın biçimi (kollar masaya bu ölçülerle uzanır; poses.js deskTarget). Dönüş:
+ * { top: masa yüzeyi (dünya y), edge: koltuktan masanın ön kenarına uzaklık, near / far: önündeki
+ * eşyanın (klavye, kitap, defter) koltuğa yakın ve uzak kenarı, itemTop: eşyanın üstü } ya da null.
+ * Uzaklıklar koltuğun baktığı yönde, koltuk merkezinden ölçülür.
+ */
+export function deskInfo(nav, seat) {
+  const [x, y, z] = seat.position
+  const fx = Math.sin(seat.yaw)
+  const fz = Math.cos(seat.yaw)
+  // kutunun koltuk eksenindeki izdüşümü: ileri (f) ve yana (l) aralıkları
+  const local = (b) => {
+    const p = { f0: Infinity, f1: -Infinity, l0: Infinity, l1: -Infinity }
+    for (const [px, pz] of corners(b)) {
+      const f = (px - x) * fx + (pz - z) * fz
+      const l = (px - x) * fz - (pz - z) * fx
+      p.f0 = Math.min(p.f0, f)
+      p.f1 = Math.max(p.f1, f)
+      p.l0 = Math.min(p.l0, l)
+      p.l1 = Math.max(p.l1, l)
+    }
+    return p
+  }
+  // masa: öndeki en yüksek yüzeyin (eşya olabilir) en çok 6 cm altındaki, masa boyutundaki
+  // (≥ 0.15 m²) en yüksek yüzey; yoksa en genişi
+  // (iki masanın birleştiği yerde oturan için orta çizgiden 5 cm sapma kabul edilir)
+  const ahead = (p) => p.l0 < 0.05 && p.l1 > -0.05 && p.f0 < 0.55 && p.f1 > 0.25
+  let highest = null
+  for (const b of nav.boxes) {
+    // masa yüzeyi oturaktan en çok 45 cm yukarıda (üstündeki ekran, lamba, hologram sayılmaz)
+    if (b.y1 < y + 0.1 || b.y1 > y + 0.45 || b.y1 - b.y0 > 1.2 || !ahead(local(b))) continue
+    if (highest == null || b.y1 > highest) highest = b.y1
+  }
+  if (highest == null) return null
+  const found = []
+  for (const b of nav.boxes) {
+    if (b.y1 < highest - 0.06 || b.y1 > highest + 0.001 || b.y1 - b.y0 > 1.2) continue
+    if (!ahead(local(b))) continue
+    found.push({ b, area: b.ux == null ? (b.x1 - b.x0) * (b.z1 - b.z0) : 4 * b.hw * b.hd })
+  }
+  if (!found.length) return null
+  const desk = (found.filter((d) => d.area >= 0.15).sort((a, b) => b.b.y1 - a.b.y1)[0] ?? found.sort((a, b) => b.area - a.area)[0]).b
+  const top = desk.y1
+  let edge = Infinity
+  for (const b of nav.boxes) {
+    // masa ve üstündeki örtü / altlık: yüzeyin 3 cm altına kadar
+    if (b.y1 > top + 0.006 || b.y1 < top - 0.03) continue
+    const p = local(b)
+    if (p.l0 < 0.05 && p.l1 > -0.05 && p.f1 > 0.1 && p.f0 < 0.6) edge = Math.min(edge, Math.max(0.1, p.f0))
+  }
+  let near = null
+  let far = null
+  let itemTop = top
+  for (const b of nav.boxes) {
+    if (b.y0 < top - 0.004 || b.y0 > top + 0.012 || b.y1 - b.y0 > 0.06) continue
+    const p = local(b)
+    if (p.l1 - p.l0 < 0.05 || p.f1 - p.f0 < 0.05 || p.l0 > 0.12 || p.l1 < -0.12) continue
+    if (p.f0 < edge - 0.05 || p.f0 > edge + 0.4) continue
+    near = near == null ? p.f0 : Math.min(near, p.f0)
+    far = far == null ? p.f1 : Math.max(far, p.f1)
+    itemTop = Math.max(itemTop, b.y1)
+  }
+  return { top, edge, near, far, itemTop }
+}
+
+/**
+ * Oturağın tabanının ön kenarı: koltuk merkezinden ileri, oturağın altında aşağı inen (sedir tabanı,
+ * kanepe gövdesi, kütük) kutulardan en öndekinin bittiği uzaklık. İnce sandalye oturağı ve köşedeki
+ * ayaklar sayılmaz. Baldırlar bunun önüne düşmeli (poses.seated). Yoksa null.
+ */
+export function seatFront(nav, seat) {
+  const [x, y, z] = seat.position
+  const fx = Math.sin(seat.yaw)
+  const fz = Math.cos(seat.yaw)
+  let front = null
+  for (const b of nav.boxes) {
+    // oturağın en az 12.5 cm altına inen geniş gövde (sandalyenin ince kabuğu, tek ayak ve eğik
+    // kutular sayılmaz)
+    if (b.tilt || b.y0 > y - 0.125 || b.y1 < y - 0.35 || b.y1 > y + 0.02) continue
+    if ((b.ux == null ? Math.min(b.x1 - b.x0, b.z1 - b.z0) : 2 * Math.min(b.hw, b.hd)) < 0.2) continue
+    // baldırların geçtiği iki çizgi (yanlarda ±0.12 m) boyunca kutudan çıkış uzaklığı
+    for (const side of [-0.12, 0, 0.12]) {
+      const d = rayExit(b, x + fz * side, z - fx * side, fx, fz)
+      if (d != null && d < 0.6) front = Math.max(front ?? 0, d)
+    }
+  }
+  return front
+}
+
+// (x, z)'den (dx, dz) yönünde giden ışının kutunun taban izinden çıktığı uzaklık; başlangıç izin
+// içinde değilse null.
+function rayExit(b, x, z, dx, dz) {
+  let px = x
+  let pz = z
+  let ex = dx
+  let ez = dz
+  let hx = (b.x1 - b.x0) / 2
+  let hz = (b.z1 - b.z0) / 2
+  let cx = (b.x0 + b.x1) / 2
+  let cz = (b.z0 + b.z1) / 2
+  if (b.ux != null) {
+    ;[cx, cz, hx, hz] = [b.cx, b.cz, b.hw, b.hd]
+    const u = (px - cx) * b.ux + (pz - cz) * b.uz
+    const w = -(px - cx) * b.uz + (pz - cz) * b.ux
+    ;[ex, ez] = [dx * b.ux + dz * b.uz, -dx * b.uz + dz * b.ux]
+    ;[px, pz, cx, cz] = [u, w, 0, 0]
+  }
+  if (Math.abs(px - cx) > hx || Math.abs(pz - cz) > hz) return null
+  let t = Infinity
+  if (Math.abs(ex) > 1e-9) t = Math.min(t, ((ex > 0 ? cx + hx : cx - hx) - px) / ex)
+  if (Math.abs(ez) > 1e-9) t = Math.min(t, ((ez > 0 ? cz + hz : cz - hz) - pz) / ez)
+  return t
 }
