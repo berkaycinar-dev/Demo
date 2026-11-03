@@ -337,6 +337,21 @@
   margin-top: 8px;
 }
 
+.avatar-page__tabs {
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.avatar-page__group + .avatar-page__group {
+  margin-top: 8px;
+}
+
+.avatar-page__group > .site-muted {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.85em;
+}
+
 .swatch-row {
   display: flex;
   flex-wrap: wrap;

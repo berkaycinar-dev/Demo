@@ -24,8 +24,10 @@ import './AvatarLab.css'
 const BOX = new BoxGeometry()
 const GAP = 1.7
 const FPS = 24
-const CHAIR = { y: 0.5, rise: 0.28 }
-const LOW = { y: 0.21, low: true, rise: 0.16 }
+// masanın ön kenarı ve masadaki kitap sahnedeki kutularla aynı (sceneBoxes)
+const CHAIR = { y: 0.5, rise: 0.28, edge: 0.25 }
+const DESK_BOOK = { ...CHAIR, near: 0.3, far: 0.58, item: 0.312 }
+const LOW = { y: 0.21, low: true, rise: 0.16, edge: 0.3 }
 const LOG = { y: 0.42, slope: true }
 const SOFA = { y: 0.48, slope: true }
 
@@ -36,7 +38,7 @@ const SCENE_OF = { run: 'treadmill', pool: 'pool', pingpong: 'pingpong' }
 const ALL = [
   ['Klavye', (t, s) => typePose(CHAIR, t, s), 'desk'],
   ['Ekrana dokunma', (t, s) => tapPose(CHAIR, t, s), 'desk'],
-  ['Masadaki kitap', (t, s) => deskReadPose(CHAIR, t, s), 'deskBook'],
+  ['Masadaki kitap', (t, s) => deskReadPose(DESK_BOOK, t, s), 'deskBook'],
   ['Not alma', (t, s) => writePose(CHAIR, t, s), 'desk'],
   ['Tüy kalem', (t, s) => writePose(CHAIR, t, s, 'quill'), 'desk'],
   ['Elde kitap', (t, s) => readPose(LOG, t, s), 'log'],

@@ -16,14 +16,22 @@ const { occupants, setMyStatus } = useRoomPeople({ capacity: 6, seed: 42, me: my
 ## Dosyalar
 
 - `options.js`: seçenekler ve renk paletleri.
-  - Seçenekler: ten, göz, saç stili ve rengi, sakal, üst ve alt giyim ile renkleri, ayakkabı, aksesuarlar (gözlük, kulaklık, atkı, bere, kep).
-  - `DEFAULT_AVATAR`, `sanitizeAvatar` (eski ya da bozuk kayıtları düzeltir), `randomAvatar`.
+  - Beden (`body`: erkek | kadın). Kadında ince bel ve geniş kalça, ince kalkık kaş, kirpik, dolgun dudak; erkekte kalın kaş. Sakal ve bıyık yalnızca erkekte.
+  - Saç (19 model, `for`: erkek / kadın / ikisi; `hairStylesFor(body)`), saç rengi (11), sakal (8), bıyık (6).
+  - Kıyafet: üst, alt, renkleri, ayakkabı.
+  - Aksesuar, bölgeye göre birer tane: başlık (`HATS`; Şapka: bere, kep, Fransız beresi, fötr, silindir, kovboy; Fantastik: büyücü, taç, Viking miğferi, kedi kulakları, çiçek tacı) ve rengi, kulaklık, gözlük (kare, yuvarlak, güneş, monokl), boyun (atkı, papyon, kravat, kolye), bilek (saat, akıllı saat, bileklik), küpe (taşlı, halka, sallantılı), metal rengi (taç, küpe, kolye, saat).
+  - Kulaklık yalnızca bere, kep ya da başlıksızken (`HEADPHONE_HATS`). Uzun düz, dalgalı ve küt saç kulakları örter; küpe o zaman (ve kulaklıkla) görünmez.
+  - `DEFAULT_AVATAR`, `sanitizeAvatar` (eski `accessories` listesini ve bıyıklı eski sakalları yeni alanlara çevirir), `resolveConflicts` (son değişen kalır), `randomAvatar`.
 - `model.js`: kemik hiyerarşisi (`BONES`) ve yapılandırmadan kutu parçaları (`buildAvatarParts`).
   - Ölçüler tasarım biriminde yazılır, `SCALE` (0.85) ile küçültülür. Avatar ayakta ~1.2 m, +z yönüne bakar.
+  - Saçlar `hairParts`, başlıklar `HAT_KINDS` içinde; kutular min/max aralıklarıyla (`box`). Örten başlıklar saçın tepe parçalarını gizler; taç, çiçek tacı ve kedi kulağı saçın üstüne oturur ve saçın dış sınırına göre boyutlanır (`fit`).
+  - `parts.crown`: başın (şapka dahil) en üstü; etiket ve zZz bunun üstünde durur.
   - Eşyalar da parça olarak durur, yalnızca o pozda görünür (`PROPS`): açık kitap, tablet, kalem, tüy kalem, kupa, çay bardağı, karton bardak, simit, ramen, telefon, dart, ıstaka, raket, kepçe, iksir şişesi, VR gözlüğü, sulama kabı, olta, taş, gazete.
   - Kitap ve kupa rengi kişiye göre değişir (`seed`). `props` verilirse yalnızca o odada kullanılan eşyalar kurulur.
 - `poses.js`: procedural pozlar.
-  - Oturuşlar `sit` nesnesiyle verilir: `{ y, low?, slope?, rise? }`. Sandalye, eğik oturak (kütük, kanepe) ve minderde bağdaş.
+  - Oturuşlar `sit` nesnesiyle verilir: `{ y, low?, slope?, rise?, edge?, near?, far?, item?, front? }`. Sandalye, eğik oturak (kütük, kanepe) ve minderde bağdaş.
+  - Masadaki eller iki kemikli ters kinematikle (`reach`) yerleşir: klavyede eller tuşların, kitapta sayfa köşelerinin üstünde. Önkol masaya giriyorsa dirsek dışa ve yukarı açılır (`deskReach`). Yetişmezse önce biraz eğilir, sonra oturakta öne kayar (`leanToward`). Masaya eğilen başta çene ve sakal masanın üstünde kalır (`chinUp`); masada uyurken baş kolların üstünde.
+  - Derin oturakta (sedir, kanepe, koltuk) dizler oturağın ön kenarına (`front`) taşacak kadar öne oturulur; baldırlar tabana girmez.
   - Çalışma: klavye, masadaki ekrana dokunma, masadaki açık kitabı okuma, not alma, elde kitap ya da tablet, düşünme (çene elde).
   - Uyuma: masaya kapanma, arkaya yaslanma (eller kucakta), yüzde gazete, göğüste kitap, hamakta yatma.
   - Mola (`STAND_POSES`): etrafa bakınma, gerinme, içecek, yemek, manzara, cama uzanma, eğilip bakma, çömelme, panel, pano, katalog, el ısıtma, telefon, dans, dart, bilardo, masa tenisi, teleskop, kazan karıştırma, kristal küre, iksir, VR, sulama, olta, taş sektirme, çeşmeden içme, koşu.
@@ -38,6 +46,7 @@ const { occupants, setMyStatus } = useRoomPeople({ capacity: 6, seed: 42, me: my
   - Yalnızca y ekseninde dönmüş kutular gerçek taban iziyle işaretlenir.
   - Kalkış ve duruş yerleri yalnızca en büyük bağlı bölgeden seçilir (eşya arkasındaki ceplere düşmez).
   - `seatExit`: koltuktan kalkış noktası.
+  - `deskInfo`: koltuğun önündeki masanın yüzeyi, ön kenarı ve üstündeki eşyanın (klavye, kitap, defter) yakın / uzak kenarı. `seatFront`: oturak tabanının ön kenarı. Eğik (x/z ekseninde dönmüş) kutular `tilt` ile işaretlenir.
   - `spotSlots`: mola yerinin en fazla iki yeri.
     - Önce eşyanın kullanım noktaları (`spot.stations`), sonra ayakta duruş yerleri. Ayaktakiler `spot.face` yönüne (eşyaya) döner; yoksa en yakın engele.
     - Kullanım noktası birkaç santimle yürünemez alana düşerse 30 cm içindeki en yakın yürünebilir yere kayar.
@@ -102,8 +111,10 @@ const { occupants, setMyStatus } = useRoomPeople({ capacity: 6, seed: 42, me: my
 
 `.claude/room-tools/check_avatar.mjs` (frontend klasörüne kopyalanıp çalıştırılır) avatarda z-fighting arar. Aynı yöne bakan, aynı düzlemde (1 mm içinde) üst üste binen ve farklı renkli yüzleri bulur.
 
-- 1176 yapılandırma: bütün saç × sakal × aksesuar kombinasyonları, bütün üst ve altlar.
-- 200 poz denetimi: kemikler arası, eşyalarla birlikte.
+- 3734 yapılandırma, iki beden için bölge bölge: saç × başlık × kulaklık, saç × sakal × bıyık, saç × gözlük × küpe, sakal × bıyık × gözlük × başlık, üst × alt × boyun, üst × bilek.
+- 350 poz denetimi: kemikler arası, eşyalarla birlikte, 7 örnek avatarla.
+
+`.claude/room-tools/check_desk.mjs [tema]` (frontend'e kopyalanır; `AVATAR='{"hat":"wizard"}'` ile başka avatar) her odadaki her koltukta ve mola oturağında çalışma / uyku / oturma pozlarında avatar parçalarının odadaki kutulara girip girmediğini ölçer (koltuğun kendisi ve eğik kutular sayılmaz).
 
 Başka bir kutunun içinde kalan yüzler sayılmaz. Şu an çakışma yok.
 

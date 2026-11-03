@@ -108,14 +108,21 @@ export const styleOf = (theme) => THEME_STYLES[theme] ?? DEFAULT_STYLE
 
 /**
  * Koltuğa göre davranış. seat: { position, yaw, desk?, kind? } (desk: masadaki eşya), rise: önündeki
- * masanın oturaktan yüksekliği (yoksa null). Dönüş: { sit, focus: [hareket, hareket], away }.
- * focus iki hareket arasında ~30 sn'de bir geçilir.
+ * masanın oturaktan yüksekliği (yoksa null), shape: masanın biçimi (nav.deskInfo; kenar ve eşya
+ * uzaklıkları, eller bunlara uzanır), front: oturak tabanının ön kenarı (nav.seatFront). Dönüş:
+ * { sit, focus: [hareket, hareket], away }. focus iki hareket arasında ~30 sn'de bir geçilir.
  */
-export function seatBehavior(theme, seat, rise) {
+export function seatBehavior(theme, seat, rise, shape = null, front = null) {
   const style = styleOf(theme)
   const y = seat.position[1]
   const desk = rise != null && rise >= 0.13
   const sit = { y, low: y < 0.35, slope: !desk && ['log', 'stump', 'armchair', 'bench'].includes(seat.kind), rise: desk ? rise : null }
+  if (front != null) sit.front = front
+  if (desk && shape) {
+    sit.rise = shape.top - y
+    sit.edge = shape.edge
+    if (shape.near != null) Object.assign(sit, { near: shape.near, far: shape.far, item: shape.itemTop - y })
+  }
   const item = desk ? seat.desk ?? null : null
   let focus
   if (!desk) focus = [style.held === 'tablet' ? 'tablet' : 'read', 'think']

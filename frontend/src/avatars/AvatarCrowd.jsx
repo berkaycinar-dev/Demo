@@ -5,7 +5,7 @@ import { FLAT_PLANE, getGlowTexture } from '../rooms/core/glow'
 import { useRoom } from '../rooms/core/roomContext'
 import { roomProps, seatBehavior, spotActivity, styleOf } from './activities'
 import { buildAvatarParts } from './model'
-import { BODY, RADIUS, buildNav, deskHeight, findPath, findRefuge, floorAt, nearestWalkable, seatExit, spotSlots, walkableAt } from './nav'
+import { BODY, RADIUS, buildNav, deskHeight, deskInfo, findPath, findRefuge, floorAt, nearestWalkable, seatExit, seatFront, spotSlots, walkableAt } from './nav'
 import {
   STAND_POSES,
   blendPose,
@@ -111,11 +111,16 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
       const exit = seatExit(nav, s, exits)
       if (exit) exits.push(exit)
       const top = deskHeight(nav, s)
-      return { ...s, exit, home: true, behavior: seatBehavior(theme, s, top == null ? null : top - s.position[1]) }
+      const shape = top == null ? null : deskInfo(nav, s)
+      return { ...s, exit, home: true, behavior: seatBehavior(theme, s, top == null ? null : top - s.position[1], shape, seatFront(nav, s)) }
     })
     const spots = room.spots.map((s) => {
       const activity = spotActivity(theme, s.id)
-      return { ...s, activity, slots: spotSlots(nav, s, { near: activity.near, face: activity.face }) }
+      // oturulan kullanım noktalarına oturak tabanının ön kenarı (baldırlar tabana girmesin)
+      const slots = spotSlots(nav, s, { near: activity.near, face: activity.face }).map((sl) =>
+        sl.station?.kind === 'sit' ? { ...sl, station: { ...sl.station, front: seatFront(nav, sl.station) } } : sl,
+      )
+      return { ...s, activity, slots }
     })
     const beds = (room.beds ?? [])
       .map((b) => {
@@ -267,7 +272,7 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
       if (hidden) hideParts(mesh, look.start, look.parts.length)
       else writeParts(mesh, look.start, look.parts, a.bones, a.pose.show)
       if (hidden) head.set(a.bed.top[0], a.bed.top[1] - 0.25, a.bed.top[2])
-      else headTop(a.bones, head)
+      else headTop(a.bones, head, look.parts.crown)
 
       // zZz: uyuyanın (ya da çadırın) üstünde yükselip kaybolan üç Z
       const sleeping = hidden || (a.mode === 'seated' && a.on?.home && a.occ.status === 'away')
@@ -480,7 +485,7 @@ function retarget(state, world, a) {
 // Mola yerindeki oturak / yatak / bant (kendi koltuğu gibi kullanılır).
 function stationSeat(target) {
   const st = target.station
-  return { position: st.position, yaw: st.yaw, kind: st.kind, swing: st.swing, exit: [target.x, target.z], key: target.key, home: false }
+  return { position: st.position, yaw: st.yaw, kind: st.kind, swing: st.swing, front: st.front, exit: [target.x, target.z], key: target.key, home: false }
 }
 
 function sitOn(a, seat) {
@@ -883,7 +888,7 @@ function awayPose(b, t, seed) {
 // Mola yerindeki oturak, yatak ya da bant üstündeki hareket.
 function stationPose(seat, activity, t, seed) {
   const pose = activity.sit?.pose
-  const sit = { y: seat.position[1], slope: true }
+  const sit = { y: seat.position[1], slope: true, front: seat.front }
   if (seat.kind === 'lie') return liePose(sit, t, seed, frac(seed) < 0.5 ? 'bookChest' : null)
   if (seat.kind === 'mount') return pose === 'vr' ? vrPose(t, seed) : runPose(t, seed)
   return loungePose(sit, t, seed, activity.sit?.prop ?? null)
