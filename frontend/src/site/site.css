@@ -330,7 +330,89 @@
 /* avatar atölyesi */
 
 .avatar-page__preview {
+  position: relative;
   height: min(520px, 62svh);
+}
+
+/* önizlemenin köşesinde geri al / ileri al */
+.avatar-page__history {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.avatar-page__history button {
+  padding: 5px 9px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.avatar-page__history button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* kombin slotları */
+.wardrobe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.wardrobe__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wardrobe__slot {
+  display: grid;
+  gap: 3px;
+  min-width: 92px;
+  padding: 6px 10px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wardrobe__slot[aria-pressed='true'] {
+  border-color: #222;
+  box-shadow: inset 0 0 0 1px #222;
+}
+
+.wardrobe__chips {
+  display: flex;
+  gap: 3px;
+}
+
+.wardrobe__chips i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+}
+
+.wardrobe__worn {
+  color: #2a7a40;
+  font-size: 12px;
+}
+
+.wardrobe__status {
+  font-size: 13px;
 }
 
 .avatar-page__sub {
@@ -365,6 +447,11 @@
   border: 2px solid rgba(0, 0, 0, 0.15);
   border-radius: 50%;
   cursor: pointer;
+}
+
+/* "yok" seçeneği: çapraz çizgili beyaz */
+.swatch--none {
+  background: linear-gradient(135deg, #fff 45%, #c44 45%, #c44 55%, #fff 55%);
 }
 
 .swatch[aria-pressed='true'] {
