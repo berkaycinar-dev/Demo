@@ -1,7 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, Color, Euler, Matrix4, Quaternion, Vector3 } from 'three'
-import { buildAvatarParts } from './model'
+import { BONE_INDEX, SCALE, buildAvatarParts } from './model'
 import { STAND_POSES, deskReadPose, sleepDeskPose, standPose, typePose, walkPose, writePose } from './poses'
 import { computeBones, createBoneMatrices, headTop, writeParts } from './render'
 import './AvatarPreview.css'
@@ -18,8 +18,54 @@ const SIT = {
 // Molada sırayla gösterilen hareketler (her biri 7 sn).
 const BREAK_CYCLE = [['sip', 'mug'], ['phone'], ['stretch'], ['dance'], ['view']]
 const FPS = 24
-const ELEVATION = (24 * Math.PI) / 180
 const YAW_PER_PIXEL = 0.01
+const DEG = Math.PI / 180
+// Kamera odakları (bölge × poz): bakılan nokta (anchor: Figure'ın her karede yazdığı konum; tam boy
+// sabit noktaya bakar), bakış yüksekliği (derece), görünen alan (genişlik, yükseklik; m) ve masadaki
+// başın kameraya kalkması (lift: 0 kalkmaz, 1 tam kalkar; uyurken baş yana yatık kalır).
+//   odakta / uzakta: masa başında; ayak ve alt odağı alçaktan, masanın altından bakar; bilek yukarıdan.
+//   molada / yürüyüş: ayakta; ayak ve alt odağı yukarıdan, bilek ve yüz göz hizasından.
+const SEATED = {
+  full: { elev: 24, span: [2.3, 1.9] },
+  face: { anchor: 'head', elev: 12, span: [0.95, 0.75], lift: 1 },
+  hat: { anchor: 'hat', elev: 14, span: [1, 0.8], lift: 1 },
+  chest: { anchor: 'chest', elev: 14, span: [0.95, 0.75], lift: 1 },
+  wrist: { anchor: 'wrist', elev: 28, span: [0.75, 0.6], lift: 1 },
+  upper: { anchor: 'upper', elev: 18, span: [1.3, 1.05], lift: 0.6 },
+  legs: { anchor: 'legs', elev: 7, span: [1.35, 1.08] },
+  feet: { anchor: 'feet', elev: 5, span: [1.3, 1.05] },
+}
+const STANDING = {
+  full: { elev: 24, span: [2.3, 1.9] },
+  face: { anchor: 'head', elev: 10, span: [0.9, 0.72] },
+  hat: { anchor: 'hat', elev: 12, span: [1, 0.8] },
+  chest: { anchor: 'chest', elev: 12, span: [0.9, 0.72] },
+  wrist: { anchor: 'wrist', elev: 14, span: [0.8, 0.64] },
+  upper: { anchor: 'upper', elev: 16, span: [1.3, 1.04] },
+  legs: { anchor: 'legs', elev: 16, span: [1.05, 0.84] },
+  feet: { anchor: 'feet', elev: 18, span: [1.0, 0.8] },
+}
+const VIEWS = {
+  focus: SEATED,
+  // uyurken: baş kolların üstünde, yüz kameraya yarı döner; yukarıdan bakılır
+  away: {
+    ...SEATED,
+    face: { anchor: 'head', elev: 26, span: [0.95, 0.75], lift: 0.55 },
+    hat: { anchor: 'hat', elev: 30, span: [1.05, 0.84], lift: 0.55 },
+    chest: { anchor: 'chest', elev: 24, span: [1.05, 0.84], lift: 0.55 },
+    wrist: { anchor: 'wrist', elev: 32, span: [0.8, 0.64], lift: 0.55 },
+    upper: { anchor: 'upper', elev: 28, span: [1.35, 1.08], lift: 0.4 },
+  },
+  break: STANDING,
+  // yürürken bacaklar salınır: alt ve ayak odağı daha geniş
+  walk: { ...STANDING, legs: { anchor: 'legs', elev: 14, span: [1.15, 0.92] }, feet: { anchor: 'feet', elev: 14, span: [1.15, 0.92] } },
+}
+const viewOf = (mode, focus) => (VIEWS[mode] ?? SEATED)[focus] ?? SEATED.full
+const FULL_TARGET = new Vector3(0, 0.62, 0)
+// geçişin hızı (1/sn) ve kameranın artık kendiliğinden kare istemediği yakınlık
+const EASE = 5
+const SETTLED = 0.002
+const { hips: HIPS, torso: TORSO, head: HEAD, foreL: FORE_L, shinL: SHIN_L, shinR: SHIN_R } = BONE_INDEX
 
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
@@ -67,20 +113,56 @@ function sceneBoxes(withDesk, activity) {
   return out
 }
 
-function CameraRig({ view }) {
+// Kamera odağa (focus) yumuşak geçer: bakılan nokta, bakış yüksekliği ve yakınlık birlikte kayar.
+// anchorsRef: Figure'ın her karede yazdığı bölge konumları. Hareket azaltılmışsa anında geçer.
+function CameraRig({ view, mode, focus, anchorsRef, animated }) {
   const size = useThree((s) => s.size)
-  useFrame(({ camera }) => {
+  const invalidate = useThree((s) => s.invalidate)
+  const cur = useRef(null)
+  // odak ya da poz değişince ilk kareyi iste (hareket azaltılmışken başka kare istenmez)
+  useEffect(() => invalidate(), [focus, mode, invalidate])
+  useFrame(({ camera, invalidate }, dt) => {
+    const f = viewOf(mode, focus)
+    const a = anchorsRef.current
+    const target = f.anchor ? a[f.anchor] : FULL_TARGET
+    // başlık odağı uzun şapkayı (silindir, büyücü) da sığdırır
+    const tall = f.anchor === 'hat' ? Math.max(1, (a.hatSize + 0.3) / 0.73) : 1
+    const zoom = Math.min(size.width / (f.span[0] * tall), size.height / (f.span[1] * tall))
+    const goal = { x: target.x, y: target.y, z: target.z, elev: f.elev * DEG, zoom }
+    if (!cur.current) cur.current = { ...goal }
+    const c = cur.current
+    const k = animated ? 1 - Math.exp(-Math.min(dt, 0.1) * EASE) : 1
+    let gap = 0
+    for (const key of ['x', 'y', 'z', 'elev']) {
+      gap = Math.max(gap, Math.abs(goal[key] - c[key]))
+      c[key] += (goal[key] - c[key]) * k
+    }
+    gap = Math.max(gap, Math.abs(goal.zoom / c.zoom - 1))
+    c.zoom *= (goal.zoom / c.zoom) ** k
+    // geçiş sürerken kare iste (animasyonsuz pozda da); oturduktan sonra Ticker yeter
+    if (gap > SETTLED) invalidate()
     const az = Math.PI / 4 + view.current.yaw
-    const flat = Math.cos(ELEVATION) * 10
-    camera.position.set(Math.sin(az) * flat, 0.75 + Math.sin(ELEVATION) * 10, Math.cos(az) * flat)
-    camera.lookAt(0, 0.62, 0)
-    const zoom = Math.min(size.width / 2.3, size.height / 1.9)
-    if (camera.zoom !== zoom) {
-      camera.zoom = zoom
+    const flat = Math.cos(c.elev) * 10
+    camera.position.set(c.x + Math.sin(az) * flat, c.y + Math.sin(c.elev) * 10, c.z + Math.cos(az) * flat)
+    camera.lookAt(c.x, c.y, c.z)
+    if (camera.zoom !== c.zoom) {
+      camera.zoom = c.zoom
       camera.updateProjectionMatrix()
     }
   })
   return null
+}
+
+// Yakın odakta masadaki karakter başını kaldırıp kameraya bakar (lift 0..1 arası geçiş). Uyurken
+// (keepRoll) baş yana yatık kalır, yüz kameraya döner.
+function liftHead(pose, lift, camYaw, keepRoll) {
+  if (lift < 1e-3) return pose
+  const b = pose.bones
+  const pitch = b[HIPS][0] + b[TORSO][0]
+  const yaw = Math.atan2(Math.sin(camYaw), Math.cos(camYaw)) - b[HIPS][1] - b[TORSO][1]
+  const look = [-pitch - 0.12, Math.max(-0.55, Math.min(0.55, yaw * 0.6)), keepRoll ? b[HEAD][2] : 0]
+  const head = b[HEAD].map((v, i) => v + (look[i] - v) * lift)
+  return { ...pose, bones: b.map((r, i) => (i === HEAD ? head : r)) }
 }
 
 function Ticker({ animated }) {
@@ -99,7 +181,16 @@ const zParts = [
   new Matrix4().compose(new Vector3(0, -0.05, 0), new Quaternion(), new Vector3(0.12, 0.024, 0.02)),
 ]
 
-function Figure({ avatar, mode, activity, animated, view }) {
+// bölge noktaları, kemiğe göre: baş ortası, boyun, göğüs, sol bilek (saatin dış yüzü), uyluk üstü
+// (ayakta; oturunca kucak), ayak
+const HEAD_CENTER = new Vector3(0, 0.2 * SCALE, 0)
+const NECK_POINT = new Vector3(0, 0.36 * SCALE, 0.04 * SCALE)
+const TORSO_MID = new Vector3(0, 0.3 * SCALE, 0)
+const WRIST_POINT = new Vector3(0.05 * SCALE, -0.16 * SCALE, 0)
+const LEGS_POINT = new Vector3(0, -0.18 * SCALE, 0.04 * SCALE)
+const SHOE_CENTER = new Vector3(0, -0.2 * SCALE, 0.02 * SCALE)
+
+function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef }) {
   const parts = useMemo(() => buildAvatarParts(avatar), [avatar])
   const statics = useMemo(() => sceneBoxes(mode === 'focus' || mode === 'away', activity), [mode, activity])
   const meshRef = useRef(null)
@@ -107,6 +198,8 @@ function Figure({ avatar, mode, activity, animated, view }) {
   const zzzRef = useRef(null)
   const bones = useMemo(() => createBoneMatrices(), [])
   const invalidate = useThree((s) => s.invalidate)
+  const lift = useRef(0)
+  const scratch = useMemo(() => new Vector3(), [])
 
   useLayoutEffect(() => {
     const color = new Color()
@@ -127,7 +220,7 @@ function Figure({ avatar, mode, activity, animated, view }) {
     invalidate()
   }, [statics, invalidate])
 
-  useFrame(({ clock }) => {
+  useFrame(({ clock }, dt) => {
     const t = animated ? clock.elapsedTime : 0
     let pose
     if (mode === 'focus') {
@@ -140,12 +233,28 @@ function Figure({ avatar, mode, activity, animated, view }) {
       const [act, prop] = BREAK_CYCLE[Math.floor(t / 7) % BREAK_CYCLE.length]
       pose = STAND_POSES[act](t, 0.3, prop)
     } else pose = standPose(t, 0.3)
+    const camYaw = Math.PI / 4 + view.current.yaw
+    const want = viewOf(mode, focus).lift ?? 0
+    const ease = animated ? 1 - Math.exp(-Math.min(dt, 0.1) * EASE) : 1
+    lift.current += (want - lift.current) * ease
+    if (Math.abs(want - lift.current) > SETTLED) invalidate()
+    pose = liftHead(pose, lift.current, camYaw, mode === 'away')
     computeBones(bones, pose, 0, 0, 0)
+    const a = anchorsRef.current
+    a.head.copy(HEAD_CENTER).applyMatrix4(bones[HEAD])
+    a.chest.copy(NECK_POINT).applyMatrix4(bones[TORSO])
+    a.upper.copy(TORSO_MID).applyMatrix4(bones[TORSO])
+    a.wrist.copy(WRIST_POINT).applyMatrix4(bones[FORE_L])
+    a.legs.copy(LEGS_POINT).applyMatrix4(bones[HIPS])
+    a.feet.copy(SHOE_CENTER).applyMatrix4(bones[SHIN_L]).add(scratch.copy(SHOE_CENTER).applyMatrix4(bones[SHIN_R])).multiplyScalar(0.5)
+    a.feet.y += 0.06
     writeParts(meshRef.current, 0, parts, bones, pose.show)
     meshRef.current.instanceMatrix.needsUpdate = true
 
     const head = headTop(bones, new Vector3(), parts.crown)
-    const camYaw = Math.PI / 4 + view.current.yaw
+    // başlık odağı: baş ortası ile tepe (şapka dahil) arası
+    a.hat.copy(a.head).lerp(head, 0.5)
+    a.hatSize = head.distanceTo(a.head) + HEAD_CENTER.y
     const m = new Matrix4()
     const zm = new Matrix4()
     let k = 0
@@ -181,11 +290,23 @@ function Figure({ avatar, mode, activity, animated, view }) {
  * Avatar atölyesinin 3D önizlemesi: platformda karakter; sürükleyerek döndürülür.
  * mode: 'focus' (masada çalışır) | 'break' (ayakta mola hareketleri: içecek, telefon, gerinme, dans,
  * manzara) | 'away' (masada uyur, zZz) | 'walk' (yerinde yürür). activity: 'read' (masadaki açık
- * kitabı okur, not alır) | 'type' (dizüstü bilgisayar).
+ * kitabı okur, not alır) | 'type' (dizüstü bilgisayar). focus: kamera odağı 'full' (tam boy) | 'face'
+ * | 'hat' | 'chest' (boyun) | 'wrist' (sol bilek) | 'upper' (gövde) | 'legs' | 'feet'; açı ve yakınlık
+ * poza göre (VIEWS).
  */
-export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', reducedMotion, className = '' }) {
+export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', reducedMotion, className = '' }) {
   const animated = !(reducedMotion ?? prefersReducedMotion())
   const view = useRef({ yaw: 0 })
+  const anchors = useRef({
+    head: new Vector3(0, 1.05, 0),
+    hat: new Vector3(0, 1.1, 0),
+    hatSize: 0.45,
+    chest: new Vector3(0, 0.9, 0),
+    upper: new Vector3(0, 0.8, 0),
+    wrist: new Vector3(0, 0.6, 0),
+    legs: new Vector3(0, 0.45, 0),
+    feet: new Vector3(0, 0.08, 0),
+  })
   const drag = useRef(null)
   const store = useRef(null)
 
@@ -220,10 +341,10 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
           store.current = state
         }}
       >
-        <CameraRig view={view} />
+        <CameraRig view={view} mode={mode} focus={focus} anchorsRef={anchors} animated={animated} />
         <hemisphereLight color="#fff6e8" groundColor="#8a7a68" intensity={2.2} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} color="#fff1d8" />
-        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} />
+        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} />
         <Ticker animated={animated} />
       </Canvas>
       <p className="avatar-preview__hint">Sürükle: döndür · Çift tık: sıfırla</p>
