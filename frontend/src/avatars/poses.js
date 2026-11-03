@@ -1,4 +1,5 @@
-import { BONES, HIP_HEIGHT } from './model'
+import { Euler, Matrix4, Quaternion, Vector3 } from 'three'
+import { BONES, HIP_HEIGHT, SCALE } from './model'
 
 // Procedural pozlar: her poz { hipY, hipX, hipZ, bones: [[rx, ry, rz] × kemik sayısı], show }
 // döndürür. hipY: kalça ekleminin yerden yüksekliği (dünya), hipX / hipZ: köke göre yana ve ileri
@@ -9,7 +10,11 @@ import { BONES, HIP_HEIGHT } from './model'
 // eğer; rz > 0 sol kolu dışa, sağ kolu içe açar; ry > 0 başı sola çevirir.
 //
 // Oturuşlar `sit` nesnesiyle verilir: { y: oturma yüksekliği, low?: bağdaş (minder), slope?:
-// uyluklar öne eğik (kütük, kanepe), rise?: önündeki masanın oturaktan yüksekliği }.
+// uyluklar öne eğik (kütük, kanepe), rise?: önündeki masanın oturaktan yüksekliği, edge?: masanın
+// ön kenarına uzaklık, near? / far?: masadaki eşyanın (klavye, kitap) yakın ve uzak kenarı, item?:
+// eşyanın üstünün oturaktan yüksekliği, front?: oturak tabanının ön kenarı (nav.seatFront) }.
+// Uzaklıklar koltuk merkezinden ileri doğru (nav.deskInfo).
+// Masadaki eller ters kinematikle (reach) bu ölçülere yerleşir: masaya girmez, eşyaya uzanır.
 
 const N = BONES.length
 const zero = () => Array.from({ length: N }, () => [0, 0, 0])
@@ -76,6 +81,140 @@ function squat(p, depth = 1) {
   p.hipZ = -0.06 * depth
 }
 
+// ---------------------------------------------------------------- ters kinematik (kollar)
+
+// Uyluk boyu (kalçadan dize).
+const THIGH = 0.28 * SCALE
+// Omuzdan dirseğe ve dirsekten el küpünün merkezine uzunluk.
+const UPPER = 0.2 * SCALE
+const LOWER = 0.245 * SCALE
+const REACH = UPPER + LOWER
+const _e = new Euler()
+const _q = new Quaternion()
+const _v = new Vector3()
+const _h = new Vector3()
+const _a = new Vector3()
+const _x = new Vector3()
+const _c = new Vector3()
+const _pole = new Vector3()
+const _torso = new Matrix4()
+const _inv = new Matrix4()
+const _tmp = new Matrix4()
+const _ba = new Matrix4()
+const _bb = new Matrix4()
+const ONE = new Vector3(1, 1, 1)
+const X_AXIS = new Vector3(1, 0, 0)
+
+// Gövdenin köke göre matrisi (kalça kayması ve dönüşleriyle).
+function torsoFrame(p, out = _torso) {
+  out.compose(_v.set(p.hipX ?? 0, p.hipY, p.hipZ ?? 0), _q.setFromEuler(_e.set(...p.bones[HIPS])), ONE)
+  _tmp.compose(_v.fromArray(BONES[TORSO].pivot), _q.setFromEuler(_e.set(...p.bones[TORSO])), ONE)
+  return out.multiply(_tmp)
+}
+
+// Hedefin omuza uzaklığı (köke göre hedef; side 1 sol, -1 sağ kol).
+function shoulderDistance(p, side, target) {
+  _inv.copy(torsoFrame(p)).invert()
+  return _v.fromArray(target).applyMatrix4(_inv).sub(_c.fromArray(BONES[side > 0 ? ARM_L : ARM_R].pivot)).length()
+}
+
+/**
+ * İki kemikli kol: el küpünün merkezi köke göre `target` noktasına gider (yetişmiyorsa o yöne
+ * uzanır). pole: dirseğin gideceği yön, gövdeye göre [x, y, z] (sol kol için; sağda x aynalanır).
+ * Varsayılan dirsek aşağıda, biraz geride ve dışarıda. Gövde ve kalça pozu önceden kurulmuş olmalı.
+ */
+function reach(p, side, target, pole = [0.35, -1, -0.35]) {
+  const arm = side > 0 ? ARM_L : ARM_R
+  _inv.copy(torsoFrame(p)).invert()
+  const d = _v.fromArray(target).applyMatrix4(_inv).sub(_c.fromArray(BONES[arm].pivot))
+  const len = Math.min(Math.max(d.length(), 0.06), REACH * 0.995)
+  _h.copy(d).normalize()
+  const cos = (UPPER * UPPER + LOWER * LOWER - len * len) / (2 * UPPER * LOWER)
+  const bend = Math.PI - Math.acos(Math.max(-1, Math.min(1, cos)))
+  // kolun kendi uzayında: menteşe x ekseni, el (0, -U - L cos b, L sin b), dirsek -y
+  _a.set(0, -UPPER - LOWER * Math.cos(bend), LOWER * Math.sin(bend)).normalize()
+  // dirseğin yönü: pole'un h'ye dik bileşeni; menteşe = (-dirsek) × h
+  _pole.set(pole[0] * side, pole[1], pole[2])
+  _pole.addScaledVector(_h, -_pole.dot(_h))
+  if (_pole.lengthSq() < 1e-8) _pole.set(0, -1, 0).addScaledVector(_h, -_h.y)
+  _pole.normalize()
+  _x.crossVectors(_pole.negate(), _h).normalize()
+  _ba.makeBasis(_a, X_AXIS, _c.crossVectors(_a, X_AXIS))
+  _bb.makeBasis(_h, _x, _pole)
+  _bb.multiply(_ba.transpose())
+  _e.setFromRotationMatrix(_bb, 'XYZ')
+  set(p, arm, _e.x, _e.y, _e.z)
+  set(p, arm === ARM_L ? FORE_L : FORE_R, -bend)
+  // dirsek, köke göre (deskReach için)
+  _elbow.set(0, -UPPER, 0).applyMatrix4(_bb).add(_c.fromArray(BONES[arm].pivot)).applyMatrix4(_torso)
+  return p
+}
+const _elbow = new Vector3()
+const _hand = new Vector3()
+
+// Önkolun masaya girme miktarı: masanın üstündeki (ön kenarı geçmiş) noktaları yüzeyden ne kadar
+// alçakta. Önkol ~4.3 cm kalınlığında.
+function forearmDip(sit, elbow, hand) {
+  const edge = sit.edge ?? DEFAULT_EDGE
+  let dip = 0
+  for (let k = 0; k <= 1; k += 0.25) {
+    const z = elbow.z + (hand.z - elbow.z) * k
+    const y = elbow.y + (hand.y - elbow.y) * k
+    if (z > edge - 0.045) dip = Math.max(dip, surfaceAt(sit, z) + 0.045 - y)
+  }
+  return dip
+}
+
+// Masadaki el: dirsek önce `pole` yönünde; önkol masaya giriyorsa dirsek sırayla dışa ve yukarı
+// açılır (masaya dayanır). Hiçbiri olmazsa en az giren seçilir.
+const DESK_POLES = [[0.9, -0.6, -0.3], [1, -0.3, -0.1], [1, -0.05, 0.1], [0.7, 0.25, 0.2]]
+function deskReach(p, side, target, sit, pole) {
+  let best = null
+  for (const q of pole ? [pole, ...DESK_POLES] : DESK_POLES) {
+    reach(p, side, target, q)
+    _hand.fromArray(target)
+    const dip = forearmDip(sit, _elbow, _hand)
+    if (dip <= 0.004) return p
+    if (!best || dip < best.dip) best = { dip, q }
+  }
+  return reach(p, side, target, best.q)
+}
+
+// Masadaki nokta, köke göre: x yana (+ sol), f masanın ön kenarından (from: 'edge') ya da eşyanın
+// yakın kenarından ('item') ileri, lift: yüzeyden (eşya varsa onun üstünden) el merkezine yükseklik.
+const HAND = 0.045 * SCALE
+const DEFAULT_EDGE = 0.4
+function deskPoint(sit, x, f, lift = 0, from = 'item') {
+  const edge = sit.edge ?? DEFAULT_EDGE
+  const z = from === 'item' && sit.near != null ? sit.near + f : edge + f
+  return [x, surfaceAt(sit, z) + HAND + 0.008 + lift, z]
+}
+
+// Masanın z'deki üst yüzeyi (dünya y): eşyanın (ya da masa üstü tahtalarının) üstünde onun yüksekliği.
+function surfaceAt(sit, z) {
+  const onItem = sit.near != null && z > sit.near - 0.045 && z < sit.far + 0.045
+  return sit.y + (onItem ? sit.item : sit.rise)
+}
+
+// Hedeflere yetişene kadar önce biraz öne eğilir (en çok `soft`), yetmezse oturakta masaya doğru
+// kayar (en çok 12.5 cm), o da yetmezse daha çok eğilir. Dönüş: eğilme miktarı.
+function leanToward(p, targets, lean, max = 0.8, soft = 0.42) {
+  const fits = () => targets.every(([side, t]) => shoulderDistance(p, side, t) < REACH * 0.93)
+  const base = p.bones[TORSO][0]
+  let k = lean
+  const tilt = (limit) => {
+    while (!fits() && k < limit) {
+      k += 0.04
+      p.bones[TORSO][0] = base + k
+    }
+  }
+  p.bones[TORSO][0] = base + k
+  tilt(Math.max(lean, soft))
+  for (let i = 0; i < 5 && !fits(); i++) p.hipZ += 0.025
+  tilt(max)
+  return k
+}
+
 export function standPose(t = 0, seed = 0) {
   return breathe(base(), t, seed)
 }
@@ -136,7 +275,9 @@ function seated(sit) {
   set(p, THIGH_R, -HALF_PI + a, 0, -0.08)
   set(p, SHIN_L, HALF_PI - a - 0.12)
   set(p, SHIN_R, HALF_PI - a - 0.12)
-  p.hipZ = -0.03
+  // tabanı derin oturakta (sedir, kanepe, kütük) dizler oturağın önüne taşacak kadar öne oturur:
+  // baldırlar tabana girmez. Diz, kalçadan THIGH cos(a) önde; baldırın yarı kalınlığı ~6 cm.
+  p.hipZ = sit.front == null ? -0.03 : Math.min(0.1, Math.max(-0.03, sit.front + 0.065 - THIGH * Math.cos(a)))
   return p
 }
 
@@ -151,62 +292,67 @@ export function sitPose(sit, t = 0, seed = 0) {
 
 // ---------------------------------------------------------------- odakta
 
-// Klavyede yazma: öne eğik gövde, eller masada, parmaklar sırayla vurur, baş ara ara ekrana yaklaşır.
+// Klavyede yazma: eller klavyenin üstünde, parmaklar sırayla vurur, baş ekrana bakar. Eller klavye
+// (yoksa masa kenarı) ölçüsüne göre yerleşir; gerekirse gövde öne eğilir.
 export function typePose(sit, t, seed) {
-  const p = seated(sit)
-  const lean = deskLean(sit)
-  p.bones[TORSO][0] = 0.14 + lean
-  p.bones[HEAD][0] = 0.05 + 0.05 * Math.sin(t * 0.4 + seed) - lean * 0.6
-  for (const [arm, fore, sign, off] of [[ARM_L, FORE_L, 1, 0], [ARM_R, FORE_R, -1, Math.PI]]) {
-    p.bones[arm][0] = -0.95 + lean * 0.5
-    p.bones[arm][2] = -0.18 * sign
-    p.bones[fore][0] = -0.62 + 0.07 * Math.max(0, Math.sin(t * 11 + off + seed))
-  }
-  return breathe(p, t, seed, 0.5)
+  const p = breathe(seated(sit), t, seed, 0.5)
+  const depth = sit.near != null && sit.far != null ? sit.far - sit.near : 0.14
+  const f = Math.min(0.06, depth / 2)
+  const L = deskPoint(sit, 0.095, f)
+  const R = deskPoint(sit, -0.095, f)
+  const lean = leanToward(p, [[1, L], [-1, R]], 0.1 + deskLean(sit))
+  p.bones[HEAD][0] = 0.12 + 0.05 * Math.sin(t * 0.4 + seed) - lean * 0.55
+  L[1] += 0.014 * Math.max(0, Math.sin(t * 11 + seed))
+  R[1] += 0.014 * Math.max(0, Math.sin(t * 11 + Math.PI + seed))
+  chinUp(p, sit)
+  deskReach(p, 1, L, sit, [0.55, -1, -0.25])
+  return deskReach(p, -1, R, sit, [0.55, -1, -0.25])
 }
 
-// Masadaki ekrana dokunma: sağ el yavaşça kaydırır, sol el masanın kenarında.
+// Masadaki ekrana dokunma: sağ el ekranın üstünde kaydırır ve dokunur, sol el masanın kenarında.
 export function tapPose(sit, t, seed) {
-  const p = seated(sit)
-  p.bones[TORSO][0] = 0.18
-  p.bones[HEAD][0] = 0.3 + 0.05 * Math.sin(t * 0.5 + seed)
-  set(p, ARM_L, -0.85, 0, -0.22)
-  set(p, FORE_L, -0.7)
+  const p = breathe(seated(sit), t, seed, 0.5)
+  const depth = sit.near != null && sit.far != null ? sit.far - sit.near : 0.16
   const swipe = Math.sin(t * 1.3 + seed)
   const tap = pulse(t, 2.4, 0.3, seed)
-  set(p, ARM_R, -0.95 + 0.08 * tap, 0, 0.1 + 0.14 * swipe)
-  set(p, FORE_R, -0.55 + 0.12 * tap)
-  return breathe(p, t, seed, 0.5)
+  const R = deskPoint(sit, -0.02 - 0.07 * swipe, Math.min(0.09, depth * 0.4), 0.03 - 0.025 * tap)
+  const L = deskPoint(sit, 0.16, 0.05, 0, 'edge')
+  const lean = leanToward(p, [[1, L], [-1, R]], 0.14 + deskLean(sit))
+  p.bones[HEAD][0] = 0.32 + 0.05 * Math.sin(t * 0.5 + seed) - lean * 0.4
+  p.bones[HEAD][1] = -0.12 * swipe
+  chinUp(p, sit)
+  deskReach(p, 1, L, sit)
+  return deskReach(p, -1, R, sit, [0.4, -1, -0.3])
 }
 
-// Masadaki açık kitabı okuma: kollar kitabın iki yanında, baş eğik; ~8 sn'de bir sağ el sayfa çevirir.
+// Masadaki açık kitabı okuma: eller kitabın alt köşelerinde, baş eğik; ~8 sn'de bir sağ el sayfayı
+// kaldırıp sola çevirir.
 export function deskReadPose(sit, t, seed) {
-  const p = seated(sit)
-  const lean = deskLean(sit)
-  p.bones[TORSO][0] = 0.24 + lean
-  p.bones[HEAD][0] = 0.42 + 0.04 * Math.sin(t * 0.5 + seed) - lean * 0.4
-  p.bones[HEAD][1] = 0.08 * Math.sin(t * 0.21 + seed)
+  const p = breathe(seated(sit), t, seed, 0.5)
   const flip = pulse(t, 8, 1.1, seed * 3)
-  set(p, ARM_L, -0.8 + lean * 0.5, 0, -0.2)
-  set(p, FORE_L, -0.75)
-  set(p, ARM_R, -0.8 + lean * 0.5 - 0.25 * flip, 0, 0.2 + 0.32 * flip)
-  set(p, FORE_R, -0.75 - 0.2 * flip)
-  return breathe(p, t, seed, 0.5)
+  const L = deskPoint(sit, 0.15, 0.05)
+  const R = deskPoint(sit, -0.15 + 0.17 * flip, 0.05 + 0.04 * flip, 0.07 * flip)
+  const lean = leanToward(p, [[1, L], [-1, deskPoint(sit, -0.15, 0.05)]], 0.22 + deskLean(sit))
+  p.bones[HEAD][0] = 0.45 + 0.04 * Math.sin(t * 0.5 + seed) - lean * 0.45
+  p.bones[HEAD][1] = 0.08 * Math.sin(t * 0.21 + seed)
+  chinUp(p, sit)
+  deskReach(p, 1, L, sit)
+  return deskReach(p, -1, R, sit)
 }
 
-// Not alma: sağ el kalemle küçük daireler çizer, sol el masada, baş deftere eğik.
+// Not alma: sağ el kalemle küçük daireler çizer, sol el defteri tutar, baş deftere eğik.
 export function writePose(sit, t, seed, tool = 'pen') {
-  const p = seated(sit)
-  const lean = deskLean(sit)
-  p.bones[TORSO][0] = 0.18 + lean
-  p.bones[HEAD][0] = 0.3 - lean * 0.4
+  const p = breathe(seated(sit), t, seed, 0.5)
+  const L = deskPoint(sit, 0.13, 0.07)
+  const R = deskPoint(sit, -0.06 + 0.022 * Math.sin(t * 5 + seed), 0.1 + 0.015 * Math.cos(t * 5 + seed), 0.012)
+  const lean = leanToward(p, [[1, L], [-1, R]], 0.18 + deskLean(sit))
+  p.bones[HEAD][0] = 0.34 - lean * 0.45
   p.bones[HEAD][1] = -0.1
-  set(p, ARM_L, -0.85 + lean * 0.5, 0, -0.25)
-  set(p, FORE_L, -0.7)
-  set(p, ARM_R, -0.95 + lean * 0.5 + 0.05 * Math.sin(t * 5 + seed), 0, 0.2 + 0.04 * Math.cos(t * 5 + seed))
-  set(p, FORE_R, -0.6)
+  chinUp(p, sit)
+  deskReach(p, 1, L, sit)
+  deskReach(p, -1, R, sit, [0.45, -1, -0.3])
   p.show = tool
-  return breathe(p, t, seed, 0.5)
+  return p
 }
 
 // Elde kitap ya da tablet okuma: eller gövdenin önünde, baş eğik; arada sayfa çevirir.
@@ -232,13 +378,66 @@ export function thinkPose(sit, t, seed) {
   p.bones[HEAD][0] = -0.12 + 0.05 * Math.sin(t * 0.3 + seed)
   p.bones[HEAD][1] = 0.2 * Math.sin(t * 0.17 + seed)
   p.bones[HEAD][2] = 0.1
-  set(p, ARM_R, -0.9, 0, 0.35)
-  set(p, FORE_R, -1.8, 0.4, 0.8)
-  if (desk) {
-    set(p, ARM_L, -0.85, 0, -0.25)
-    set(p, FORE_L, -0.75)
-  } else lapHand(p, ARM_L, FORE_L, 1)
-  return breathe(p, t, seed)
+  breathe(p, t, seed)
+  // dirsek ancak masa yakınsa masaya dayanır
+  if (desk && (sit.edge ?? DEFAULT_EDGE) < 0.46) {
+    // dirsek masada: sağ el çeneye, sol el masanın kenarında
+    const L = deskPoint(sit, 0.15, 0.06, 0, 'edge')
+    // tezgâh çok yakınsa (bar) biraz geride oturur: baş ve sakal kenara değmez
+    p.hipZ -= Math.min(0.08, Math.max(0, 0.25 - sit.edge))
+    leanToward(p, [[1, L], [-1, deskPoint(sit, -0.12, 0.04, 0, 'edge')]], 0)
+    chinUp(p, sit)
+    deskReach(p, 1, L, sit)
+    reach(p, -1, chinPoint(p), [0.15, -0.6, 1])
+  } else {
+    set(p, ARM_R, -0.9, 0, 0.35)
+    set(p, FORE_R, -1.8, 0.4, 0.8)
+    lapHand(p, ARM_L, FORE_L, 1)
+  }
+  return p
+}
+
+// Başın matrisi, köke göre.
+function headFrame(p, out = _ba) {
+  torsoFrame(p, out)
+  _tmp.compose(_v.fromArray(BONES[HEAD].pivot), _q.setFromEuler(_e.set(...p.bones[HEAD])), ONE)
+  return out.multiply(_tmp)
+}
+
+// Çenenin önündeki nokta, köke göre (el çenede pozları için).
+function chinPoint(p) {
+  return _v.set(-0.03, 0.06, 0.2).multiplyScalar(SCALE).applyMatrix4(headFrame(p)).toArray()
+}
+
+// Çene ve en uzun sakalın alt kenarı, başa göre: masaya eğilen baş bunları masanın üstünde tutar.
+const BEARD_EDGE = [[0, -0.16, 0.1], [0, -0.16, 0.18], [0, -0.04, 0.19], [0, 0.0, 0.2]]
+
+// Masaya eğilen baş: çene ve sakal masanın 1 cm üstünde kalana kadar baş (gerekirse gövde) doğrulur.
+function chinUp(p, sit) {
+  const edge = sit.edge ?? DEFAULT_EDGE
+  const low = () => {
+    const m = headFrame(p)
+    return BEARD_EDGE.some((q) => {
+      _v.fromArray(q).multiplyScalar(SCALE).applyMatrix4(m)
+      return _v.z > edge - 0.03 && _v.y < surfaceAt(sit, _v.z) + 0.01
+    })
+  }
+  for (let i = 0; i < 14 && low(); i++) {
+    if (p.bones[HEAD][0] > -0.1) p.bones[HEAD][0] -= 0.05
+    else p.bones[TORSO][0] -= 0.04
+  }
+  return p
+}
+
+// Başın masanın üstündeki en alçak noktası (köke göre y); baş masanın üstünde değilse null.
+function headLow(p, edge) {
+  const m = headFrame(p)
+  let low = null
+  for (const x of [-0.17, 0.17]) for (const y of [0.03, 0.37]) for (const z of [-0.155, 0.165]) {
+    _v.set(x, y, z).multiplyScalar(SCALE).applyMatrix4(m)
+    if (_v.z > edge - 0.02 && (low == null || _v.y < low)) low = _v.y
+  }
+  return low
 }
 
 // Kucaktaki el (side: 1 sol, -1 sağ).
@@ -249,17 +448,30 @@ function lapHand(p, arm, fore, side) {
 
 // ---------------------------------------------------------------- uzakta
 
-// Masada uyuma: kolların üstüne kapanmış, baş yana dönük.
+// Masada uyuma: kollar masada kavuşturulmuş, baş kolların üstünde yana dönük. Gövde omuzlar masa
+// hizasına inecek kadar eğilir; kollar masanın kenarına göre yerleşir.
 export function sleepDeskPose(sit, t, seed) {
   const p = seated(sit)
   const w = Math.sin(t * 0.9 + seed)
-  const low = sit.rise != null && sit.rise < 0.22
-  p.bones[TORSO][0] = (low ? 1.15 : 0.95) + 0.025 * w
-  set(p, HEAD, 0.25, 0, 0.45)
-  set(p, ARM_L, -1.35, 0, -0.55)
-  set(p, FORE_L, -0.3, -1.2)
-  set(p, ARM_R, -1.35, 0, 0.55)
-  set(p, FORE_R, -0.3, 1.2)
+  const rise = sit.rise ?? 0.28
+  // omuz yüksekliği: oturaktan 0.082 + 0.323 cos(eğilme); masanın ~6 cm üstü
+  const lean = Math.acos(Math.max(0.3, Math.min(0.97, (rise - 0.02) / 0.323)))
+  p.bones[TORSO][0] = lean + 0.025 * w
+  // masa çok yakınsa (bar tezgâhı) oturakta biraz geride durur: göğüs kenara değmez
+  p.hipZ -= Math.min(0.08, Math.max(0, 0.25 - (sit.edge ?? 1)))
+  set(p, HEAD, 0.3, 0, 0.45)
+  // baş kolların (~8.5 cm) üstünde kalana kadar doğrulur
+  const edge = sit.edge ?? DEFAULT_EDGE
+  for (let i = 0; i < 12; i++) {
+    const low = headLow(p, edge)
+    if (low == null || low > sit.y + rise + 0.085) break
+    p.bones[TORSO][0] -= 0.05
+  }
+  const L = deskPoint(sit, 0.035, 0.13, 0.0, 'edge')
+  const R = deskPoint(sit, -0.035, 0.09, 0.05, 'edge')
+  leanToward(p, [[1, L], [-1, R]], 0, 0.25)
+  deskReach(p, 1, L, sit, [1, -0.15, 0.2])
+  deskReach(p, -1, R, sit, [1, -0.15, 0.2])
   return p
 }
 
@@ -268,7 +480,8 @@ export function sleepDeskPose(sit, t, seed) {
 export function sleepLeanPose(sit, t, seed, prop = null) {
   const p = seated(sit)
   const w = Math.sin(t * 0.9 + seed)
-  p.bones[TORSO][0] = -0.22 + 0.02 * w
+  // gazetesiz daha az yaslanır: baş, sandalyenin baş desteğine girmez (uzay, sualtı)
+  p.bones[TORSO][0] = (prop === 'newspaper' ? -0.22 : -0.15) + 0.02 * w
   if (prop === 'newspaper') set(p, HEAD, -0.3, 0, 0.08)
   else set(p, HEAD, 0.28 + 0.03 * w, 0.15, 0.45)
   if (prop === 'bookChest') {
@@ -298,6 +511,9 @@ export function loungePose(sit, t, seed, prop = null) {
   p.bones[TORSO][0] = -0.14
   p.bones[HEAD][1] = 0.35 * Math.sin(t * 0.3 + seed)
   if (!sit.low) {
+    // alttaki bacak minderde düz durur (eğik uyluk kanepenin minderine girer)
+    set(p, THIGH_L, -HALF_PI + 0.1, 0, 0.08)
+    set(p, SHIN_L, HALF_PI - 0.22)
     set(p, THIGH_R, -HALF_PI - 0.18, 0, 0.12)
     set(p, SHIN_R, HALF_PI - 0.25)
   }
