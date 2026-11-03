@@ -250,7 +250,8 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
     }
     state.moving = moving
 
-    // çizim
+    // çizim; etiketler bu karenin kamerasıyla izdüşülür (kamera bu karede döndüyse matrisi henüz eski)
+    camera.updateMatrixWorld()
     const camYaw = Math.atan2(camera.position.x - room.bounds.max[0] / 2, camera.position.z - room.bounds.max[2] / 2)
     let z = 0
     let s = 0
