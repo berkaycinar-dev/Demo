@@ -17,13 +17,17 @@ const { occupants, setMyStatus } = useRoomPeople({ capacity: 6, seed: 42, me: my
 
 - `options.js`: seçenekler ve renk paletleri.
   - Beden (`body`: erkek | kadın). Kadında ince bel ve geniş kalça, ince kalkık kaş, kirpik, dolgun dudak; erkekte kalın kaş. Sakal ve bıyık yalnızca erkekte.
-  - Saç (19 model, `for`: erkek / kadın / ikisi; `hairStylesFor(body)`), saç rengi (11), sakal (8), bıyık (6).
-  - Kıyafet: üst, alt, renkleri, ayakkabı.
-  - Aksesuar, bölgeye göre birer tane: başlık (`HATS`; Şapka: bere, kep, Fransız beresi, fötr, silindir, kovboy; Fantastik: büyücü, taç, Viking miğferi, kedi kulakları, çiçek tacı) ve rengi, kulaklık, gözlük (kare, yuvarlak, güneş, monokl), boyun (atkı, papyon, kravat, kolye), bilek (saat, akıllı saat, bileklik), küpe (taşlı, halka, sallantılı), metal rengi (taç, küpe, kolye, saat).
-  - Kulaklık yalnızca bere, kep ya da başlıksızken (`HEADPHONE_HATS`). Uzun düz, dalgalı ve küt saç kulakları örter; küpe o zaman (ve kulaklıkla) görünmez.
-  - `DEFAULT_AVATAR`, `sanitizeAvatar` (eski `accessories` listesini ve bıyıklı eski sakalları yeni alanlara çevirir), `resolveConflicts` (son değişen kalır), `randomAvatar`.
+  - Saç: 21 model, iki beden için ortak (unisex; Çift topuz ve Yarım toplu dahil). Kahkül (`bangs`) her modelin üstüne eklenir (kel, asker, mohikan hariç: `NO_BANGS`).
+  - Saç rengi (12, Bakır dahil), ikinci renk (`hairColor2`: parlama şeritleri ve saç uçları, ombre), sakal (8), bıyık (6).
+  - Kaş rengi (`brows`): otomatik (doğal saç renginde saça uyumlu; gri, platin ve fantastik renklerde doğal koyu), saçla aynı, doğal koyu ya da ayrı seçim (`browColor`). Kural `browColorOf`.
+  - Kıyafet: üst (11; hırka içte tişörtle, süveter gömlek yakası ve manşetiyle, ekoseli oduncu gömleği, polar, askılı bluz, bornoz), alt (5; eşofman altı, çizgili pijama altı dahil), tek parça (`outfit`: elbise, salopet, hayvanlı tulum), renkleri, ayakkabı modeli (`footwear`: spor ayakkabı, panduf, tavşanlı / ayılı terlik, crocs tarzı terlik, yün çorap) ve rengi.
+    - Elbise ve tulum üstün ve altın yerine geçer, üst rengini kullanır; salopet altın yerine geçer, üst içinde görünür, alt rengini kullanır (`OUTFIT_REPLACES`). Üst ya da alt seçilince yerine geçen tek parça çıkar.
+  - Aksesuar, bölgeye göre birer tane: başlık (`HATS`; Şapka: bere, kep, Fransız beresi, fötr, silindir, kovboy; Fantastik: büyücü, taç, Viking miğferi, kedi kulakları, çiçek tacı) ve başlık rengi, kulaklık (`HEADPHONES`: oyuncu (mikrofonlu), kedi kulaklı RGB, retro süngerli, boyunda, kablosuz kulak içi), gözlük (kare, yuvarlak, çerçevesiz, güneş, piksel, monokl), boyun (atkı, papyon, kravat, kolye), bilek (saat, akıllı saat, bileklik), küpe (taşlı, halka, sallantılı), diğer aksesuar rengi (kulaklık, atkı, papyon, kravat, saat kayışı), metal rengi (taç, küpe, kolye, saat).
+  - Kafa üstü kulaklıklar (`OVER_HEAD`) yalnızca bere, kep ya da başlıksızken (`HEADPHONE_HATS`); kulak çıkıntısını tümüyle içine alır. Boyundaki kulaklık atkıyla takılmaz; kulak içi her başlıkla olur. Uzun düz, dalgalı, yarım toplu ve küt saç kulakları örter (`EAR_COVERING`); küpe ve kulak içi kulaklık o zaman görünmez, küpe kafa üstü kulaklıkla da görünmez.
+  - `DEFAULT_AVATAR`, `sanitizeAvatar` (eski `accessories` listesini, bıyıklı eski sakalları ve var/yok kulaklığı (`true` → oyuncu kulaklığı) yeni alanlara çevirir), `resolveConflicts` (son değişen kalır), `randomAvatar`.
 - `model.js`: kemik hiyerarşisi (`BONES`) ve yapılandırmadan kutu parçaları (`buildAvatarParts`).
   - Ölçüler tasarım biriminde yazılır, `SCALE` (0.85) ile küçültülür. Avatar ayakta ~1.2 m, +z yönüne bakar.
+  - Etek, elbise ve bornoz eteği kalçada bel bandı + her uylukta bir panel (`skirt`): oturunca paneller uylukla dönüp kucağa yatar; uyluğun arkasında 4 mm'den fazla taşmaz (oturağa girmez).
   - Saçlar `hairParts`, başlıklar `HAT_KINDS` içinde; kutular min/max aralıklarıyla (`box`). Örten başlıklar saçın tepe parçalarını gizler; taç, çiçek tacı ve kedi kulağı saçın üstüne oturur ve saçın dış sınırına göre boyutlanır (`fit`).
   - `parts.crown`: başın (şapka dahil) en üstü; etiket ve zZz bunun üstünde durur.
   - Eşyalar da parça olarak durur, yalnızca o pozda görünür (`PROPS`): açık kitap, tablet, kalem, tüy kalem, kupa, çay bardağı, karton bardak, simit, ramen, telefon, dart, ıstaka, raket, kepçe, iksir şişesi, VR gözlüğü, sulama kabı, olta, taş, gazete.
@@ -85,6 +89,8 @@ const { occupants, setMyStatus } = useRoomPeople({ capacity: 6, seed: 42, me: my
 - `AvatarPreview.jsx`: atölyedeki 3D önizleme.
   - Platformda, masa başında ya da ayakta duran karakter; sürükleyerek döndürülür.
   - Pozlar: Odakta (masadaki kitabı okuma ya da bilgisayar), Molada (içecek, telefon, gerinme, dans, manzara sırayla), Uzakta, Yürüyüş.
+  - Kamera odağı (`focus`): tam boy, yüz, başlık (uzun şapka sığar), boyun, sol bilek, üst gövde, alt (uyluklar) ya da ayak. Açı ve yakınlık poza göre (`VIEWS`): odakta / uzakta masa başında, alt ve ayak alçaktan masanın altından, bilek yukarıdan; yakın odaklarda masaya eğilen baş kalkıp kameraya bakar (uyurken yarı kalkar, baş yatık kalır). Molada / yürüyüşte ayakta, alt ve ayak yukarıdan; yürürken daha geniş. Bakılan nokta, yükseklik ve yakınlık yumuşak geçer; hareket azaltılmışsa anında.
+- Atölye (`site/AvatarPage.jsx`): sekme açılınca (Beden ve Kıyafet tam boy, Saç ve yüz yüz, Aksesuar üst gövde) ve seçeneğe dokununca (`Zone`) kamera o bölgeye gider: üst ve rengi gövdeye, alt uyluklara, ayakkabı ayaklara; başlık başlığa, kulaklık / gözlük / küpe yüze (boyundaki kulaklık boyna), boyun boyna, bilek bileğe. Önizlemenin köşesinde Geri al / İleri al (Ctrl+Z, Ctrl+Y ya da Ctrl+Shift+Z; en fazla 50 adım, art arda yazılan ad tek adım). Altında üç kombin slotu: tıklayınca kayıtlı kombin giyilir, "Kaydet" mevcut görünümü seçili slota yazar (`site/avatarStore.js`, `odakhane.avatar.presets`; ad saklanmaz).
 - `AvatarLab.jsx`: geliştirme sayfası (`?lab=avatars`). Bütün hareketler bir arada.
   - `?lab=avatars&only=sip,pool&zoom=1.5` yalnızca seçilenleri yakından gösterir.
 
@@ -111,8 +117,8 @@ const { occupants, setMyStatus } = useRoomPeople({ capacity: 6, seed: 42, me: my
 
 `.claude/room-tools/check_avatar.mjs` (frontend klasörüne kopyalanıp çalıştırılır) avatarda z-fighting arar. Aynı yöne bakan, aynı düzlemde (1 mm içinde) üst üste binen ve farklı renkli yüzleri bulur.
 
-- 3734 yapılandırma, iki beden için bölge bölge: saç × başlık × kulaklık, saç × sakal × bıyık, saç × gözlük × küpe, sakal × bıyık × gözlük × başlık, üst × alt × boyun, üst × bilek.
-- 350 poz denetimi: kemikler arası, eşyalarla birlikte, 7 örnek avatarla.
+- 9766 yapılandırma, iki beden için bölge bölge: saç × başlık × kulaklık × kahkül, saç × ombre × kahkül × başlık, saç × sakal × bıyık, saç × gözlük × küpe × (kulak içi, kahkül), sakal × bıyık × gözlük × (başlık, mikrofonlu kulaklık), üst × alt × boyun, tek parça × üst × boyun, boyundaki kulaklık × üst × boyun, üst × bilek, alt × ayakkabı.
+- 750 poz denetimi: kemikler arası, eşyalarla birlikte, 15 örnek avatarla.
 
 `.claude/room-tools/check_desk.mjs [tema]` (frontend'e kopyalanır; `AVATAR='{"hat":"wizard"}'` ile başka avatar) her odadaki her koltukta ve mola oturağında çalışma / uyku / oturma pozlarında avatar parçalarının odadaki kutulara girip girmediğini ölçer (koltuğun kendisi ve eğik kutular sayılmaz).
 
