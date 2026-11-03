@@ -59,9 +59,10 @@ export function hideParts(mesh, start, count) {
   for (let i = 0; i < count; i++) mesh.setMatrixAt(start + i, HIDDEN)
 }
 
-// Başın tepesinin dünya konumu (etiket ve zZz için).
-export function headTop(bones, target) {
-  return target.set(0, HEAD_CROWN, 0).applyMatrix4(bones[2])
+// Başın tepesinin dünya konumu (etiket ve zZz için). crown: avatarın başının (şapka dahil) üstü,
+// baş kemiğine göre (buildAvatarParts sonucu parts.crown).
+export function headTop(bones, target, crown = HEAD_CROWN) {
+  return target.set(0, crown, 0).applyMatrix4(bones[2])
 }
 
 export { HIP_HEIGHT }

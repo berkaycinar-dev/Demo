@@ -9,7 +9,12 @@ import './AvatarPreview.css'
 const BOX = new BoxGeometry()
 const SEAT_Y = 0.47
 const DESK_Y = 0.75
-const SIT = { y: SEAT_Y, rise: DESK_Y - SEAT_Y }
+const DESK_Z = 0.23
+// Oturuş ve masa ölçüleri (poses.js `sit`): masanın ön kenarı ve masadaki eşya (dizüstü ya da kitap).
+const SIT = {
+  read: { y: SEAT_Y, rise: DESK_Y - SEAT_Y, edge: DESK_Z, near: 0.29, far: 0.51, item: DESK_Y + 0.016 - SEAT_Y },
+  type: { y: SEAT_Y, rise: DESK_Y - SEAT_Y, edge: DESK_Z, near: 0.28, far: 0.46, item: DESK_Y + 0.015 - SEAT_Y },
+}
 // Molada sırayla gösterilen hareketler (her biri 7 sn).
 const BREAK_CYCLE = [['sip', 'mug'], ['phone'], ['stretch'], ['dance'], ['view']]
 const FPS = 24
@@ -38,18 +43,20 @@ function sceneBoxes(withDesk, activity) {
   add(-0.21, SEAT_Y - 0.04, -0.21, 0.42, 0.04, 0.42, wood)
   for (const x of [-0.19, 0.15]) add(x, SEAT_Y, -0.22, 0.04, 0.42, 0.04, dark)
   add(-0.17, SEAT_Y + 0.25, -0.215, 0.34, 0.14, 0.03, wood)
-  // masa
-  add(-0.55, DESK_Y - 0.04, 0.23, 1.1, 0.04, 0.55, wood)
+  // masa (ön kenarı DESK_Z); eşyalar SIT ölçüleriyle aynı yerde
+  add(-0.55, DESK_Y - 0.04, DESK_Z, 1.1, 0.04, 0.55, wood)
   for (const x of [-0.5, 0.46]) for (const z of [0.27, 0.72]) add(x, 0, z, 0.04, DESK_Y - 0.04, 0.04, dark)
   if (activity === 'type') {
-    add(-0.17, DESK_Y, 0.38, 0.34, 0.015, 0.22, '#c8ccd2')
-    add(-0.15, DESK_Y + 0.015, 0.4, 0.3, 0.004, 0.14, '#3a3d44')
-    add(-0.17, DESK_Y + 0.015, 0.6, 0.34, 0.22, 0.012, '#c8ccd2')
-    add(-0.15, DESK_Y + 0.035, 0.6, 0.3, 0.18, 0.004, '#5ad0ff')
+    // dizüstü: klavye tabanı, tuş alanı, dik ekran
+    add(-0.17, DESK_Y, 0.28, 0.34, 0.015, 0.18, '#c8ccd2')
+    add(-0.15, DESK_Y + 0.015, 0.33, 0.3, 0.003, 0.1, '#3a3d44')
+    add(-0.15, DESK_Y + 0.015, 0.295, 0.08, 0.002, 0.03, '#9aa0a8')
+    add(-0.17, DESK_Y + 0.015, 0.46, 0.34, 0.22, 0.012, '#c8ccd2')
+    add(-0.15, DESK_Y + 0.035, 0.458, 0.3, 0.18, 0.003, '#5ad0ff')
   } else {
-    add(-0.17, DESK_Y, 0.3, 0.34, 0.01, 0.22, '#7a2a24')
-    add(-0.16, DESK_Y + 0.01, 0.31, 0.155, 0.006, 0.2, '#f4eedf')
-    add(0.005, DESK_Y + 0.01, 0.31, 0.155, 0.006, 0.2, '#f4eedf')
+    add(-0.21, DESK_Y, 0.29, 0.42, 0.01, 0.22, '#7a2a24')
+    add(-0.2, DESK_Y + 0.01, 0.3, 0.195, 0.006, 0.2, '#f4eedf')
+    add(0.005, DESK_Y + 0.01, 0.3, 0.195, 0.006, 0.2, '#f4eedf')
   }
   add(0.3, DESK_Y, 0.4, 0.08, 0.09, 0.08, '#f2efe8')
   add(0.31, DESK_Y + 0.09, 0.41, 0.06, 0.003, 0.06, '#4a2f22')
@@ -125,9 +132,9 @@ function Figure({ avatar, mode, activity, animated, view }) {
     let pose
     if (mode === 'focus') {
       // kitap modunda masadaki açık kitabı okur, arada not alır
-      if (activity === 'type') pose = typePose(SIT, t, 0.3)
-      else pose = Math.floor(t / 8) % 2 ? writePose(SIT, t, 0.3) : deskReadPose(SIT, t, 0.3)
-    } else if (mode === 'away') pose = sleepDeskPose(SIT, t, 0.3)
+      if (activity === 'type') pose = typePose(SIT.type, t, 0.3)
+      else pose = Math.floor(t / 8) % 2 ? writePose(SIT.read, t, 0.3) : deskReadPose(SIT.read, t, 0.3)
+    } else if (mode === 'away') pose = sleepDeskPose(SIT[activity] ?? SIT.read, t, 0.3)
     else if (mode === 'walk') pose = walkPose(t * 8.2)
     else if (mode === 'break') {
       const [act, prop] = BREAK_CYCLE[Math.floor(t / 7) % BREAK_CYCLE.length]
@@ -137,7 +144,7 @@ function Figure({ avatar, mode, activity, animated, view }) {
     writeParts(meshRef.current, 0, parts, bones, pose.show)
     meshRef.current.instanceMatrix.needsUpdate = true
 
-    const head = headTop(bones, new Vector3())
+    const head = headTop(bones, new Vector3(), parts.crown)
     const camYaw = Math.PI / 4 + view.current.yaw
     const m = new Matrix4()
     const zm = new Matrix4()
