@@ -158,6 +158,8 @@ function Lighting({ bounds, preset, lamps }) {
  * lamps: nokta ışıklar [[x, y, z] | { position, color }, ...] (performans için en fazla 4); renk verilmezse
  *        gün zamanı ayarındaki lampColor
  * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
+ * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
+ *              ({ width: 'calc(100% - 400px)' } gibi). Verilmezse sahne kutunun tamamını kullanır.
  */
 export default function RoomCanvas({
   bounds,
@@ -166,6 +168,7 @@ export default function RoomCanvas({
   defaultTimeOfDay = 'auto',
   className = '',
   style,
+  canvasStyle,
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
@@ -227,6 +230,7 @@ export default function RoomCanvas({
     >
       <Canvas
         orthographic
+        style={canvasStyle}
         frameloop="demand"
         shadows="percentage"
         flat

@@ -1,4 +1,4 @@
-/* Odakhane sitesi: "Krem & Ceviz" tasarımı. Renkler theme.css'teki token'lardan gelir. */
+/* Odakhane sitesi: gri zemin + çelik mavisi tasarımı. Renkler theme.css'teki token'lardan gelir. */
 
 .site {
   display: flex;
@@ -155,7 +155,7 @@
   gap: 12px;
 }
 
-/* butonlar: birincil ahşap dolgulu, ikincil çerçeveli */
+/* butonlar: birincil dolgulu, ikincil çerçeveli */
 
 .site-btn {
   display: inline-flex;
@@ -195,6 +195,25 @@
   filter: brightness(1.08);
 }
 
+.site-btn--small {
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.site-btn--lg {
+  min-height: 50px;
+  padding: 0 22px;
+}
+
+.site-btn--xl {
+  min-height: 54px;
+  padding: 0 24px;
+  border-radius: 14px;
+  font-size: 17px;
+}
+
 .site-btn--wide {
   width: 100%;
   min-height: 54px;
@@ -202,25 +221,7 @@
   font-size: 16px;
 }
 
-/* lobi */
-
-.site-welcome {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  padding: 28px;
-  background: var(--surface-hero);
-}
-
-.site-welcome h1 {
-  margin: 0;
-  font-size: 36px;
-}
-
-.site-welcome .site-btn {
-  min-height: 50px;
-  padding: 0 22px;
-}
+/* oda kartı ızgarası */
 
 .site-rooms {
   display: grid;
@@ -229,33 +230,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.site-room {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  transition: transform 0.2s ease;
-}
-
-.site-room:hover {
-  transform: translateY(-3px);
-}
-
-.site-room > .site-muted:first-child {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--primary);
-}
-
-.site-room .site-btn {
-  margin-top: auto;
 }
 
 /* oda oluştur */
@@ -347,7 +321,7 @@
   background: var(--primary-soft);
 }
 
-/* çipler: seçili olan ahşap dolgulu */
+/* çipler: seçili olan dolgulu */
 
 .choice-row {
   display: flex;
@@ -398,23 +372,6 @@
 
 .create-preview__room {
   height: min(560px, 70svh);
-}
-
-.myroom__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.myroom__header h1 {
-  margin-bottom: 6px;
-}
-
-.myroom__room {
-  height: max(420px, calc(100svh - 270px));
 }
 
 /* odadakiler listesi; nokta biçimleri avatar etiketleriyle aynı */
@@ -680,10 +637,6 @@
   .create-preview__room {
     height: 380px;
   }
-
-  .site-welcome h1 {
-    font-size: 30px;
-  }
 }
 
 @media (max-width: 560px) {
@@ -704,12 +657,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-room,
   .site-btn {
     transition: none;
-  }
-
-  .site-room:hover {
-    transform: none;
   }
 }
