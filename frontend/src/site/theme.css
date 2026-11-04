@@ -1,0 +1,92 @@
+/* Odakhane tasarım token'ları: "Krem & Ceviz" paleti (açık + koyu mod).
+   Koyu mod <html data-mode="dark"> ile açılır; bkz. useColorMode.js. */
+
+:root {
+  --font-body: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ahşap doku: butonlarda ve seçili çiplerde rengin üstüne bindirilir */
+  --wood-grain: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(0, 0, 0, 0.1)),
+    repeating-linear-gradient(97deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(83deg, rgba(255, 255, 255, 0.07) 0 2px, transparent 2px 14px);
+
+  --bg: #f3e8d8;
+  --bg-page: radial-gradient(70vw 75vh at 0% 0%, rgba(190, 118, 56, 0.19), transparent 72%) fixed,
+    radial-gradient(70vw 75vh at 100% 0%, rgba(190, 118, 56, 0.19), transparent 72%) fixed,
+    radial-gradient(65vw 70vh at 0% 100%, rgba(190, 118, 56, 0.19), transparent 72%) fixed,
+    radial-gradient(65vw 70vh at 100% 100%, rgba(190, 118, 56, 0.19), transparent 72%) fixed,
+    radial-gradient(80vw 55vh at 50% 105%, rgba(226, 160, 88, 0.19), transparent 70%) fixed, #f6eada;
+  --surface: #fffcf7;
+  --surface-hero: var(--surface);
+  --surface-2: #efe2cf;
+  --card-edge: inset 0 0 0 1px #e0cdb2, 0 1px 2px rgba(70, 40, 15, 0.06), 0 10px 24px -14px rgba(70, 40, 15, 0.22);
+  --line: #e3d2ba;
+  --line-strong: #c9ae88;
+  --text: #1e150f;
+  --text-2: #3d2c20;
+  --muted: #5e4a38;
+  --primary: #8a4520;
+  --primary-hover: #a0552a;
+  --primary-fill: var(--wood-grain), #8e4a22;
+  --primary-glow: inset 0 0 0 1px #5e2e12, 0 2px 0 rgba(70, 35, 10, 0.35);
+  --on-primary: #fbf3e6;
+  --primary-soft: #f1e2c9;
+  --chip-on-bg: var(--primary-fill);
+  --chip-on-fg: #fbf3e6;
+  --chip-on-edge: #5e2e12;
+  --badge: #b0601e;
+  --badge-soft: #f3e3c8;
+  --timer: #a0552a;
+  --info: #a0552a;
+  --info-soft: #eadcc6;
+  --break: #245f58;
+  --success: #1e6650;
+  --success-soft: #ddede5;
+  --header-bg: #17130f;
+  --header-text: #f3ebdd;
+  --header-muted: #bdb0a0;
+  --header-active: #2a231c;
+  --header-border: #2f271f;
+  --header-accent: #e8a866;
+}
+
+:root[data-mode='dark'] {
+  color-scheme: dark;
+  --bg: #1b1410;
+  --bg-page: radial-gradient(70vw 75vh at 0% 0%, rgba(196, 128, 66, 0.15), transparent 72%) fixed,
+    radial-gradient(70vw 75vh at 100% 0%, rgba(196, 128, 66, 0.15), transparent 72%) fixed,
+    radial-gradient(65vw 70vh at 0% 100%, rgba(196, 128, 66, 0.15), transparent 72%) fixed,
+    radial-gradient(65vw 70vh at 100% 100%, rgba(196, 128, 66, 0.15), transparent 72%) fixed,
+    radial-gradient(80vw 55vh at 50% 105%, rgba(232, 170, 96, 0.09), transparent 70%) fixed, #1d1611;
+  --surface: #2a201a;
+  --surface-2: #362921;
+  --card-edge: inset 0 0 0 1px #3f3027, 0 12px 28px -18px rgba(0, 0, 0, 0.7);
+  --line: #3a2c23;
+  --line-strong: #5a4536;
+  --text: #f6ecdf;
+  --text-2: #dccdbb;
+  --muted: #bba894;
+  --primary: #f0b27a;
+  --primary-hover: #f5c496;
+  --primary-fill: var(--wood-grain), #a85a2a;
+  --primary-glow: inset 0 0 0 1px #6e3815, 0 2px 0 rgba(0, 0, 0, 0.45);
+  --on-primary: #fff6e8;
+  --primary-soft: #3a2c1c;
+  --chip-on-fg: #fff6e8;
+  --chip-on-edge: #6e3815;
+  --badge: #f2b272;
+  --badge-soft: #3a2c1c;
+  --timer: #e89a5a;
+  --info: #e89a5a;
+  --info-soft: #2f261e;
+  --break: #9ad9ce;
+  --success: #8fdcc6;
+  --success-soft: #163029;
+  --header-bg: #0e0b08;
+  --header-text: #f3ebdd;
+  --header-muted: #a89b8b;
+  --header-active: #221b15;
+  --header-border: #2a221b;
+  --header-accent: #e8a866;
+}
