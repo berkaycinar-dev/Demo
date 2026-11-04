@@ -5,6 +5,8 @@
   --font-body: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* sayılar (sayaç, istatistik, sıralama): düz sıfır, eşit genişlikte rakamlar */
+  --font-numeric: 'Space Grotesk', Inter, system-ui, sans-serif;
 
   /* düğme dolgusu: düz renk yerine üstten hafif aydınlanan geçiş */
   --button-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.06));
