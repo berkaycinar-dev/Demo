@@ -1,47 +1,88 @@
-/* Test arayüzü: bilerek sade. Görsel tasarım ayrıca yapılacak. */
+/* Odakhane sitesi: "Krem & Ceviz" tasarımı. Renkler theme.css'teki token'lardan gelir. */
 
 .site {
+  display: flex;
+  flex-direction: column;
   min-height: 100svh;
-  background: #f4f4f2;
-  color: #222;
+  background: var(--bg-page);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .site h1 {
   margin: 0 0 16px;
-  font-size: 26px;
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  text-wrap: balance;
 }
 
 .site h2 {
-  margin: 28px 0 12px;
-  font-size: 19px;
+  margin: 32px 0 14px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.2;
 }
 
 .site h3 {
   margin: 4px 0;
-  font-size: 16px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
 }
 
 .site p {
   margin: 0 0 12px;
 }
 
+.site a {
+  color: var(--primary);
+}
+
+.site a:hover {
+  color: var(--primary-hover);
+}
+
 .site-muted {
-  color: #666;
+  color: var(--muted);
   font-size: 14px;
 }
+
+.site button:focus-visible,
+.site input:focus-visible,
+.site a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* header */
 
 .site-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 24px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #ddd;
-  background: #fff;
+  justify-content: space-between;
+  gap: 12px 16px;
+  padding: 18px 32px;
+  border-bottom: 1px solid var(--header-border);
+  background: var(--header-bg);
 }
 
 .site-brand {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--header-text);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .site-nav {
@@ -51,56 +92,89 @@
 }
 
 .site-nav button {
-  padding: 8px 12px;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
   background: none;
-  color: inherit;
-  font: inherit;
+  color: var(--header-muted);
+  font: 500 15px var(--font-body);
   cursor: pointer;
 }
 
 .site-nav button:hover {
-  background: #f0f0ee;
+  color: var(--header-text);
 }
 
 .site-nav button[aria-current='page'] {
-  border-color: #bbb;
-  background: #ececea;
+  background: var(--header-active);
+  color: var(--header-text);
   font-weight: 600;
 }
 
+.site-header__tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--header-border);
+  border-radius: 999px;
+  background: var(--header-active);
+  color: var(--header-text);
+  font: 500 14px var(--font-body);
+  cursor: pointer;
+}
+
+/* sayfa gövdesi */
+
 .site-main {
+  flex: 1;
+  width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 16px 40px;
+  padding: 32px 32px 56px;
 }
 
 .site-card {
-  padding: 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
+  padding: 24px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--card-edge);
 }
 
 .site-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
 }
 
+/* butonlar: birincil ahşap dolgulu, ikincil çerçeveli */
+
 .site-btn {
-  padding: 9px 16px;
-  border: 1px solid #999;
-  border-radius: 6px;
-  background: #fff;
-  color: #222;
-  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: 600 15px var(--font-body);
   cursor: pointer;
+  transition: background-color 0.15s ease, filter 0.15s ease;
 }
 
 .site-btn:hover {
-  background: #f0f0ee;
+  background: var(--surface-2);
 }
 
 .site-btn:disabled {
@@ -109,31 +183,49 @@
 }
 
 .site-btn--primary {
-  border-color: #222;
-  background: #222;
-  color: #fff;
+  border: none;
+  background: var(--primary-fill);
+  color: var(--on-primary);
+  box-shadow: var(--primary-glow);
+  font-weight: 700;
 }
 
 .site-btn--primary:hover {
-  background: #444;
+  background: var(--primary-fill);
+  filter: brightness(1.08);
 }
 
 .site-btn--wide {
   width: 100%;
-}
-
-.site button:focus-visible,
-.site input:focus-visible {
-  outline: 2px solid #2f6fd6;
-  outline-offset: 2px;
+  min-height: 54px;
+  border-radius: 14px;
+  font-size: 16px;
 }
 
 /* lobi */
 
+.site-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 28px;
+  background: var(--surface-hero);
+}
+
+.site-welcome h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+.site-welcome .site-btn {
+  min-height: 50px;
+  padding: 0 22px;
+}
+
 .site-rooms {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 16px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -143,6 +235,23 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 6px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  transition: transform 0.2s ease;
+}
+
+.site-room:hover {
+  transform: translateY(-3px);
+}
+
+.site-room > .site-muted:first-child {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--primary);
 }
 
 .site-room .site-btn {
@@ -165,11 +274,12 @@
 
 .create-preview h2 {
   margin-top: 0;
+  font-size: 20px;
 }
 
 .field {
   display: block;
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   padding: 0;
   border: 0;
 }
@@ -178,29 +288,42 @@
   display: block;
   margin-bottom: 8px;
   padding: 0;
+  color: var(--text-2);
+  font-size: 14px;
   font-weight: 600;
 }
 
 .field input {
   width: 100%;
-  padding: 9px 10px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
   font: inherit;
+}
+
+.field input::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
 }
 
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .theme-option {
-  padding: 10px 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text);
   font: inherit;
   font-weight: 600;
   text-align: left;
@@ -209,51 +332,68 @@
 
 .theme-option span {
   display: block;
-  margin-top: 2px;
-  color: #666;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 400;
+  line-height: 1.4;
 }
 
 .theme-option:hover {
-  background: #f6f6f4;
+  border-color: var(--line-strong);
 }
 
 .theme-option[aria-pressed='true'] {
-  border-color: #222;
-  box-shadow: inset 0 0 0 1px #222;
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
+
+/* çipler: seçili olan ahşap dolgulu */
 
 .choice-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .choice-row button {
-  min-width: 40px;
-  padding: 8px 12px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  background: #fff;
-  color: inherit;
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
   font: inherit;
+  font-size: 14px;
   cursor: pointer;
 }
 
-.choice-row button[aria-pressed='true'] {
-  border-color: #222;
-  background: #222;
-  color: #fff;
+.choice-row button:hover {
+  background: var(--surface-2);
+}
+
+.choice-row button[aria-pressed='true'],
+.choice-row button[aria-selected='true'] {
+  border-color: var(--chip-on-edge);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+  font-weight: 600;
+}
+
+.choice-row button:disabled {
+  border-style: dashed;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 3D oda kapsayıcıları: oda bileşeni ebeveyninin boyutunu doldurur */
 
 .room-frame {
   overflow: hidden;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  margin-bottom: 12px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--card-edge);
 }
 
 .create-preview__room {
@@ -266,6 +406,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 8px;
+}
+
+.myroom__header h1 {
+  margin-bottom: 6px;
 }
 
 .myroom__room {
@@ -276,8 +421,8 @@
 .roster {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 10px 0 0;
+  gap: 8px;
+  margin: 12px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -286,10 +431,17 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px 3px 8px;
-  border: 1px solid #ddd;
+  padding: 5px 12px 5px 10px;
   border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--card-edge);
   font-size: 13px;
+  font-weight: 600;
+}
+
+.roster__item .site-muted {
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .roster__dot {
@@ -312,21 +464,6 @@
   box-shadow: inset 0 0 0 3px #9a9a9a;
 }
 
-@media (max-width: 900px) {
-  .create {
-    grid-template-columns: 1fr;
-  }
-
-  .create-preview {
-    position: static;
-    order: -1;
-  }
-
-  .create-preview__room {
-    height: 380px;
-  }
-}
-
 /* avatar atölyesi */
 
 .avatar-page__preview {
@@ -337,18 +474,19 @@
 /* önizlemenin köşesinde geri al / ileri al */
 .avatar-page__history {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .avatar-page__history button {
-  padding: 5px 9px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.92);
-  color: inherit;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -364,34 +502,35 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-top: 14px;
 }
 
 .wardrobe__slots {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .wardrobe__slot {
   display: grid;
-  gap: 3px;
-  min-width: 92px;
-  padding: 6px 10px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  background: #fff;
-  color: inherit;
+  gap: 4px;
+  min-width: 96px;
+  padding: 8px 12px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text);
   font: inherit;
   font-size: 13px;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 }
 
 .wardrobe__slot[aria-pressed='true'] {
-  border-color: #222;
-  box-shadow: inset 0 0 0 1px #222;
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .wardrobe__chips {
@@ -407,7 +546,7 @@
 }
 
 .wardrobe__worn {
-  color: #2a7a40;
+  color: var(--success);
   font-size: 12px;
 }
 
@@ -420,31 +559,32 @@
 }
 
 .avatar-page__tabs {
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
 }
 
 .avatar-page__group + .avatar-page__group {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .avatar-page__group > .site-muted {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-size: 0.85em;
 }
 
 .swatch-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .swatch {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 2px solid rgba(0, 0, 0, 0.15);
+  border: 2px solid var(--line-strong);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -455,6 +595,121 @@
 }
 
 .swatch[aria-pressed='true'] {
-  border-color: #222;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #222;
+  border-color: var(--surface);
+  box-shadow: 0 0 0 3px var(--text);
+}
+
+/* footer */
+
+.site-footer {
+  border-top: 1px solid var(--header-border);
+  background: var(--header-bg);
+  color: var(--header-muted);
+  font-size: 14px;
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 32px;
+}
+
+.site-footer__about {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+  line-height: 1.5;
+}
+
+.site-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--header-text);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.site-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+
+.site-footer__nav button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--header-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.site-footer__nav button:hover {
+  color: var(--header-text);
+}
+
+.site-footer__bottom {
+  border-top: 1px solid var(--header-border);
+  font-size: 13px;
+}
+
+.site-footer__bottom .site-footer__inner {
+  gap: 8px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+@media (max-width: 900px) {
+  .create {
+    grid-template-columns: 1fr;
+  }
+
+  .create-preview {
+    position: static;
+    order: -1;
+  }
+
+  .create-preview__room {
+    height: 380px;
+  }
+
+  .site-welcome h1 {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 560px) {
+  .site-header,
+  .site-main,
+  .site-footer__inner {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .site h1 {
+    font-size: 28px;
+  }
+
+  .mode-btn__text {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-room,
+  .site-btn {
+    transition: none;
+  }
+
+  .site-room:hover {
+    transform: none;
+  }
 }
