@@ -4,10 +4,13 @@ import { loadAvatar, saveAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import LobbyPage from './LobbyPage'
 import MyRoomPage from './MyRoomPage'
+import { SiteFooter, SiteHeader } from './SiteChrome'
+import useColorMode from './useColorMode'
+import './theme.css'
 import './site.css'
 
-// Odaların sitede nasıl duracağını denemek için sade test arayüzü. Görsel tasarım ayrıca yapılacak;
-// burada yalnızca sayfa akışı var. Sayfa adres çubuğundaki #lobi, #olustur... ile seçilir.
+// Sitenin kabuğu: sayfa akışı ve "Krem & Ceviz" tasarımının çerçevesi (header, footer, açık/koyu mod).
+// Sayfa adres çubuğundaki #lobi, #olustur... ile seçilir.
 const PAGES = [
   { id: 'lobi', label: 'Lobi' },
   { id: 'odam', label: 'Odam' },
@@ -33,6 +36,7 @@ export default function Site() {
   const [rooms, setRooms] = useState(SAMPLE_ROOMS)
   const [currentId, setCurrentId] = useState(null)
   const [avatar, setAvatar] = useState(loadAvatar)
+  const { isDark, toggle: toggleMode } = useColorMode()
   const current = rooms.find((r) => r.id === currentId) ?? null
 
   // Geri / ileri düğmeleri ve elle değiştirilen adres.
@@ -61,16 +65,7 @@ export default function Site() {
 
   return (
     <div className="site">
-      <header className="site-header">
-        <strong className="site-brand">Odakhane</strong>
-        <nav className="site-nav" aria-label="Ana menü">
-          {PAGES.map((p) => (
-            <button key={p.id} type="button" aria-current={page === p.id ? 'page' : undefined} onClick={() => go(p.id)}>
-              {p.label}
-            </button>
-          ))}
-        </nav>
-      </header>
+      <SiteHeader pages={PAGES} page={page} onGo={go} isDark={isDark} onToggleMode={toggleMode} />
 
       <main className="site-main">
         {page === 'lobi' && <LobbyPage rooms={rooms} onEnter={enter} onCreate={() => go('olustur')} />}
@@ -97,6 +92,8 @@ export default function Site() {
         )}
         {page === 'siralama' && <Placeholder title="Sıralama" />}
       </main>
+
+      <SiteFooter pages={PAGES} onGo={go} isDark={isDark} />
     </div>
   )
 }
