@@ -167,9 +167,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 3px 12px 3px 3px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
   color: var(--header-text);
-  font-size: 14px;
-  font-weight: 600;
+  font: 600 14px var(--font-body);
+  cursor: pointer;
+}
+
+.user-chip:hover,
+.user-chip[aria-current='page'] {
+  border-color: var(--header-border);
+  background: var(--header-active);
 }
 
 .user-chip__avatar {
@@ -366,7 +376,8 @@
 
 .lp-step__no {
   color: var(--primary);
-  font-family: var(--font-mono);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-size: 15px;
   font-weight: 700;
 }
@@ -645,8 +656,7 @@
   font-size: 13px;
 }
 
-.auth-field input,
-.code-form input {
+.auth-field input {
   width: 100%;
   min-height: 48px;
   padding: 0 14px;
@@ -657,13 +667,11 @@
   font: inherit;
 }
 
-.auth-field input[aria-invalid='true'],
-.code-form input[aria-invalid='true'] {
+.auth-field input[aria-invalid='true'] {
   border-color: #b4432f;
 }
 
-.auth-field input::placeholder,
-.code-form input::placeholder {
+.auth-field input::placeholder {
   color: var(--muted);
   opacity: 0.8;
 }
@@ -752,7 +760,8 @@
 }
 
 .stat__value {
-  font-family: var(--font-mono);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-size: 34px;
   font-weight: 700;
   line-height: 1.1;
@@ -858,6 +867,70 @@
   justify-content: center;
 }
 
+/* Odak modu: sayaç kutusuz, doğrudan odanın arka planı üstünde. Renkler odanın tonuna göre
+   (data-tone, RoomStage ölçer); sitenin açık/koyu modundan bağımsızdır. */
+.stage__panel[data-tone='light'] {
+  --text: #1f2430;
+  --text-2: #353b47;
+  --muted: rgba(31, 36, 48, 0.62);
+  --line-strong: rgba(31, 36, 48, 0.24);
+  /* halka: arka planın kendi rengi, yalnızca çizgisi seçilecek kadar koyu */
+  --timer: color-mix(in srgb, var(--stage-bg, #e9e2d6) 80%, #000000);
+  --break: color-mix(in srgb, var(--stage-bg, #e9e2d6) 87%, #000000);
+  --surface-2: color-mix(in srgb, var(--stage-bg, #e9e2d6) 94%, #000000);
+}
+
+.stage__panel[data-tone='dark'] {
+  --text: #eef1f6;
+  --text-2: #d3d9e3;
+  --muted: rgba(238, 241, 246, 0.66);
+  --line-strong: rgba(238, 241, 246, 0.3);
+  /* halka: arka planın kendi rengi, yalnızca çizgisi seçilecek kadar açık */
+  --timer: color-mix(in srgb, var(--stage-bg, #1f2433) 74%, #ffffff);
+  --break: color-mix(in srgb, var(--stage-bg, #1f2433) 83%, #ffffff);
+  --surface-2: color-mix(in srgb, var(--stage-bg, #1f2433) 92%, #ffffff);
+}
+
+/* Destekleyen tarayıcıda renk tonu birebir korunur, yalnızca parlaklık değişir. */
+@supports (color: oklch(from red l c h)) {
+  .stage__panel[data-tone='light'] {
+    --timer: oklch(from var(--stage-bg, #e9e2d6) calc(l - 0.14) c h);
+    --break: oklch(from var(--stage-bg, #e9e2d6) calc(l - 0.09) c h);
+    --surface-2: oklch(from var(--stage-bg, #e9e2d6) calc(l - 0.04) c h);
+  }
+
+  .stage__panel[data-tone='dark'] {
+    --timer: oklch(from var(--stage-bg, #1f2433) calc(l + 0.2) c h);
+    --break: oklch(from var(--stage-bg, #1f2433) calc(l + 0.13) c h);
+    --surface-2: oklch(from var(--stage-bg, #1f2433) calc(l + 0.05) c h);
+  }
+}
+
+/* "ODAK / MOLA" yazısı halkayla aynı soluk renkte kalmasın */
+.stage--focus .timer-ring__phase {
+  color: var(--muted) !important;
+}
+
+.stage--focus .stage-card {
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.stage--focus .stage__panel .site-btn:not(.site-btn--primary) {
+  background: transparent;
+  color: var(--text);
+}
+
+.stage--focus .stage__panel .site-btn:not(.site-btn--primary):hover {
+  background: var(--surface-2);
+}
+
+.stage--focus .timer-card__head {
+  justify-content: center;
+  gap: 12px;
+}
+
 .stage-card {
   flex: none;
   padding: 20px;
@@ -892,7 +965,6 @@
 
 .stage__exit {
   flex: none;
-  background: var(--surface);
 }
 
 .focus-btn {
@@ -977,7 +1049,8 @@
 
 .volume__value {
   color: var(--muted);
-  font-family: var(--font-mono);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
   text-align: right;
 }
@@ -1076,7 +1149,7 @@
 }
 
 .timer-ring__clock {
-  font-family: var(--font-mono);
+  font-family: var(--font-numeric);
   font-size: 50px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
@@ -1207,7 +1280,8 @@
 .rank__no {
   width: 22px;
   color: var(--muted);
-  font-family: var(--font-mono);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-weight: 700;
 }
 
@@ -1233,14 +1307,27 @@
 
 .rank__min {
   color: var(--text-2);
-  font-family: var(--font-mono);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-size: 13px;
 }
 
-/* ---------- oda listeleri (Oda oluştur) ---------- */
+/* ---------- oda listeleri (Odaya katıl) ---------- */
+
+.page-head--row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
 
 .room-section {
   margin-top: 48px;
+}
+
+.room-section--first {
+  margin-top: 8px;
 }
 
 .room-card {
@@ -1272,8 +1359,18 @@
   padding: 16px 20px 20px;
 }
 
-.room-card__body .site-btn {
+.room-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
   margin-top: auto;
+  padding-top: 6px;
+}
+
+.room-card__remove {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .room-card__top {
@@ -1289,26 +1386,384 @@
   letter-spacing: 1.5px;
 }
 
-.code-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  width: min(420px, 100%);
+/* gizli oda: davet kodu penceresi */
+.code-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: none;
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body);
 }
 
-.code-form input {
-  flex: 1 1 200px;
+.code-dialog::backdrop {
+  background: rgba(20, 22, 26, 0.55);
+}
+
+.code-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+}
+
+.code-dialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--badge-soft);
+  color: var(--badge);
+}
+
+.code-dialog h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.code-dialog p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.auth-field .code-dialog__input {
   font-family: var(--font-mono);
+  font-size: 16px;
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
-.code-form input::placeholder {
+.auth-field .code-dialog__input::placeholder {
   font-family: var(--font-body);
+  letter-spacing: 0;
   text-transform: none;
 }
 
-.code-form__error {
-  flex-basis: 100%;
+.code-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* şifre koşulları listesi */
+.pass-rules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+  list-style: none;
+}
+
+.pass-rules li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pass-rules li.is-ok {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* şifre gücü çubuğu */
+.strength {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  --strength: var(--line-strong);
+}
+
+.strength--1 { --strength: #b4432f; }
+.strength--2 { --strength: #c27a12; }
+.strength--3 { --strength: #7a8f2e; }
+.strength--4 { --strength: var(--success); }
+
+:root[data-mode='dark'] .strength--1 { --strength: #f08a6a; }
+:root[data-mode='dark'] .strength--2 { --strength: #e8b04a; }
+:root[data-mode='dark'] .strength--3 { --strength: #b5c86a; }
+
+.strength__bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.strength__bars span {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background-color 0.2s ease;
+}
+
+.strength__bars span.is-on {
+  background: var(--strength);
+}
+
+.strength__text {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.strength:not(.strength--0) .strength__text {
+  color: var(--strength);
+}
+
+/* kullanım koşulları onayı */
+.auth-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-terms label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.auth-terms input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: var(--primary);
+}
+
+/* metin içi bağlantı düğmesi (onay kutusu yazısı) */
+.inline-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.inline-link:hover {
+  color: var(--primary-hover);
+}
+
+/* ---------- kullanım koşulları / gizlilik ---------- */
+
+.legal {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.legal__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.site .legal__head h1 {
+  margin: 0;
+}
+
+.legal__intro {
+  margin: 0 !important;
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.legal__section {
+  margin-top: 24px;
+}
+
+.site .legal__section h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+
+.legal__section p {
+  margin: 0 0 10px !important;
+  color: var(--text-2);
+  line-height: 1.65;
+}
+
+.legal__other {
+  margin: 28px 0 0 !important;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.legal-dialog {
+  width: min(720px, calc(100vw - 32px));
+  max-height: min(84vh, 760px);
+  padding: 0;
+  border: none;
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body);
+}
+
+.legal-dialog::backdrop {
+  background: rgba(20, 22, 26, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.legal-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.legal-dialog__scroll {
+  padding: 32px 32px 8px;
+  overflow-y: auto;
+}
+
+.legal-dialog h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.legal-dialog h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 18px;
+}
+
+.legal-dialog__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 32px 24px;
+  border-top: 1px solid var(--line);
+}
+
+.legal-dialog .site-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  font: 600 15px var(--font-body);
+  cursor: pointer;
+}
+
+.legal-dialog .site-btn--primary {
+  border: none;
+  background: var(--primary-fill);
+  color: var(--on-primary);
+  box-shadow: var(--primary-glow);
+}
+
+@media (max-width: 560px) {
+  .legal {
+    padding: 28px 20px;
+  }
+
+  .legal-dialog__scroll {
+    padding: 24px 20px 8px;
+  }
+
+  .legal-dialog__foot {
+    padding: 14px 20px 20px;
+  }
+}
+
+/* ---------- hesap ayarları ---------- */
+
+.account {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.account__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.account__card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.site .account__card h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.account__current {
+  margin: 0 !important;
+  color: var(--muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.account__current strong {
+  color: var(--text);
+}
+
+.account__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.account__saved {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 !important;
+  color: var(--success);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.prefixed {
+  position: relative;
+  display: block;
+}
+
+.prefixed > span {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  color: var(--muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.auth-field .prefixed input {
+  padding-left: 30px;
 }
 
 /* ---------- dar ekranlar ---------- */
@@ -1358,6 +1813,12 @@
 
   .stage--focus .stage__room {
     height: 55svh;
+  }
+
+  /* telefonda sayaç odanın altında: arka planı odanın rengini alır */
+  .stage--focus .stage__panel {
+    min-height: 45svh;
+    background: var(--stage-bg, transparent);
   }
 
   .stage .room-canvas__toolbar {

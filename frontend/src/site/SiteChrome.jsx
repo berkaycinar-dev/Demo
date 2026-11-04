@@ -100,12 +100,19 @@ export function SiteHeader({ user, pages, page, onGo, onLogout, isDark, onToggle
                 Sayfama git
               </button>
             )}
-            <span className="user-chip" title={`${user.displayName} (@${user.username})`}>
+            <button
+              type="button"
+              className="user-chip"
+              title={`Hesap ayarları · @${user.username}`}
+              aria-label={`Hesap ayarları: ${user.displayName}`}
+              aria-current={page === 'hesap' ? 'page' : undefined}
+              onClick={() => onGo('hesap')}
+            >
               <span className="user-chip__avatar" aria-hidden="true">
                 {initials(user.displayName)}
               </span>
               <span className="user-chip__name">{user.displayName}</span>
-            </span>
+            </button>
             <button type="button" className="header-link" onClick={onLogout}>
               Çıkış yap
             </button>
@@ -159,6 +166,15 @@ export function SiteFooter({ user, pages, onGo, isDark }) {
               </button>
             </div>
           )}
+          <div className="site-footer__col">
+            <span className="site-footer__heading">Yasal</span>
+            <button type="button" onClick={() => onGo('kosullar')}>
+              Kullanım koşulları
+            </button>
+            <button type="button" onClick={() => onGo('gizlilik')}>
+              Gizlilik politikası
+            </button>
+          </div>
         </nav>
       </div>
       <div className="site-footer__bottom">

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { MIN_PASSWORD, login, register, validateRegistration } from './auth'
+import { PASSWORD_RULES, login, register, validateRegistration } from './auth'
+import { LegalDialog } from './LegalPages'
 
 const BRAND_POINTS = [
   { text: 'Kişisel oda ve pomodoro sayacı', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2' },
@@ -34,7 +35,7 @@ function AuthShell({ children }) {
   )
 }
 
-function Field({ id, label, error, hint, children }) {
+export function Field({ id, label, error, hint, children }) {
   return (
     <div className="auth-field">
       <label htmlFor={id}>{label}</label>
@@ -50,7 +51,53 @@ function Field({ id, label, error, hint, children }) {
   )
 }
 
-function PasswordInput({ id, value, onChange, autoComplete, invalid, placeholder }) {
+// Şifre koşulları: yazarken her koşulun yanında sağlandı / sağlanmadı işareti.
+export function PasswordRules({ value }) {
+  return (
+    <ul className="pass-rules" aria-label="Şifre koşulları">
+      {PASSWORD_RULES.map((r) => {
+        const ok = r.test(value)
+        return (
+          <li key={r.id} className={ok ? 'is-ok' : undefined}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {ok ? <path d="M5 12l5 5L20 7" /> : <circle cx="12" cy="12" r="4" />}
+            </svg>
+            {r.label}
+            <span className="sr-only">{ok ? ' (sağlandı)' : ' (eksik)'}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+// Şifre gücü: 4 parçalı çubuk ve tek satır açıklama. Seviye sağlanan koşul sayısından gelir;
+// kayıt yalnızca "Güçlü" (bütün koşullar) olunca geçer.
+const STRENGTH_WORDS = ['', 'Zayıf', 'Orta', 'İyi', 'Güçlü']
+
+function strengthOf(password) {
+  if (!password) return 0
+  const met = PASSWORD_RULES.filter((r) => r.test(password)).length
+  return met === PASSWORD_RULES.length ? 4 : met === 4 ? 3 : met === 3 ? 2 : 1
+}
+
+export function PasswordStrength({ value }) {
+  const level = strengthOf(value)
+  return (
+    <span className={`strength strength--${level}`}>
+      <span className="strength__bars" aria-hidden="true">
+        {[1, 2, 3, 4].map((i) => (
+          <span key={i} className={i <= level ? 'is-on' : undefined} />
+        ))}
+      </span>
+      <span className="strength__text" aria-live="polite">
+        {value ? `Şifre gücü: ${STRENGTH_WORDS[level]}` : 'Harf, rakam ve sembol karışımı daha güçlüdür.'}
+      </span>
+    </span>
+  )
+}
+
+export function PasswordInput({ id, value, onChange, autoComplete, invalid, placeholder }) {
   const [show, setShow] = useState(false)
   return (
     <span className="pass">
@@ -122,12 +169,23 @@ export function LoginPage({ onDone, onGo }) {
   )
 }
 
-const EMPTY = { displayName: '', username: '', email: '', password: '', password2: '' }
+const EMPTY = { displayName: '', username: '', email: '', password: '', password2: '', terms: false }
 
 export function RegisterPage({ onDone, onGo }) {
   const [form, setForm] = useState(EMPTY)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
+  const [legal, setLegal] = useState(null)
+  const acceptTerms = () => {
+    setForm((f) => ({ ...f, terms: true }))
+    setErrors((er) => ({ ...er, terms: undefined }))
+  }
+  // Yazıdaki bağlantılar: tıklayınca metin açılır, onay kutusu kendiliğinden değişmez.
+  const openLegal = (kind) => (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setLegal(kind)
+  }
 
   const set = (key) => (e) => {
     const value = key === 'username' ? e.target.value.toLowerCase() : e.target.value
@@ -177,18 +235,57 @@ export function RegisterPage({ onDone, onGo }) {
         <Field id="reg-email" label="E-posta" error={errors.email}>
           {input('email', { type: 'email', autoComplete: 'email', placeholder: 'ornek@posta.com' })}
         </Field>
-        <div className="auth__row">
-          <Field id="reg-password" label="Şifre" error={errors.password} hint={`En az ${MIN_PASSWORD} karakter.`}>
-            <PasswordInput id="reg-password" value={form.password} onChange={set('password')} autoComplete="new-password" invalid={!!errors.password} />
-          </Field>
-          <Field id="reg-password2" label="Şifre tekrarı" error={errors.password2}>
-            <PasswordInput id="reg-password2" value={form.password2} onChange={set('password2')} autoComplete="new-password" invalid={!!errors.password2} />
-          </Field>
+        <Field id="reg-password" label="Şifre" error={errors.password}>
+          <PasswordInput id="reg-password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="En az 8 karakter" invalid={!!errors.password} />
+          <PasswordStrength value={form.password} />
+        </Field>
+        <Field id="reg-password2" label="Şifre tekrar" error={errors.password2}>
+          <input
+            id="reg-password2"
+            type="password"
+            value={form.password2}
+            onChange={set('password2')}
+            autoComplete="new-password"
+            placeholder="Şifreni tekrar yaz"
+            aria-invalid={errors.password2 ? true : undefined}
+            aria-describedby={errors.password2 ? 'reg-password2-err' : undefined}
+          />
+        </Field>
+        <div className="auth-terms">
+          <label>
+            <input
+              id="reg-terms"
+              type="checkbox"
+              checked={form.terms}
+              onChange={(e) => {
+                setForm((f) => ({ ...f, terms: e.target.checked }))
+                if (errors.terms) setErrors((er) => ({ ...er, terms: undefined }))
+              }}
+              aria-invalid={errors.terms ? true : undefined}
+              aria-describedby={errors.terms ? 'reg-terms-err' : undefined}
+            />
+            <span>
+              <button type="button" className="inline-link" onClick={openLegal('kosullar')}>
+                Kullanım koşullarını
+              </button>{' '}
+              ve{' '}
+              <button type="button" className="inline-link" onClick={openLegal('gizlilik')}>
+                gizlilik politikasını
+              </button>{' '}
+              okudum, kabul ediyorum.
+            </span>
+          </label>
+          {errors.terms && (
+            <span id="reg-terms-err" className="form-error">
+              {errors.terms}
+            </span>
+          )}
         </div>
         <button type="submit" className="site-btn site-btn--primary site-btn--wide" disabled={busy}>
           {busy ? 'Hesap oluşturuluyor…' : 'Kayıt ol'}
         </button>
       </form>
+      <LegalDialog kind={legal} onClose={() => setLegal(null)} onAccept={acceptTerms} />
       <p className="auth__switch">
         Zaten hesabın var mı?{' '}
         <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('giris')}>

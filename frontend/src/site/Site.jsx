@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_AVATAR } from '../avatars/options'
 import { currentUser, logout } from './auth'
+import AccountPage from './AccountPage'
 import { LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
 import { loadAvatar, saveAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import HomePage from './HomePage'
+import JoinRoomPage from './JoinRoomPage'
 import LandingPage from './LandingPage'
+import { LegalPage } from './LegalPages'
 import MyRoomPage from './MyRoomPage'
+import { forgetJoin, loadJoined, loadRooms, recordJoin, saveCreatedRoom } from './roomStore'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import SoloRoomPage from './SoloRoomPage'
 import useColorMode from './useColorMode'
@@ -24,19 +28,14 @@ const PAGES = [
   { id: 'sayfam', label: 'Sayfam' },
   { id: 'odam', label: 'Odam' },
   { id: 'avatar', label: 'Avatarım' },
+  { id: 'katil', label: 'Odaya katıl' },
   { id: 'olustur', label: 'Oda oluştur' },
 ]
 // Oturum isteyen sayfalar (menüdekiler + girilen çok kişili oda) ve herkese açık sayfalar.
-const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'oda'])
-const GUEST_PAGES = new Set(['anasayfa', 'giris', 'kayit'])
-
-// Örnek odalar; oluşturulan odalar yalnızca bellekte tutulur. Gizli odalara davet koduyla girilir.
-const SAMPLE_ROOMS = [
-  { id: 'sample-1', name: 'Merkez Kütüphane · Okuma Salonu', theme: 'library', capacity: 7, access: 'public' },
-  { id: 'sample-2', name: 'Kod Lab · Açık Ofis', theme: 'office', capacity: 7, access: 'public' },
-  { id: 'sample-4', name: 'Şömine Başında Uzun Bloklar', theme: 'cabin', capacity: 5, access: 'public' },
-  { id: 'sample-3', name: 'Ormanda Sessizlik', theme: 'treehouse', capacity: 4, access: 'invite', code: 'ORMAN-2741' },
-]
+const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'oda', 'hesap'])
+const GUEST_PAGES = new Set(['giris', 'kayit'])
+// Oturum olsun olmasın herkesin açabildiği sayfalar.
+const PUBLIC_PAGES = new Set(['anasayfa', 'kosullar', 'gizlilik'])
 
 const hashPage = () => window.location.hash.slice(1)
 
@@ -44,14 +43,16 @@ const hashPage = () => window.location.hash.slice(1)
 // giriş / kayıt sayfası Sayfam'a döner. Bilinmeyen adres varsayılan sayfaya gider.
 function resolvePage(id, user) {
   if (APP_PAGES.has(id)) return user ? id : 'giris'
-  if (GUEST_PAGES.has(id)) return user && id !== 'anasayfa' ? 'sayfam' : id
+  if (PUBLIC_PAGES.has(id)) return id
+  if (GUEST_PAGES.has(id)) return user ? 'sayfam' : id
   return user ? 'sayfam' : 'anasayfa'
 }
 
 export default function Site() {
   const [user, setUser] = useState(currentUser)
   const [requested, setRequested] = useState(hashPage)
-  const [rooms, setRooms] = useState(SAMPLE_ROOMS)
+  const [rooms, setRooms] = useState(loadRooms)
+  const [joined, setJoined] = useState(() => (user ? loadJoined(user) : []))
   const [currentId, setCurrentId] = useState(null)
   const [avatar, setAvatar] = useState(loadAvatar)
   const [focusMode, setFocusMode] = useState(false)
@@ -85,11 +86,14 @@ export default function Site() {
     setFocusMode(false)
     window.scrollTo(0, 0)
   }
+  // Odaya giriş katılım geçmişine yazılır (kullanıcı başına).
   const enter = (room) => {
+    if (user) setJoined(recordJoin(user, room.id))
     setCurrentId(room.id)
     go('oda')
   }
   const create = (room) => {
+    saveCreatedRoom(room)
     setRooms((list) => [room, ...list])
     enter(room)
   }
@@ -101,11 +105,13 @@ export default function Site() {
     // Yeni hesapta avatar hâlâ varsayılan adı taşıyorsa görünen adı alır.
     if (isNew && avatar.name === DEFAULT_AVATAR.name) changeAvatar({ ...avatar, name: u.displayName })
     setUser(u)
+    setJoined(loadJoined(u))
     go('sayfam')
   }
   const signOut = () => {
     logout()
     setUser(null)
+    setJoined([])
     setCurrentId(null)
     go('anasayfa')
   }
@@ -132,13 +138,26 @@ export default function Site() {
             onFocusModeChange={setFocusMode}
             onLeave={() => {
               setCurrentId(null)
-              go('olustur')
+              go('katil')
             }}
-            onBrowse={() => go('olustur')}
+            onBrowse={() => go('katil')}
           />
         )}
-        {page === 'olustur' && <CreateRoomPage rooms={rooms} onCreate={create} onEnter={enter} />}
+        {page === 'katil' && (
+          <JoinRoomPage rooms={rooms} joined={joined} onEnter={enter} onForget={(id) => setJoined(forgetJoin(user, id))} onCreate={() => go('olustur')} />
+        )}
+        {page === 'olustur' && <CreateRoomPage onCreate={create} />}
         {page === 'avatar' && <AvatarPage avatar={avatar} onChange={changeAvatar} />}
+        {page === 'hesap' && (
+          <AccountPage
+            user={user}
+            onUserChange={(u) => {
+              setUser(u)
+              setJoined(loadJoined(u))
+            }}
+          />
+        )}
+        {(page === 'kosullar' || page === 'gizlilik') && <LegalPage kind={page} onGo={go} />}
       </main>
 
       {!focusMode && <SiteFooter user={user} pages={PAGES} onGo={go} isDark={isDark} />}
