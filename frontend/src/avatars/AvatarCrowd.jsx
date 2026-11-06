@@ -7,9 +7,11 @@ import { roomProps, seatBehavior, spotActivity, styleOf } from './activities'
 import { buildAvatarParts } from './model'
 import { BODY, RADIUS, buildNav, deskHeight, deskInfo, findPath, findRefuge, floorAt, nearestWalkable, seatExit, seatFront, spotSlots, walkableAt } from './nav'
 import {
+  GESTURES,
   STAND_POSES,
   blendPose,
   deskReadPose,
+  gesturePose,
   liePose,
   loungePose,
   readPose,
@@ -240,13 +242,21 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
       }
       a.order = order
       a.occ = o
+      // sevinç sayacı arttıysa (odak bloku bitti): yerinde sevinir, kalkışı sevinç bitene dek bekler
+      if (a.cheerKey !== o.cheer) {
+        if (a.cheerKey !== undefined && o.cheer && animated) {
+          a.cheer = { start: t }
+          a.holdUntil = t + GESTURES.cheer
+        }
+        a.cheerKey = o.cheer
+      }
     })
 
     let moving = false
     for (const a of agents.values()) {
       if (animated) step(state, world, a, t, dt)
       else snap(state, world, a)
-      if (!RESTING.has(a.mode)) moving = true
+      if (!RESTING.has(a.mode) || a.cheer) moving = true
     }
     state.moving = moving
 
@@ -259,7 +269,12 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
       const a = agents.get(look.id)
       if (!a) continue
       const hidden = a.mode === 'inside'
-      const target = targetPose(a, t)
+      let target = targetPose(a, t)
+      if (a.cheer) {
+        const e = t - a.cheer.start
+        if (e >= GESTURES.cheer) a.cheer = null
+        else target = gesturePose(target, 'cheer', e)
+      }
       a.pose = a.pose ? blendPose(a.pose, target, animated ? 1 - Math.exp(-dt * 12) : 1) : target
       if (a.trans) a.pose = blendPose(a.trans.fromPose, target, smooth(a.trans.k))
       computeBones(a.bones, a.pose, a.x, a.z, a.yaw, a.y, a.scale)
@@ -664,7 +679,7 @@ function step(state, world, a, t, dt) {
     if (a.lastStatus) a.departAt = t + 0.2 + 1.6 * frac(a.seed * 7.31)
     a.lastStatus = o.status
   }
-  if (t < a.departAt && RESTING.has(a.mode)) return
+  if ((t < a.departAt || t < (a.holdUntil ?? 0)) && RESTING.has(a.mode)) return
 
   switch (a.mode) {
     case 'seated': {
