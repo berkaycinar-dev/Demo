@@ -543,6 +543,7 @@
   padding: 0;
   border: 2px solid var(--line-strong);
   border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--text);
   cursor: pointer;
 }
 
@@ -554,6 +555,56 @@
 .swatch[aria-pressed='true'] {
   border-color: var(--surface);
   box-shadow: 0 0 0 3px var(--text);
+}
+
+/* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, sekme içeriği
+   ve beliren satırlar yumuşakça gelir. Varsayılan hâl görünür; animasyon yalnızca "from" tanımlar. */
+.avatar-page {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.avatar-page .choice-row button,
+.avatar-page .wardrobe__slot,
+.avatar-page .avatar-page__history button {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease,
+    transform 120ms var(--ease-out);
+}
+
+.avatar-page .choice-row button:active:not(:disabled),
+.avatar-page .wardrobe__slot:active,
+.avatar-page .avatar-page__history button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.avatar-page .swatch {
+  transition: box-shadow 200ms var(--ease-out), border-color 150ms ease, transform 120ms var(--ease-out);
+}
+
+.avatar-page .swatch:active {
+  transform: scale(0.9);
+}
+
+.avatar-page__panel,
+.avatar-page .avatar-page__sub {
+  animation: avatarRise 220ms var(--ease-out);
+}
+
+.avatar-page .wardrobe__status > span,
+.avatar-page .wardrobe__worn {
+  animation: avatarFade 200ms ease-out;
+}
+
+@keyframes avatarRise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes avatarFade {
+  from {
+    opacity: 0;
+  }
 }
 
 /* footer */
@@ -659,5 +710,18 @@
 @media (prefers-reduced-motion: reduce) {
   .site-btn {
     transition: none;
+  }
+
+  /* atölye: yer değiştirme ve ölçek yok; renk geçişleri ve solma kalır */
+  .avatar-page .choice-row button:active,
+  .avatar-page .wardrobe__slot:active,
+  .avatar-page .avatar-page__history button:active,
+  .avatar-page .swatch:active {
+    transform: none;
+  }
+
+  .avatar-page__panel,
+  .avatar-page .avatar-page__sub {
+    animation-name: avatarFade;
   }
 }
