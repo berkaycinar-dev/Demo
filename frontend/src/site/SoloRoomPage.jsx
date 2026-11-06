@@ -12,7 +12,7 @@ import { swatchOf } from './themeLook'
 export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusModeChange }) {
   const [settings, setSettings] = useState(() => loadMyRoom(user))
   const { label, Room } = THEMES[settings.theme]
-  const { occupants, setMyStatus } = useRoomPeople({ capacity: 1, seed: 7, me: avatar })
+  const { occupants, setMyStatus } = useRoomPeople({ capacity: 1, seed: 7, me: avatar, cheer: timer.completed })
 
   useEffect(() => saveMyRoom(user, settings), [settings, user])
 

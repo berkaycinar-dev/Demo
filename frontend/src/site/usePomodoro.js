@@ -27,15 +27,19 @@ const idle = (presetId) => ({ preset: presetId, phase: 'focus', remaining: prese
 
 /**
  * track: true ise biten odak blokları bugünkü istatistiğe yazılır (ana sayfadaki deneme sayacı yazmaz).
- * Dönüş: { phase, remaining, total, running, fresh, preset, setPreset, toggle, reset, skip, stats }
+ * Dönüş: { phase, remaining, total, running, fresh, preset, setPreset, toggle, reset, skip, stats,
+ *   completed }. completed: süresi dolarak biten odak bloklarının sayısı (atlananlar sayılmaz); odadaki
+ *   avatar bu artınca sevinir.
  */
 export default function usePomodoro({ track = true } = {}) {
   const [timer, setTimer] = useState(() => idle(PRESETS[0].id))
   const [stats, setStats] = useState(readStats)
+  const [completed, setCompleted] = useState(0)
   const p = presetOf(timer.preset)
 
   // Aşamayı bitirir: odak bittiyse istatistiğe yazar, zil çalar, sıradaki aşamaya geçer.
-  const advance = (t) => {
+  const advance = (t, natural = false) => {
+    if (t.phase === 'focus' && natural) setCompleted((n) => n + 1)
     if (t.phase === 'focus' && track) {
       setStats((old) => {
         const base = old.day === today() ? old : emptyStats()
@@ -59,7 +63,7 @@ export default function usePomodoro({ track = true } = {}) {
         return
       }
       done = true
-      advance(timer)
+      advance(timer, true)
     }, 250)
     return () => clearInterval(id)
   })
@@ -95,6 +99,7 @@ export default function usePomodoro({ track = true } = {}) {
     reset: () => setTimer(idle(timer.preset)),
     skip: () => advance(timer),
     stats: stats.day === today() ? stats : emptyStats(),
+    completed,
   }
 }
 
