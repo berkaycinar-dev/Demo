@@ -218,8 +218,9 @@ const WRIST_POINT = new Vector3(0.05 * SCALE, -0.16 * SCALE, 0)
 const LEGS_POINT = new Vector3(0, -0.18 * SCALE, 0.04 * SCALE)
 const SHOE_CENTER = new Vector3(0, -0.2 * SCALE, 0.02 * SCALE)
 
-function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef }) {
-  const parts = useMemo(() => buildAvatarParts(avatar), [avatar])
+function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHat }) {
+  // hideHat: yalnızca önizlemede başlıksız çizer (kayıtlı avatar değişmez, tepki tetiklenmez)
+  const parts = useMemo(() => buildAvatarParts(hideHat ? { ...avatar, hat: 'none' } : avatar), [avatar, hideHat])
   const statics = useMemo(() => sceneBoxes(mode === 'focus' || mode === 'away', activity), [mode, activity])
   const meshRef = useRef(null)
   const sceneRef = useRef(null)
@@ -372,9 +373,9 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
  * manzara) | 'away' (masada uyur, zZz) | 'walk' (yerinde yürür). activity: 'read' (masadaki açık
  * kitabı okur, not alır) | 'type' (dizüstü bilgisayar). focus: kamera odağı 'full' (tam boy) | 'face'
  * | 'hat' | 'chest' (boyun) | 'wrist' (sol bilek) | 'upper' (gövde) | 'legs' | 'feet'; açı ve yakınlık
- * poza göre (VIEWS).
+ * poza göre (VIEWS). hideHat: başlığı yalnızca önizlemede gizler (saç seçerken saç görünsün).
  */
-export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', reducedMotion, className = '' }) {
+export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHat = false, reducedMotion, className = '' }) {
   const animated = !(reducedMotion ?? prefersReducedMotion())
   const view = useRef({ yaw: 0 })
   const anchors = useRef({
@@ -436,7 +437,7 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <CameraRig view={view} mode={mode} focus={focus} anchorsRef={anchors} animated={animated} />
         <hemisphereLight color="#fff6e8" groundColor="#8a7a68" intensity={2.2} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} color="#fff1d8" />
-        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} />
+        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHat={hideHat} />
         <Ticker animated={animated} />
       </Canvas>
       <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>
