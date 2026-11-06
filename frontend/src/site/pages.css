@@ -1312,7 +1312,292 @@
   font-size: 13px;
 }
 
-/* ---------- oda listeleri (Odaya katıl) ---------- */
+/* ---------- Lobi ---------- */
+
+.lobby-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 32px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, var(--primary-soft), transparent 60%),
+    var(--surface);
+}
+
+.lobby-hero__text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 620px;
+}
+
+.site .lobby-hero h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+.lobby-hero__text p {
+  margin: 0 !important;
+  font-size: 16px;
+}
+
+.lobby-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.lobby-hero__stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.lobby-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3ddc84;
+  box-shadow: 0 0 0 3px rgba(61, 220, 132, 0.22);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  50% {
+    box-shadow: 0 0 0 5px rgba(61, 220, 132, 0.08);
+  }
+}
+
+.tag--live {
+  background: rgba(61, 220, 132, 0.14);
+  color: var(--success);
+}
+
+.lobby {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
+  margin-top: 28px;
+}
+
+.lobby__main .section-head {
+  margin-bottom: 16px;
+}
+
+.lobby__hidden-head {
+  margin-top: 40px;
+}
+
+.lobby-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(280px, 100%);
+}
+
+.lobby-search svg {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.lobby-search input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px 0 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.lobby-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 28px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 18px;
+}
+
+.lobby-empty p {
+  margin: 0 !important;
+}
+
+.lobby__side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lobby-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.site .lobby-panel h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.lobby-panel > p {
+  margin: -4px 0 0 !important;
+}
+
+.lobby-code {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lobby-code input {
+  flex: 1 1 160px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.lobby-code input::placeholder {
+  font-family: var(--font-body);
+  text-transform: none;
+}
+
+.lobby-code input[aria-invalid='true'] {
+  border-color: #b4432f;
+}
+
+.lobby-code .site-btn {
+  min-height: 42px;
+}
+
+.lobby-code__error {
+  flex-basis: 100%;
+}
+
+.lobby-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lobby-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.lobby-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.lobby-list__swatch {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.lobby-list__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lobby-list__text strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-list__text .site-muted {
+  font-size: 12px;
+}
+
+.lobby-list__lock {
+  display: inline-flex;
+  color: var(--badge);
+}
+
+.lobby-list .site-btn {
+  flex: none;
+}
+
+.lobby-list__remove {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lobby-list__remove:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 1000px) {
+  .lobby {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
 
 .page-head--row {
   display: flex;
@@ -1366,11 +1651,6 @@
   gap: 12px;
   margin-top: auto;
   padding-top: 6px;
-}
-
-.room-card__remove {
-  color: var(--muted);
-  font-size: 13px;
 }
 
 .room-card__top {
@@ -1518,6 +1798,61 @@
 
 .strength:not(.strength--0) .strength__text {
   color: var(--strength);
+}
+
+/* giriş: şifre etiketi + "Şifremi unuttum" aynı satırda */
+.auth-field__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-field__label-row label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.auth-field__label-row .link-btn {
+  font-size: 13px;
+}
+
+/* "Beni hatırla" */
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-check input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* bilgi kutusu (şifre sıfırlama sonucu) */
+.form-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--info-soft);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.form-note strong {
+  color: var(--text);
 }
 
 /* kullanım koşulları onayı */
