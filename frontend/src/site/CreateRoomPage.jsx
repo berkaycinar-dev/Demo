@@ -16,8 +16,8 @@ function inviteCode(name) {
 }
 
 // Oda oluşturma: ad, tema, kapasite ve erişim seçilir; sağda seçilen odanın canlı 3D önizlemesi.
-// Var olan odalara katılmak Odaya katıl sayfasında.
-export default function CreateRoomPage({ onCreate }) {
+// Lobi'nin alt sayfası; var olan odalara katılmak Lobi'de.
+export default function CreateRoomPage({ onCreate, onBack }) {
   const [name, setName] = useState('')
   const [theme, setTheme] = useState(DEFAULT_THEME)
   const [capacity, setCapacity] = useState(DEFAULT_CAPACITY)
@@ -35,6 +35,9 @@ export default function CreateRoomPage({ onCreate }) {
   return (
     <>
       <div className="page-head">
+        <button type="button" className="link-btn back-link" onClick={onBack}>
+          ← Lobiye dön
+        </button>
         <h1>Oda oluştur</h1>
         <p className="site-muted">Odayı kur, temasını seç; ister herkese aç, ister yalnızca davet koduyla girilsin.</p>
       </div>

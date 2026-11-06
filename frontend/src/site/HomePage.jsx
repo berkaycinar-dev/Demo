@@ -58,12 +58,12 @@ export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) 
               <span className="eyebrow">Birlikte çalış</span>
               <h2>Odalar</h2>
             </div>
-            <button type="button" className="site-btn" onClick={() => onGo('katil')}>
-              Odaya katıl
+            <button type="button" className="site-btn" onClick={() => onGo('lobi')}>
+              Lobiye git
             </button>
           </div>
           <p className="site-muted">
-            Şu an {rooms.filter((r) => r.access === 'public').length} herkese açık oda var. Davet kodun varsa gizli odalara da Odaya katıl sayfasından girebilirsin.
+            Şu an {rooms.filter((r) => r.access === 'public').length} herkese açık oda var. Davet kodun varsa gizli odalara da Lobi'den girebilirsin.
           </p>
         </section>
       </div>
