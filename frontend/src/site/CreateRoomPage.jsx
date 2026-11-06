@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { ACCESS_LABELS } from './access'
+import { swatchOf } from './themeLook'
 import { normalizeCode } from './roomStore'
 
 const DEFAULT_THEME = 'library'
@@ -63,6 +64,8 @@ export default function CreateRoomPage({ onCreate, onBack }) {
                     setSpot(null)
                   }}
                 >
+                  {/* temanın renk şeridi (lobi kartlarıyla aynı) */}
+                  <i className="theme-option__swatch" aria-hidden="true" style={{ background: swatchOf(key) }} />
                   {t.label}
                   <span>{t.description}</span>
                 </button>
@@ -108,7 +111,10 @@ export default function CreateRoomPage({ onCreate, onBack }) {
         <section className="create-preview" aria-label="Önizleme">
           <h2>Önizleme</h2>
           <div className="room-frame create-preview__room">
-            <Room capacity={capacity} onSpotClick={setSpot} />
+            {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
+            <div key={`${theme}-${capacity}`} className="create-preview__scene">
+              <Room capacity={capacity} onSpotClick={setSpot} />
+            </div>
           </div>
           <p className="site-muted">
             {name.trim() || `${label} odası`} · {label} · {capacity} kişilik · {ACCESS_LABELS[access]}

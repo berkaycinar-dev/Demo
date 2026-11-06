@@ -12,10 +12,19 @@
 
 .avatar-preview__hint {
   position: absolute;
-  bottom: 8px;
-  left: 12px;
+  bottom: 10px;
+  left: 10px;
+  max-width: calc(100% - 20px);
   margin: 0;
-  color: rgba(40, 32, 24, 0.55);
+  padding: 5px 11px;
+  border-radius: 999px;
+  /* geri al / ileri al haplarıyla aynı yüzey; saydam ve bulanık zemin karakterin üstünde okunur */
+  background: color-mix(in srgb, var(--surface, #fff) 80%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line-strong, rgba(60, 45, 30, 0.2));
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--text-2, #3a3128);
   font-size: 12px;
+  line-height: 1.35;
   pointer-events: none;
 }

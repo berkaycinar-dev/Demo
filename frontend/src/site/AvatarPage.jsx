@@ -64,12 +64,13 @@ const NO_COLOR = { id: 'none', label: 'Yok', color: null }
 const SUFFIX = ["'e", "'ye", "'e"]
 const sameLook = (a, b) => JSON.stringify({ ...a, name: '' }) === JSON.stringify({ ...b, name: '' })
 
-// Seçenek düğmeleri (tek seçim).
-function Choices({ label, options, value, onChange, note }) {
+// Seçenek düğmeleri (tek seçim). disabled: o anki seçimde geçersiz; alan soluklaşır, düğmeler
+// tıklanmaz ve klavyeyle de seçilmez, not (neden) okunur kalır.
+function Choices({ label, options, value, onChange, note, disabled = false }) {
   return (
-    <fieldset className="field">
+    <fieldset className={disabled ? 'field field--off' : 'field'} disabled={disabled}>
       <legend className="field__label">
-        {label} {note && <span className="site-muted">{note}</span>}
+        <span className="field__name">{label}</span> {note && <span className="site-muted">{note}</span>}
       </legend>
       <div className="choice-row">
         {options.map((o) => (
@@ -200,6 +201,8 @@ export default function AvatarPage({ avatar, onChange }) {
   const [activity, setActivity] = useState('read')
   const [tab, setTab] = useState('body')
   const [zone, setZone] = useState('full')
+  // saç sekmesinde başlık önizlemede gizlenir (saç görünsün); kullanıcı düğmeyle geri açabilir
+  const [hatShown, setHatShown] = useState(false)
   // last: son değişen alan; art arda yazılan ad tek adımda geri alınır
   const [history, setHistory] = useState({ past: [], future: [], last: null })
 
@@ -243,7 +246,10 @@ export default function AvatarPage({ avatar, onChange }) {
   const openTab = (t) => {
     setTab(t.id)
     setZone(t.zone)
+    setHatShown(false)
   }
+  const hasHat = avatar.hat !== 'none'
+  const hideHat = tab === 'hair' && hasHat && !hatShown
   const male = avatar.body !== 'female'
   const earsCovered = EAR_COVERING.includes(avatar.hairStyle)
   const overHead = OVER_HEAD.includes(avatar.headphones)
@@ -263,7 +269,12 @@ export default function AvatarPage({ avatar, onChange }) {
       <div className="create avatar-page">
         <section className="create-preview" aria-label="Önizleme">
           <div className="room-frame avatar-page__preview">
-            <AvatarPreview avatar={avatar} mode={mode} activity={activity} focus={zone} />
+            <AvatarPreview avatar={avatar} mode={mode} activity={activity} focus={zone} hideHat={hideHat} />
+            {tab === 'hair' && hasHat && (
+              <button type="button" className="avatar-page__hat" aria-pressed={hideHat} onClick={() => setHatShown(!hatShown)}>
+                {hideHat ? 'Başlık gizli · göster' : 'Başlığı gizle'}
+              </button>
+            )}
             <div className="avatar-page__history" role="group" aria-label="Geçmiş">
               <button type="button" onClick={undo} disabled={!history.past.length} title="Geri al (Ctrl+Z)">
                 ↶ Geri al
@@ -320,6 +331,7 @@ export default function AvatarPage({ avatar, onChange }) {
               <Choices label="Saç" options={HAIR_STYLES} value={avatar.hairStyle} onChange={set('hairStyle')} />
               <Choices
                 label="Kahkül"
+                disabled={NO_BANGS.includes(avatar.hairStyle)}
                 note={NO_BANGS.includes(avatar.hairStyle) ? '(bu saç modelinde yok)' : null}
                 options={ON_OFF}
                 value={avatar.bangs ? 'on' : 'off'}
