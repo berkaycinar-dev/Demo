@@ -51,9 +51,49 @@ async function hashPassword(password, saltHex) {
 // Oturumdaki kullanıcının herkese açık bilgileri (şifre özeti dışarı çıkmaz).
 const publicUser = (u) => ({ displayName: u.displayName, username: u.username, email: u.email })
 
+// Oturum: "Beni hatırla" işaretliyse localStorage'da (tarayıcı kapanıp açılsa da sürer), değilse
+// sessionStorage'da (tarayıcı kapanınca biter). Hatırlanan girişte e-posta / kullanıcı adı da
+// giriş formuna önceden yazılır.
+const LAST_LOGIN_KEY = 'odakhane.last-login'
+
+function readSession() {
+  try {
+    return localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
+  } catch {
+    return null
+  }
+}
+
+function writeSession(username, remember) {
+  try {
+    localStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
+    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, username)
+  } catch {
+    /* depolama kapalıysa oturum yalnızca bu sayfa açıkken sürer */
+  }
+}
+
+const sessionIsRemembered = () => {
+  try {
+    return localStorage.getItem(SESSION_KEY) !== null
+  } catch {
+    return false
+  }
+}
+
+/** Son hatırlanan giriş bilgisi (e-posta ya da kullanıcı adı); yoksa boş. */
+export function lastLoginId() {
+  try {
+    return localStorage.getItem(LAST_LOGIN_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 export function currentUser() {
   try {
-    const username = localStorage.getItem(SESSION_KEY)
+    const username = readSession()
     const user = username && readUsers().find((u) => u.username === username)
     return user ? publicUser(user) : null
   } catch {
@@ -86,25 +126,42 @@ export async function register({ displayName, username, email, password }) {
   const salt = toHex(crypto.getRandomValues(new Uint8Array(16)))
   const user = { displayName: displayName.trim(), username, email: mail, salt, hash: await hashPassword(password, salt) }
   writeUsers([...users, user])
-  localStorage.setItem(SESSION_KEY, username)
+  writeSession(username, true)
   return { user: publicUser(user) }
 }
 
-/** login: e-posta ya da kullanıcı adı + şifre. */
-export async function login(identifier, password) {
+/** login: e-posta ya da kullanıcı adı + şifre. remember: oturum kalıcı mı. */
+export async function login(identifier, password, remember = true) {
   const id = identifier.trim().toLowerCase()
   const user = readUsers().find((u) => u.username === id || u.email === id)
   // Hesap yoksa da aynı mesaj: hangi hesapların var olduğu sızmasın.
   if (!user || (await hashPassword(password, user.salt)) !== user.hash) {
     return { error: 'E-posta / kullanıcı adı ya da şifre hatalı.' }
   }
-  localStorage.setItem(SESSION_KEY, user.username)
+  writeSession(user.username, remember)
+  try {
+    if (remember) localStorage.setItem(LAST_LOGIN_KEY, identifier.trim())
+    else localStorage.removeItem(LAST_LOGIN_KEY)
+  } catch {
+    /* yok say */
+  }
   return { user: publicUser(user) }
+}
+
+/**
+ * Şifre sıfırlama isteği. Sıfırlama bağlantısı e-postayla gönderilir; bu sürümde e-posta gönderen
+ * bir sunucu yok, bu yüzden istek yalnızca doğrulanır ve { delivered: false } döner. Backend gelince
+ * burası API çağrısına çevrilir. Hangi e-postaların kayıtlı olduğu sızmasın diye cevap her zaman aynı.
+ */
+export async function requestPasswordReset(email) {
+  if (!EMAIL_RE.test(email.trim())) return { error: 'Geçerli bir e-posta adresi yaz.' }
+  return { delivered: false }
 }
 
 export function logout() {
   try {
     localStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
   } catch {
     /* yok say */
   }
@@ -144,7 +201,12 @@ export function updateProfile(currentUsername, { displayName, username }) {
         localStorage.removeItem(prefix + currentUsername)
       }
     }
-    localStorage.setItem(SESSION_KEY, username)
+    writeSession(username, sessionIsRemembered())
+    try {
+      if (localStorage.getItem(LAST_LOGIN_KEY) === currentUsername) localStorage.setItem(LAST_LOGIN_KEY, username)
+    } catch {
+      /* yok say */
+    }
   }
   return { user: publicUser(users[i]) }
 }

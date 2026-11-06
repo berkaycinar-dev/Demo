@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PASSWORD_RULES, login, register, validateRegistration } from './auth'
+import { PASSWORD_RULES, lastLoginId, login, register, requestPasswordReset, validateRegistration } from './auth'
 import { LegalDialog } from './LegalPages'
 
 const BRAND_POINTS = [
@@ -119,10 +119,12 @@ export function PasswordInput({ id, value, onChange, autoComplete, invalid, plac
 }
 
 export function LoginPage({ onDone, onGo }) {
-  const [identifier, setIdentifier] = useState('')
+  const [identifier, setIdentifier] = useState(lastLoginId)
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [forgot, setForgot] = useState(false)
 
   const submit = async (e) => {
     e.preventDefault()
@@ -131,10 +133,15 @@ export function LoginPage({ onDone, onGo }) {
       return
     }
     setBusy(true)
-    const res = await login(identifier, password)
+    const res = await login(identifier, password, remember)
     setBusy(false)
     if (res.error) setError(res.error)
     else onDone(res.user)
+  }
+
+  if (forgot) {
+    // Kullanıcı adı yazılmışsa e-posta alanına taşınmaz; yalnızca e-posta biçimindeyse taşınır.
+    return <ForgotPassword initialEmail={identifier.includes('@') ? identifier.trim() : ''} onBack={() => setForgot(false)} />
   }
 
   return (
@@ -152,9 +159,19 @@ export function LoginPage({ onDone, onGo }) {
         <Field id="loginId" label="E-posta veya kullanıcı adı">
           <input id="loginId" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" placeholder="ornek@posta.com ya da kullanici_adi" />
         </Field>
-        <Field id="loginPass" label="Şifre">
+        <div className="auth-field">
+          <span className="auth-field__label-row">
+            <label htmlFor="loginPass">Şifre</label>
+            <button type="button" className="link-btn" onClick={() => setForgot(true)}>
+              Şifremi unuttum
+            </button>
+          </span>
           <PasswordInput id="loginPass" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Şifren" />
-        </Field>
+        </div>
+        <label className="auth-check">
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+          <span>Beni hatırla</span>
+        </label>
         <button type="submit" className="site-btn site-btn--primary site-btn--wide" disabled={busy}>
           {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
         </button>
@@ -165,6 +182,68 @@ export function LoginPage({ onDone, onGo }) {
           Hesap oluştur
         </button>
       </p>
+    </AuthShell>
+  )
+}
+
+// Şifremi unuttum: e-posta istenir. Bu sürümde e-posta gönderen sunucu olmadığı için bağlantı
+// gönderildi denmez; durum açıkça yazılır (bkz. auth.requestPasswordReset).
+function ForgotPassword({ initialEmail, onBack }) {
+  const [email, setEmail] = useState(initialEmail)
+  const [error, setError] = useState('')
+  const [result, setResult] = useState(null)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    const res = await requestPasswordReset(email)
+    if (res.error) {
+      setError(res.error)
+      return
+    }
+    setResult(res)
+  }
+
+  return (
+    <AuthShell>
+      <div className="auth__head">
+        <button type="button" className="link-btn back-link" onClick={onBack}>
+          ← Girişe dön
+        </button>
+        <h1>Şifreni mi unuttun?</h1>
+        <p className="site-muted">Hesabının e-posta adresini yaz; şifreni sıfırlaman için sana bir bağlantı gönderelim.</p>
+      </div>
+      {result ? (
+        <div className="form-note" role="status">
+          <strong>Şifre sıfırlama e-postası henüz gönderilemiyor.</strong>
+          <span>
+            E-posta gönderimi sunucu bağlandığında açılacak. Bu sürümde hesaplar yalnızca bu tarayıcıda tutulduğu için şimdilik şifre sıfırlanamıyor. Şifreni hatırlıyorsan giriş yapıp Hesap ayarları sayfasından değiştirebilirsin.
+          </span>
+          <button type="button" className="site-btn site-btn--primary" onClick={onBack}>
+            Girişe dön
+          </button>
+        </div>
+      ) : (
+        <form className="auth__form" onSubmit={submit} noValidate>
+          <Field id="resetEmail" label="E-posta" error={error}>
+            <input
+              id="resetEmail"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setError('')
+              }}
+              autoComplete="email"
+              placeholder="ornek@posta.com"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'resetEmail-err' : undefined}
+            />
+          </Field>
+          <button type="submit" className="site-btn site-btn--primary site-btn--wide" disabled={!email.trim()}>
+            Sıfırlama bağlantısı gönder
+          </button>
+        </form>
+      )}
     </AuthShell>
   )
 }
