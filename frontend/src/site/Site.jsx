@@ -7,8 +7,8 @@ import AvatarPage from './AvatarPage'
 import { loadAvatar, saveAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import HomePage from './HomePage'
-import JoinRoomPage from './JoinRoomPage'
 import LandingPage from './LandingPage'
+import LobbyPage from './LobbyPage'
 import { LegalPage } from './LegalPages'
 import MyRoomPage from './MyRoomPage'
 import { forgetJoin, loadJoined, loadRooms, recordJoin, saveCreatedRoom } from './roomStore'
@@ -28,11 +28,14 @@ const PAGES = [
   { id: 'sayfam', label: 'Sayfam' },
   { id: 'odam', label: 'Odam' },
   { id: 'avatar', label: 'Avatarım' },
-  { id: 'katil', label: 'Odaya katıl' },
-  { id: 'olustur', label: 'Oda oluştur' },
+  { id: 'lobi', label: 'Lobi' },
 ]
-// Oturum isteyen sayfalar (menüdekiler + girilen çok kişili oda) ve herkese açık sayfalar.
-const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'oda', 'hesap'])
+// Oturum isteyen sayfalar: menüdekiler, Lobi'nin alt sayfaları (oda oluştur, girilen oda) ve hesap.
+const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'olustur', 'oda', 'hesap'])
+// Menüde hangi sekmenin seçili görüneceği: alt sayfalarda Lobi.
+const NAV_OF = { olustur: 'lobi', oda: 'lobi' }
+// Eski adresler: Odaya katıl sayfası Lobi'ye taşındı.
+const MOVED = { katil: 'lobi' }
 const GUEST_PAGES = new Set(['giris', 'kayit'])
 // Oturum olsun olmasın herkesin açabildiği sayfalar.
 const PUBLIC_PAGES = new Set(['anasayfa', 'kosullar', 'gizlilik'])
@@ -41,7 +44,8 @@ const hashPage = () => window.location.hash.slice(1)
 
 // İstenen sayfa oturuma göre düzeltilir: oturum yoksa uygulama sayfaları girişe, oturum varken
 // giriş / kayıt sayfası Sayfam'a döner. Bilinmeyen adres varsayılan sayfaya gider.
-function resolvePage(id, user) {
+function resolvePage(requestedId, user) {
+  const id = MOVED[requestedId] ?? requestedId
   if (APP_PAGES.has(id)) return user ? id : 'giris'
   if (PUBLIC_PAGES.has(id)) return id
   if (GUEST_PAGES.has(id)) return user ? 'sayfam' : id
@@ -121,7 +125,7 @@ export default function Site() {
 
   return (
     <div className={`site${focusMode ? ' site--focus' : ''}`}>
-      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} />}
+      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} />}
 
       <main className={mainClass}>
         {page === 'anasayfa' && <LandingPage user={user} onGo={go} />}
@@ -138,15 +142,15 @@ export default function Site() {
             onFocusModeChange={setFocusMode}
             onLeave={() => {
               setCurrentId(null)
-              go('katil')
+              go('lobi')
             }}
-            onBrowse={() => go('katil')}
+            onBrowse={() => go('lobi')}
           />
         )}
-        {page === 'katil' && (
-          <JoinRoomPage rooms={rooms} joined={joined} onEnter={enter} onForget={(id) => setJoined(forgetJoin(user, id))} onCreate={() => go('olustur')} />
+        {page === 'lobi' && (
+          <LobbyPage rooms={rooms} joined={joined} onEnter={enter} onForget={(id) => setJoined(forgetJoin(user, id))} onCreate={() => go('olustur')} />
         )}
-        {page === 'olustur' && <CreateRoomPage onCreate={create} />}
+        {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} />}
         {page === 'avatar' && <AvatarPage avatar={avatar} onChange={changeAvatar} />}
         {page === 'hesap' && (
           <AccountPage

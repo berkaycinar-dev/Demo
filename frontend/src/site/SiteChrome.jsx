@@ -61,7 +61,7 @@ function useHeaderHeight() {
   return ref
 }
 
-export function SiteHeader({ user, pages, page, onGo, onLogout, isDark, onToggleMode }) {
+export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, isDark, onToggleMode }) {
   const ref = useHeaderHeight()
   const onLanding = page === 'anasayfa'
 
@@ -75,7 +75,7 @@ export function SiteHeader({ user, pages, page, onGo, onLogout, isDark, onToggle
       {user && !onLanding && (
         <nav className="site-nav" aria-label="Ana menü">
           {pages.map((p) => (
-            <button key={p.id} type="button" aria-current={page === p.id ? 'page' : undefined} onClick={() => onGo(p.id)}>
+            <button key={p.id} type="button" aria-current={navPage === p.id ? 'page' : undefined} onClick={() => onGo(p.id)}>
               {p.label}
             </button>
           ))}
