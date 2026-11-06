@@ -554,7 +554,7 @@ export function galley(f, fx) {
   f.box(-W / 2, 0.93, 0, W, 0.62, 0.01, C.tile)
   for (let i = 1; i < 4; i++) f.box(-W / 2, 0.93 + i * 0.155 - 0.004, 0.01, W, 0.008, 0.002, C.grout)
 
-  const m = f.frame(-0.2, 0.93, 0.1)
+  const m = f.interactive('machine', -0.2, 0.93, 0.1, 0, { puff: { at: [0, 0.17, 0.25], kind: 'steam' } })
   m.box(-0.15, 0, 0, 0.3, 0.04, 0.34, C.dark)
   m.box(-0.15, 0.04, 0, 0.3, 0.44, 0.14, C.steel)
   m.box(-0.15, 0.3, 0.14, 0.3, 0.18, 0.2, C.steel)
@@ -628,14 +628,16 @@ export function kelpFarm(f, length, rnd) {
     f.box(-L / 2 + 0.05, y + 0.2, 0.05, L - 0.1, 0.02, 0.02, C.steelDark)
     const above = i + 1 < levels.length ? levels[i + 1] : topY
     f.box(-L / 2 + 0.06, above - 0.025, 0.17, L - 0.12, 0.025, 0.12, C.grow, BULB)
+    // her kattaki yosunlar ayrı eşya: tıklanınca yerlerinde salınır
+    const g = f.interactive('plant', 0, y + 0.2, 0, 0, { each: true })
     const n = Math.floor((L - 0.14) / 0.16)
     const pitch = (L - 0.14) / n
     for (let k = 0; k < n; k++) {
       const x = -L / 2 + 0.07 + (k + 0.5) * pitch
       const h = 0.18 + rnd() * 0.17
       const color = pick(rnd, C.frond)
-      f.box(x - 0.02, y + 0.2, 0.18 + (k % 2) * 0.08, 0.04, h, 0.03, color)
-      f.box(x + (k % 2 ? -0.07 : 0.015), y + 0.2 + h * 0.5, 0.185 + (k % 2) * 0.08, 0.055, 0.05, 0.02, color)
+      g.box(x - 0.02, 0, 0.18 + (k % 2) * 0.08, 0.04, h, 0.03, color)
+      g.box(x + (k % 2 ? -0.07 : 0.015), h * 0.5, 0.185 + (k % 2) * 0.08, 0.055, 0.05, 0.02, color)
     }
   })
 }
@@ -770,7 +772,9 @@ function domeLamp(f) {
 // Denizanası tankı; orijin ortası, dünya eksenine hizalı çizilir (içten aydınlık arka camlar hep
 // kameranın karşısında kalsın, ön camlar açık). Işıklı kaide ve kapak, kumda taş; içinde süzülen
 // üç denizanası ve yükselen kabarcıklar (fx.room).
-export function jellyTank(f, fx) {
+export function jellyTank(root, fx) {
+  // akvaryum ışığı tıklanınca kapanır / açılır (denizanaları yüzmeye devam eder)
+  const f = root.interactive('lamp')
   const S = 0.38
   const B = 0.32
   const T = 1.95

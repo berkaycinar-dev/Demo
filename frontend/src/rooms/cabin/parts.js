@@ -340,10 +340,12 @@ export function farmTable(f, { length, depth, back = 0, front = 0 }, rnd, room) 
     lanterns = [[Math.max(0.2, backSeats[0] - 0.45), depth * 0.6]]
   }
   for (const [u, v] of lanterns) {
-    lantern(f.frame(u, H, v))
+    // fener ve ışık havuzu tek eşya: tıklanınca birlikte söner
+    const lamp = f.interactive('lamp', u, H, v)
+    lantern(lamp)
     const u0 = Math.max(0, u - 0.55)
     const v0 = Math.max(0, v - 0.45)
-    f.glow(u0, H + 0.004, v0, Math.min(length, u + 0.55) - u0, Math.min(depth, v + 0.45) - v0)
+    lamp.glow(u0 - u, 0.004, v0 - v, Math.min(length, u + 0.55) - u0, Math.min(depth, v + 0.45) - v0)
   }
 
   room.lights.push(f.point(length / 2, H + 0.5, depth / 2).toArray())
@@ -476,7 +478,8 @@ export function cocoaCorner(f, room) {
 
   const top = H + 0.01
   f.box(-0.36, top, -0.13, 0.28, 0.012, 0.26, C.iron)
-  const k = f.frame(-0.22, top + 0.012, 0)
+  // çaydanlık tıklanınca sarsılır, ağzından buhar püskürür
+  const k = f.interactive('machine', -0.22, top + 0.012, 0, 0, { puff: { at: [0.19, 0.11, 0], kind: 'steam' } })
   k.box(-0.12, 0, -0.1, 0.24, 0.17, 0.2, C.enamel)
   k.box(-0.09, 0.17, -0.07, 0.18, 0.03, 0.14, C.enamel)
   k.box(-0.02, 0.2, -0.02, 0.04, 0.03, 0.04, C.iron)
@@ -492,7 +495,8 @@ export function cocoaCorner(f, room) {
 }
 
 // Fıçıda küçük köknar.
-export function firPlant(f) {
+export function firPlant(root) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.45 })
   f.box(-0.25, 0, -0.25, 0.5, 0.45, 0.5, C.woodLight)
   f.box(-0.26, 0.08, -0.26, 0.52, 0.04, 0.52, C.iron)
   f.box(-0.26, 0.33, -0.26, 0.52, 0.04, 0.52, C.iron)
@@ -584,5 +588,5 @@ export function wallShelf(f, length, rnd) {
 export function sconce(f) {
   f.box(-0.05, -0.14, 0, 0.1, 0.26, 0.03, C.iron)
   f.box(-0.015, 0.02, 0.03, 0.03, 0.03, 0.14, C.iron)
-  lantern(f.frame(0, -0.22, 0.17))
+  lantern(f.interactive('lamp', 0, -0.22, 0.17))
 }

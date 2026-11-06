@@ -371,22 +371,23 @@ export function controlConsole(f, length, rnd, fx) {
     }
   }
 
-  // ana ekran
+  // ana ekran (tıklanınca kısa bir güç kırpışmasıyla yeniden açılır)
   const w = Math.min(1.1, L * 0.5)
   const h = 0.62
   const y0 = 1.35
-  f.box(-w / 2 - 0.03, y0 - 0.03, -0.02, w + 0.06, h + 0.06, 0.06, C.screenBody)
-  f.box(-w / 2, y0, 0.04, w, h, 0.003, C.screen, BULB)
-  f.box(-w / 2 + 0.02, y0 + h / 2, 0.043, w - 0.04, 0.004, 0.002, C.scan, BULB)
-  f.box(-0.002, y0 + 0.02, 0.043, 0.004, h - 0.04, 0.002, C.scan, BULB)
+  const scr = f.interactive('screen')
+  scr.box(-w / 2 - 0.03, y0 - 0.03, -0.02, w + 0.06, h + 0.06, 0.06, C.screenBody)
+  scr.box(-w / 2, y0, 0.04, w, h, 0.003, C.screen, BULB)
+  scr.box(-w / 2 + 0.02, y0 + h / 2, 0.043, w - 0.04, 0.004, 0.002, C.scan, BULB)
+  scr.box(-0.002, y0 + 0.02, 0.043, 0.004, h - 0.04, 0.002, C.scan, BULB)
   const rx = w * 0.34
   const ry = h * 0.3
   for (let i = 0; i < 16; i++) {
     const t = (i / 16) * Math.PI * 2
-    f.box(Math.cos(t) * rx - 0.012, y0 + h / 2 + Math.sin(t) * ry - 0.012, 0.044, 0.024, 0.024, 0.002, C.ui[0], BULB)
+    scr.box(Math.cos(t) * rx - 0.012, y0 + h / 2 + Math.sin(t) * ry - 0.012, 0.044, 0.024, 0.024, 0.002, C.ui[0], BULB)
   }
-  f.box(-0.05, y0 + h / 2 - 0.05, 0.044, 0.1, 0.1, 0.002, C.oceanLight, BULB)
-  f.box(-0.035, y0 + h / 2 - 0.02, 0.045, 0.04, 0.05, 0.002, C.ui[1], BULB)
+  scr.box(-0.05, y0 + h / 2 - 0.05, 0.044, 0.1, 0.1, 0.002, C.oceanLight, BULB)
+  scr.box(-0.035, y0 + h / 2 - 0.02, 0.045, 0.04, 0.05, 0.002, C.ui[1], BULB)
   fx.blinkers.push(fxBox(f, rx * 0.7 - 0.02, y0 + h / 2 + ry * 0.71 - 0.02, 0.045, 0.04, 0.04, 0.003, C.ui[3], { rate: 1, duty: 0.5, phase: 0 }))
   fx.movers.push({
     items: [fxBox(f, -w / 2, y0, 0.049, 0.012, h, 0.002, C.ui[0])],
@@ -412,7 +413,8 @@ export function controlConsole(f, length, rnd, fx) {
 }
 
 // Yiyecek-içecek otomatı; orijin ortası. Ekran, servis nişinde içecek poşeti, tuşlar, durum ışığı.
-export function dispenser(f, fx) {
+export function dispenser(root, fx) {
+  const f = root.interactive('machine', 0, 0, 0, 0, { puff: { at: [0, 0.93, 0.56], kind: 'steam' } })
   f.box(-0.4, 0, 0, 0.8, 0.08, 0.5, C.kick)
   f.box(-0.4, 0.08, 0, 0.8, 1.82, 0.52, C.white)
   f.box(-0.4, 1.6, 0.52, 0.8, 0.05, 0.004, C.accent)
@@ -448,14 +450,16 @@ export function hydroponics(f, length, rnd) {
     f.box(-L / 2 + 0.07, y + 0.12, 0.07, L - 0.14, 0.004, D - 0.14, C.soil)
     const above = i + 1 < levels.length ? levels[i + 1] : topY
     f.box(-L / 2 + 0.06, above - 0.025, 0.17, L - 0.12, 0.025, 0.12, C.grow, BULB)
+    // her kattaki yeşillik ayrı eşya: tıklanınca sıradaki fideler yerinde sallanır
+    const g = f.interactive('plant', 0, y + 0.124, 0, 0, { each: true })
     const n = Math.floor((L - 0.14) / 0.22)
     const pitch = (L - 0.14) / n
     for (let k = 0; k < n; k++) {
       const x = -L / 2 + 0.07 + (k + 0.5) * pitch
       const h = 0.12 + rnd() * 0.1
-      f.box(x - 0.08, y + 0.124, 0.1, 0.16, h, 0.28, pick(rnd, C.leaves))
-      f.box(x - 0.06, y + 0.124 + h, 0.14, 0.12, 0.05, 0.2, pick(rnd, C.leaves))
-      if (rnd() < 0.3) f.box(x + 0.02, y + 0.124 + h - 0.06, 0.37, 0.05, 0.05, 0.04, C.fruit)
+      g.box(x - 0.08, 0, 0.1, 0.16, h, 0.28, pick(rnd, C.leaves))
+      g.box(x - 0.06, h, 0.14, 0.12, 0.05, 0.2, pick(rnd, C.leaves))
+      if (rnd() < 0.3) g.box(x + 0.02, h - 0.06, 0.37, 0.05, 0.05, 0.04, C.fruit)
     }
   })
 }
