@@ -142,8 +142,9 @@ export function forest(root, width, rnd) {
 }
 
 // Katmanlı çam; orijin gövde dibi.
-export function pine(f, rnd, height = 3) {
+export function pine(root, rnd, height = 3) {
   const h = height
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: h * 0.3 })
   f.box(-0.08, 0, -0.08, 0.16, h * 0.3, 0.16, C.bark)
   for (let i = 0; i < 4; i++) {
     const s = (0.95 - i * 0.2) * (h / 3)
@@ -153,7 +154,8 @@ export function pine(f, rnd, height = 3) {
 }
 
 // Huş: beyaz gövdede kara izler, açık yeşil yuvarlak taç.
-export function birch(f, rnd, height = 2.6) {
+export function birch(root, rnd, height = 2.6) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: height * 0.55 })
   f.box(-0.06, 0, -0.06, 0.12, height * 0.78, 0.12, C.birchBark)
   for (let i = 0; i < 4; i++) {
     const y = 0.3 + i * height * 0.15
@@ -168,7 +170,8 @@ export function birch(f, rnd, height = 2.6) {
   }
 }
 
-export function bush(f, rnd) {
+export function bush(root, rnd) {
+  const f = root.interactive('plant')
   for (let i = 0; i < 3; i++) {
     const s = 0.22 + rnd() * 0.18
     f.box(-s / 2 + (rnd() - 0.5) * 0.25, 0, -s / 2 + (rnd() - 0.5) * 0.2, s, s * 0.8, s, pick(rnd, C.bush))
@@ -248,7 +251,9 @@ export function nightSky(root, width, depth, rnd, room) {
 
 // Taş çemberli kamp ateşi: kül yatağı, çatılmış odunlar, korlar. Alev, kıvılcım ve ışık
 // CampfireEffect'te; ateşin orijini room.fires'a eklenir. tripod: üstte asılı çaydanlık.
-export function campfire(f, rnd, room, { tripod = false, marshmallow = false } = {}) {
+export function campfire(root, rnd, room, { tripod = false, marshmallow = false } = {}) {
+  // tıklanınca ateş çıtırdar: odunlar sarsılır, duman püskürür
+  const f = root.interactive('machine', 0, 0, 0, 0, { puff: { at: [0, 0.45, 0], kind: 'steam' } })
   oct(f, 0, 0.62, 0.02, C.ash)
   for (let i = 0; i < 9; i++) {
     const a = (i / 9) * Math.PI * 2
@@ -326,7 +331,9 @@ export function campChair(f, rnd) {
 // ---------------------------------------------------------------- çadırlar ve kamp eşyası
 
 // Çatı çadırı (üçgen kesit): iki eğimli yüz, önde açık kapı ve toplanmış kapak, ip ve kazıklar.
-export function ridgeTent(f, color) {
+export function ridgeTent(root, color) {
+  // tıklanınca çadır sarsılır (rüzgârda kıpırdar gibi)
+  const f = root.interactive('machine')
   const w = 0.68
   const H = 1.08
   const D = 1.6
@@ -364,7 +371,8 @@ export function ridgeTent(f, color) {
 }
 
 // Kubbe çadır: kat kat daralan gövde, önde kapı, üstte çapraz direkler.
-export function domeTent(f, color) {
+export function domeTent(root, color) {
+  const f = root.interactive('machine')
   // ince katlar: [y, yükseklik, genişlik]; üste doğru yuvarlanarak daralır
   const tiers = [[0, 0.22, 1.4], [0.22, 0.2, 1.36], [0.42, 0.16, 1.24], [0.58, 0.14, 1.06], [0.72, 0.1, 0.82], [0.82, 0.08, 0.52]]
   oct(f, 0, 1.5, 0.012, C.soilDark)
@@ -383,8 +391,9 @@ export function domeTent(f, color) {
 }
 
 // Asma kamp feneri direği (çoban değneği biçimi); fener ışığı room.lights'a, altına ışık havuzu.
-export function lanternPole(f, room) {
+export function lanternPole(root, room) {
   const H = 1.9
+  const f = root.interactive('lamp')
   f.box(-0.03, 0, -0.03, 0.06, H, 0.06, C.metal)
   f.box(-0.03, H - 0.03, -0.03, 0.06, 0.03, 0.36, C.metal)
   f.box(-0.03, H - 0.15, 0.3, 0.06, 0.12, 0.03, C.metal)
@@ -441,7 +450,8 @@ export function woodpile(f, rnd) {
   s.frame(0, 0.35, 0, 0.5, 0, 0.45).box(-0.06, -0.02, -0.01, 0.12, 0.08, 0.02, C.steel)
 }
 
-export function cooler(f) {
+export function cooler(root) {
+  const f = root.interactive('machine')
   f.box(-0.28, 0, -0.18, 0.56, 0.34, 0.36, C.cooler)
   f.box(-0.29, 0.34, -0.19, 0.58, 0.07, 0.38, C.white)
   f.box(-0.12, 0.41, -0.02, 0.24, 0.03, 0.04, C.metal)

@@ -254,11 +254,13 @@ export function readingTable(f, { length, depth, back = 0, front = 0 }, rnd, roo
     lampSpots = [[Math.max(0.25, backSeats[0] - 0.5), depth * 0.55]]
   }
   for (const [u, v] of lampSpots) {
-    bankerLamp(f.frame(u, H + 0.006, v))
+    // lamba ve ışık havuzu tek eşya: tıklanınca birlikte kapanır
+    const lamp = f.interactive('lamp', u, H + 0.006, v)
+    bankerLamp(lamp)
     // ışık havuzu masanın dışına taşmasın
     const u0 = Math.max(0, u - 0.6)
     const v0 = Math.max(0, v - 0.5)
-    f.glow(u0, H + 0.01, v0, Math.min(length, u + 0.6) - u0, Math.min(depth, v + 0.5) - v0)
+    lamp.glow(u0 - u, 0.004, v0 - v, Math.min(length, u + 0.6) - u0, Math.min(depth, v + 0.5) - v0)
   }
 
   room.lights.push(f.point(length / 2, H + 0.5, depth / 2).toArray())
@@ -345,7 +347,8 @@ export function teaCorner(f, room) {
   f.box(x0 + 0.04, 0.22, z0 + 0.04, W - 0.08, 0.03, D - 0.08, C.woodMid)
 
   // çaydanlık (alt demlik çelik, üst demlik porselen)
-  const k = f.frame(x0 + 0.18, H, z0 + 0.25)
+  // çaydanlık tıklanınca sarsılır, üstünden buhar püskürür
+  const k = f.interactive('machine', x0 + 0.18, H, z0 + 0.25, 0, { puff: { at: [0, 0.38, 0], kind: 'steam' } })
   k.box(-0.12, 0, -0.12, 0.24, 0.18, 0.24, C.steel)
   k.box(-0.09, 0.18, -0.09, 0.18, 0.02, 0.18, C.steelDark)
   k.box(-0.07, 0.2, -0.07, 0.14, 0.14, 0.14, C.porcelain)
@@ -374,7 +377,8 @@ export function teaCorner(f, room) {
   f.box(x0 + 0.41, 0.3, z0 + 0.16, 0.08, 0.05, 0.08, C.porcelain)
 }
 
-export function plant(f) {
+export function plant(root) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.52 })
   f.box(-0.25, 0, -0.25, 0.5, 0.48, 0.5, C.pot)
   f.box(-0.28, 0.44, -0.28, 0.56, 0.08, 0.56, C.potRim)
   f.box(-0.22, 0.52, -0.22, 0.44, 0.01, 0.44, C.soil)
@@ -424,7 +428,8 @@ export function armchair(f) {
   f.box(-0.4, 0.98, -0.36, 0.8, 0.06, 0.13, C.armchairLight)
 }
 
-export function floorLamp(f) {
+export function floorLamp(root) {
+  const f = root.interactive('lamp')
   f.box(-0.15, 0, -0.15, 0.3, 0.04, 0.3, C.brass)
   f.box(-0.02, 0.04, -0.02, 0.04, 1.3, 0.04, C.brass)
   f.box(-0.2, 1.3, -0.2, 0.4, 0.3, 0.4, '#ffffff', { layer: 'bulb' })

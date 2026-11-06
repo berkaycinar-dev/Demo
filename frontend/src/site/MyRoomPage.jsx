@@ -58,7 +58,7 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
   const [copied, setCopied] = useState(false)
   const now = useClock(30000)
   const { label, Room } = THEMES[room.theme]
-  const { occupants, setMyStatus, myStatus } = useRoomPeople({ capacity: room.capacity, seed: seedOf(room.id), me: avatar })
+  const { occupants, setMyStatus, myStatus } = useRoomPeople({ capacity: room.capacity, seed: seedOf(room.id), me: avatar, cheer: timer.completed })
 
   // Sayaç aşama değiştirince avatar da değişir (elle seçilen durum bir sonraki aşamaya kadar kalır).
   useEffect(() => {
