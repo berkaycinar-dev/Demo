@@ -286,7 +286,9 @@ export function blastDoor(f, fx) {
 
 // Sunucu kabinleri; orijin ikisinin ortası. Her kabinde sekiz bıçak sunucu ve yanıp sönen
 // durum LED'leri, kenarlarda eflatun şerit, tepeden tavana kablolar.
-export function serverRacks(f, rnd, fx) {
+export function serverRacks(root, rnd, fx) {
+  // tıklanınca neon şeritler bir an söner ve kırpışarak yeniden yanar
+  const f = root.interactive('screen')
   for (const x0 of [-0.62, 0.02]) {
     f.box(x0, 0, 0.02, 0.6, 2.0, 0.48, C.rack)
     f.box(x0 + 0.03, 0.08, 0.5, 0.54, 1.84, 0.01, C.black)
@@ -393,7 +395,9 @@ export function dataStream(f, rnd, fx) {
 
 // Drone yuvası; orijin duvarda yuvanın ortası. Şarj plakası ve halka; önünde süzülen drone
 // (gövde ışık alır, gözü ve alt ışığı parlar; hepsi birlikte yavaşça iner kalkar).
-export function droneDock(f, fx) {
+export function droneDock(root, fx) {
+  // tıklanınca istasyon sarsılır, havalandırmadan buhar çıkar
+  const f = root.interactive('machine')
   f.box(-0.25, 1.0, 0, 0.5, 0.5, 0.03, C.trim)
   disk(f, 0, 1.25, 0.03, 0.18, 0.03, 0.004, N.cyan, BULB)
   disk(f, 0, 1.25, 0.034, 0.15, 0.03, 0.003, C.black)
@@ -444,10 +448,12 @@ function neonSign(f, fx) {
 // Ramen otomatı; orijin duvarda otomatın ortası. Işıklı vitrinde dört raf ürün, yanda ödeme ekranı, köşelerde
 // eflatun neon, alt teslim gözünde buharı tüten erişte kabı, tepede "ODAK" neon tabelası.
 // Önüne kehribar nokta ışık düşer.
-export function vendingMachine(f, rnd, fx, room) {
+export function vendingMachine(root, rnd, fx, room) {
   const W = 0.9
   const H = 2.05
   const D = 0.6
+  // tıklanınca otomat sarsılır, teslim gözündeki erişteden buhar püskürür
+  const f = root.interactive('machine', 0, 0, 0, 0, { puff: { at: [-0.1, 0.33, D + 0.06], kind: 'steam' } })
   f.box(-W / 2, 0, 0, W, H, D, C.vending)
   f.box(-0.39, 0.75, D, 0.58, 1.05, 0.004, C.display, BULB)
   for (let r = 0; r < 4; r++) {
@@ -520,11 +526,12 @@ export function podDesk(f, room, fx, light) {
   f.box(-0.08, 0.03, 0.26, 0.16, TABLE_HEIGHT - 0.07, 0.16, C.metal)
   f.box(-0.55, TABLE_HEIGHT - 0.04, 0.05, 1.1, 0.04, DESK_DEPTH, C.shell)
   f.box(-0.55, TABLE_HEIGHT - 0.03, front, 1.1, 0.015, 0.006, N.cyan, BULB)
-  // holo ekran
-  f.box(-0.3, TABLE_HEIGHT, 0.12, 0.6, 0.025, 0.05, C.metal)
-  f.box(-0.28, TABLE_HEIGHT + 0.025, 0.135, 0.56, 0.003, 0.02, N.cyan, BULB)
-  f.box(-0.32, 0.86, 0.15, 0.64, 0.4, 0.006, C.screen, BULB)
-  f.box(-0.32, 1.24, 0.156, 0.64, 0.012, 0.002, N.cyan, BULB)
+  // holo ekran (tıklanınca bir an söner, kırpışıp yeniden açılır)
+  const holo = f.interactive('screen')
+  holo.box(-0.3, TABLE_HEIGHT, 0.12, 0.6, 0.025, 0.05, C.metal)
+  holo.box(-0.28, TABLE_HEIGHT + 0.025, 0.135, 0.56, 0.003, 0.02, N.cyan, BULB)
+  holo.box(-0.32, 0.86, 0.15, 0.64, 0.4, 0.006, C.screen, BULB)
+  holo.box(-0.32, 1.24, 0.156, 0.64, 0.012, 0.002, N.cyan, BULB)
   for (let i = 0; i < 4; i++) {
     fx.room.movers.push({
       items: [fxBox(f, -0.27, 0.9, 0.157, 0.14 + ((i * 7) % 4) * 0.07, 0.016, 0.002, i % 2 ? N.cyan : N.white)],
@@ -691,13 +698,17 @@ export function terrarium(f) {
   f.box(-0.22, 0, -0.22, 0.44, 0.7, 0.44, C.black)
   f.box(-0.22, 0.7, -0.22, 0.44, 0.02, 0.44, C.metal)
   for (const [x, z] of [[-0.22, -0.22], [0.2, -0.22], [-0.22, 0.2], [0.2, 0.2]]) f.box(x, 0.72, z, 0.02, 0.5, 0.02, C.chrome)
-  f.box(-0.23, 1.22, -0.23, 0.46, 0.04, 0.46, C.metal)
-  f.box(-0.18, 1.215, -0.18, 0.36, 0.005, 0.36, N.violet, BULB)
+  // UV ışıklı kapak ayrı eşya: tıklanınca ışık kapanır / açılır
+  const uv = f.interactive('lamp')
+  uv.box(-0.23, 1.22, -0.23, 0.46, 0.04, 0.46, C.metal)
+  uv.box(-0.18, 1.215, -0.18, 0.36, 0.005, 0.36, N.violet, BULB)
+  uv.glow(-0.2, 0.765, -0.2, 0.4, 0.4, N.violet)
   f.box(-0.19, 0.72, -0.19, 0.38, 0.04, 0.38, C.moss)
-  stick(f, [0.0, 0.76, 0.0], [0.06, 0.94, 0.02], 0.04, C.bark)
-  stick(f, [0.06, 0.94, 0.02], [-0.06, 1.04, -0.02], 0.03, C.bark)
-  for (const [x, y, z, s] of [[0.06, 0.96, 0.03, 0.14], [-0.07, 1.06, -0.02, 0.16], [0.02, 1.1, 0.05, 0.11]]) {
-    f.box(x - s / 2, y, z - s / 2, s, s * 0.55, s, C.plant[Math.round(s * 100) % 3])
+  // bonsai yosunun üstünden sallanır (çerçeve yosun yüzeyinde)
+  const b = f.interactive('plant', 0, 0.76, 0)
+  stick(b, [0.0, 0, 0.0], [0.06, 0.18, 0.02], 0.04, C.bark)
+  stick(b, [0.06, 0.18, 0.02], [-0.06, 0.28, -0.02], 0.03, C.bark)
+  for (const [x, y, z, s] of [[0.06, 0.2, 0.03, 0.14], [-0.07, 0.3, -0.02, 0.16], [0.02, 0.34, 0.05, 0.11]]) {
+    b.box(x - s / 2, y, z - s / 2, s, s * 0.55, s, C.plant[Math.round(s * 100) % 3])
   }
-  f.glow(-0.2, 0.765, -0.2, 0.4, 0.4, N.violet)
 }

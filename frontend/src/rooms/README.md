@@ -62,7 +62,12 @@ ile her koltuğun kalkış noktası ve mola yerlerinin erişilebilirliği denetl
 
 - `core/` tema bağımsız: `RoomCanvas` (kabuk), `VoxelMeshes` (instanced çizim), `SpotRings`, gün zamanı ayarları,
   `AnimationTicker` (temanın tüm efektlerine ortak kare zamanlayıcısı), `SteamEffect` (semaver, çaydanlık, kahve
-  makinesi buharı; tüm temalar paylaşır). `RoomCanvas`'ın `lamps` dizisi `[x, y, z]` ya da `{ position, color }` alır;
+  makinesi buharı; tüm temalar paylaşır). `Interactives` tıklanabilir eşyalar: parça içinde `f.interactive(kind, x, y, z, yaw, opts)` ile
+  açılan çerçeveye çizilen kutular o eşyaya ait olur. `lamp` açılıp kapanır (ampul ve ışık havuzu),
+  `screen` bir an söner ve kırpışarak açılır, `plant` sallanır (`bend`: saksı sabit; `each`: sıradaki
+  her fide / asılı ot yerinde), `machine` boyuna göre sarsılır (alçak eşya ayrıca zıplar) ve `puff`
+  ile buhar, kabarcık, iksir ya da nota çıkarır. Kural: her temanın 1-10 kişilik her yerleşiminde en
+  az üç tıklanabilir eşya bulunur (PRODUCT.md, Development Rules). `RoomCanvas`'ın `lamps` dizisi `[x, y, z]` ya da `{ position, color }` alır;
   renk verilmezse gün zamanı ayarındaki `lampColor` kullanılır. Builder'daki `glow(x, y, z, w, d, color)` ışık havuzunu
   bu renkle boyar (renk `lampColor` ile çarpılır).
 - `library/parts.js` kütüphane mobilyaları (kutulardan), `buildLibrary.js` yerleşimi sahneye çevirir

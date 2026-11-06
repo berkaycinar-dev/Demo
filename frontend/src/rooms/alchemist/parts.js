@@ -765,17 +765,19 @@ export function cauldron(f, rnd, fx, room, back) {
       swayPeriod: 1.3 + rnd(),
     })
   }
-  // kazan: aşağıdan yukarı genişleyip ağızda daralan halkalar
+  // kazan: aşağıdan yukarı genişleyip ağızda daralan halkalar. Tıklanınca kazan sarsılır, iksir
+  // köpürüp yeşil kabarcık saçar.
+  const pot = f.interactive('machine', 0, 0, 0, 0, { puff: { at: [0, 0.84, 0], kind: 'potion' } })
   for (let k = 0; k < 3; k++) {
     const a = (k / 3) * TAU + 0.5
-    stick(f, [Math.sin(a) * 0.3, 0.42, Math.cos(a) * 0.3], [Math.sin(a) * 0.36, 0, Math.cos(a) * 0.36], 0.05, C.iron)
+    stick(pot, [Math.sin(a) * 0.3, 0.42, Math.cos(a) * 0.3], [Math.sin(a) * 0.36, 0, Math.cos(a) * 0.36], 0.05, C.iron)
   }
   const profile = [[0.3, 0.22], [0.39, 0.33], [0.44, 0.45], [0.45, 0.57], [0.42, 0.69]]
-  profile.forEach(([r, y], i) => cylinder(f, y, 0.12, r, 10, [C.iron, C.ironLight], 0.07, i < 2))
-  cylinder(f, 0.81, 0.05, 0.44, 10, [C.ironLight], 0.06, false)
-  diskXZ(f, 0.775, 0.38, 0.076, 0.02, M.green, BULB)
-  for (const s of [-1, 1]) f.box(s * 0.47 - 0.02, 0.66, -0.05, 0.04, 0.12, 0.1, C.iron)
-  stick(f, [0.12, 0.8, 0.08], [0.5, 1.12, 0.3], 0.03, C.woodDark)
+  profile.forEach(([r, y], i) => cylinder(pot, y, 0.12, r, 10, [C.iron, C.ironLight], 0.07, i < 2))
+  cylinder(pot, 0.81, 0.05, 0.44, 10, [C.ironLight], 0.06, false)
+  diskXZ(pot, 0.775, 0.38, 0.076, 0.02, M.green, BULB)
+  for (const s of [-1, 1]) pot.box(s * 0.47 - 0.02, 0.66, -0.05, 0.04, 0.12, 0.1, C.iron)
+  stick(pot, [0.12, 0.8, 0.08], [0.5, 1.12, 0.3], 0.03, C.woodDark)
   // kabarcıklar ve duman
   for (let i = 0; i < 7; i++) {
     const a = rnd() * TAU
@@ -811,14 +813,16 @@ export function cauldron(f, rnd, fx, room, back) {
   const w = f.frame(0, 0, -back)
   w.box(-0.6, 2.32, 0, 1.2, 0.05, 0.05, C.woodDark)
   for (const x of [-0.58, 0.55]) w.box(x, 2.24, 0, 0.03, 0.1, 0.06, C.iron)
+  // asılı otlar ve kepçeler askı çubuğundan sarkar: tıklanınca her biri yerinde sallanır
+  const hang = w.interactive('plant', 0, 2.32, 0, 0, { each: true })
   for (let i = 0; i < 6; i++) {
     const x = -0.5 + i * 0.2
-    w.box(x - 0.004, 2.18, 0.02, 0.008, 0.14, 0.008, C.parchment)
+    hang.box(x - 0.004, -0.14, 0.02, 0.008, 0.14, 0.008, C.parchment)
     if (i % 3 === 2) {
-      w.box(x - 0.006, 1.9, 0.015, 0.012, 0.3, 0.012, C.iron)
-      w.box(x - 0.05, 1.86, 0.0, 0.1, 0.05, 0.08, C.copper)
+      hang.box(x - 0.006, -0.42, 0.015, 0.012, 0.3, 0.012, C.iron)
+      hang.box(x - 0.05, -0.46, 0.0, 0.1, 0.05, 0.08, C.copper)
     } else {
-      w.box(x - 0.045, 2.0, -0.01 + 0.035, 0.09, 0.18, 0.06, pick(rnd, C.herb))
+      hang.box(x - 0.045, -0.32, -0.01 + 0.035, 0.09, 0.18, 0.06, pick(rnd, C.herb))
     }
   }
 }
@@ -843,11 +847,13 @@ export function crystalBall(f, fx, room) {
     const a = (k / 3) * TAU
     stick(f, [Math.sin(a) * 0.06, 0.98, Math.cos(a) * 0.06], [Math.sin(a) * 0.13, 1.08, Math.cos(a) * 0.13], 0.025, C.brass)
   }
-  f.box(-0.08, 0.98, -0.08, 0.16, 0.03, 0.16, C.brass)
+  // küre tıklanınca bir an söner, iki kez kırpışıp yeniden parlar
+  const orb = f.interactive('screen')
+  orb.box(-0.08, 0.98, -0.08, 0.16, 0.03, 0.16, C.brass)
   const cy = 1.15
-  f.box(-0.13, cy - 0.06, -0.13, 0.26, 0.12, 0.26, C.crystal, BULB)
-  f.box(-0.09, cy - 0.12, -0.09, 0.18, 0.24, 0.18, C.crystal, BULB)
-  f.box(-0.11, cy - 0.1, -0.11, 0.22, 0.2, 0.22, C.crystal, { ...BULB, rot: [0, Math.PI / 4, 0] })
+  orb.box(-0.13, cy - 0.06, -0.13, 0.26, 0.12, 0.26, C.crystal, BULB)
+  orb.box(-0.09, cy - 0.12, -0.09, 0.18, 0.24, 0.18, C.crystal, BULB)
+  orb.box(-0.11, cy - 0.1, -0.11, 0.22, 0.2, 0.22, C.crystal, { ...BULB, rot: [0, Math.PI / 4, 0] })
   fx.room.pulsers.push({ items: [fxBox(f, -0.05, cy - 0.05, -0.05, 0.1, 0.1, 0.1, '#ffffff', { rot: [0.6, 0.6, 0] })], amp: 0.35, period: 2.4, phase: 0, uniform: true })
   for (let i = 0; i < 5; i++) {
     fx.room.wanderers.push({
