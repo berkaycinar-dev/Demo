@@ -2,7 +2,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, Color, Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { BONE_INDEX, SCALE, buildAvatarParts } from './model'
-import { STAND_POSES, deskReadPose, sleepDeskPose, standPose, typePose, walkPose, writePose } from './poses'
+import { GESTURES, STAND_POSES, deskReadPose, gesturePose, sleepDeskPose, standPose, typePose, walkPose, writePose } from './poses'
 import { computeBones, createBoneMatrices, headTop, writeParts } from './render'
 import './AvatarPreview.css'
 
@@ -19,6 +19,8 @@ const SIT = {
 const BREAK_CYCLE = [['sip', 'mug'], ['phone'], ['stretch'], ['dance'], ['view']]
 const FPS = 24
 const YAW_PER_PIXEL = 0.01
+// bundan az kayan basış sürükleme değil tıklamadır
+const CLICK_SLOP = 4
 const DEG = Math.PI / 180
 // Kamera odakları (bölge × poz): bakılan nokta (anchor: Figure'ın her karede yazdığı konum; tam boy
 // sabit noktaya bakar), bakış yüksekliği (derece), görünen alan (genişlik, yükseklik; m) ve masadaki
@@ -165,6 +167,32 @@ function liftHead(pose, lift, camYaw, keepRoll) {
   return { ...pose, bones: b.map((r, i) => (i === HEAD ? head : r)) }
 }
 
+// Değişiklik tepkisi (Figure): başta çöküş, toparlanırken hafif uzama, sonra durur; esneme yaylanması
+// yok. Oturanda pivot oturak, genlik yarım (ayaklar yerden az kalkar); ayakta pivot zemin.
+const SETTLE_MS = { soft: 320, strong: 480 }
+const SETTLE_AMP = { soft: 0.045, strong: 0.08 }
+const HOP = 0.05
+function settle(group, reaction, seated, invalidate) {
+  const r = reaction.current
+  if (!r || !group) return
+  const kind = r.strong ? 'strong' : 'soft'
+  const p = (performance.now() - r.start) / SETTLE_MS[kind]
+  if (p >= 1) {
+    reaction.current = null
+    group.scale.set(1, 1, 1)
+    group.position.y = 0
+    invalidate()
+    return
+  }
+  const amp = SETTLE_AMP[kind] * (seated ? 0.5 : 1)
+  const f = -amp * Math.cos(p * Math.PI * 1.5) * (1 - p) ** 2
+  const sy = 1 + f
+  const hop = r.strong && !seated && p > 0.15 && p < 0.75 ? HOP * Math.sin((Math.PI * (p - 0.15)) / 0.6) : 0
+  group.scale.set(1 - f * 0.5, sy, 1 - f * 0.5)
+  group.position.y = (seated ? SEAT_Y : 0) * (1 - sy) + hop
+  invalidate()
+}
+
 function Ticker({ animated }) {
   const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
@@ -190,7 +218,7 @@ const WRIST_POINT = new Vector3(0.05 * SCALE, -0.16 * SCALE, 0)
 const LEGS_POINT = new Vector3(0, -0.18 * SCALE, 0.04 * SCALE)
 const SHOE_CENTER = new Vector3(0, -0.2 * SCALE, 0.02 * SCALE)
 
-function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef }) {
+function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef }) {
   const parts = useMemo(() => buildAvatarParts(avatar), [avatar])
   const statics = useMemo(() => sceneBoxes(mode === 'focus' || mode === 'away', activity), [mode, activity])
   const meshRef = useRef(null)
@@ -200,6 +228,47 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef }) {
   const invalidate = useThree((s) => s.invalidate)
   const lift = useRef(0)
   const scratch = useMemo(() => new Vector3(), [])
+  // Görünüm değişince karakter yeni parçayı "üstüne alır": kısa bir çöküp toparlanma. Birden çok alan
+  // birden değişirse (rastgele, kombin, varsayılan) daha belirgin; ayaktaysa küçük bir sıçrama da eklenir.
+  // İlk yüklemede ve ad değişiminde tepki yok; hareket azaltılmışsa hiç yok.
+  const bodyRef = useRef(null)
+  const reaction = useRef(null)
+  const prevLook = useRef(null)
+  // Jest (poses.js GESTURES): gözlük ya da başlık takılınca eliyle düzeltir; karaktere tıklanınca
+  // kameraya dönüp el sallar.
+  const gesture = useRef(null)
+  const play = (kind, opts) => {
+    const g = gesture.current
+    if (g && g.kind === kind && performance.now() - g.start < 500) return
+    gesture.current = { kind, opts, start: performance.now() }
+    invalidate()
+  }
+  useEffect(() => {
+    const look = { ...avatar, name: '' }
+    const prev = prevLook.current
+    prevLook.current = look
+    if (!prev || !animated) return
+    const changed = Object.keys(look).filter((k) => JSON.stringify(look[k]) !== JSON.stringify(prev[k]))
+    if (!changed.length) return
+    reaction.current = { start: performance.now(), strong: changed.length > 2 }
+    // tek tek takılan gözlük ya da başlık (rastgele / kombin değil)
+    if (changed.length <= 2 && changed.includes('glasses') && look.glasses !== 'none') play('glasses')
+    else if (changed.length <= 2 && changed.includes('hat') && look.hat !== 'none') play('hat', { brim: look.hat === 'cap' })
+    invalidate()
+  }, [avatar, animated, invalidate]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    apiRef.current = {
+      // ekrandaki nokta (NDC) karakterin üstündeyse el sallar
+      poke(raycaster) {
+        const mesh = meshRef.current
+        if (!animated || !mesh) return false
+        mesh.boundingSphere = null
+        if (!raycaster.intersectObject(mesh, false).length) return false
+        play('wave')
+        return true
+      },
+    }
+  })
 
   useLayoutEffect(() => {
     const color = new Color()
@@ -234,11 +303,19 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef }) {
       pose = STAND_POSES[act](t, 0.3, prop)
     } else pose = standPose(t, 0.3)
     const camYaw = Math.PI / 4 + view.current.yaw
-    const want = viewOf(mode, focus).lift ?? 0
+    const g = gesture.current
+    const ge = g ? (performance.now() - g.start) / 1000 : 0
+    if (g && ge >= GESTURES[g.kind]) gesture.current = null
+    // el sallarken masadaki de ayaktaki de başını kameraya çevirir
+    const want = Math.max(viewOf(mode, focus).lift ?? 0, gesture.current?.kind === 'wave' ? 1 : 0)
     const ease = animated ? 1 - Math.exp(-Math.min(dt, 0.1) * EASE) : 1
     lift.current += (want - lift.current) * ease
     if (Math.abs(want - lift.current) > SETTLED) invalidate()
     pose = liftHead(pose, lift.current, camYaw, mode === 'away')
+    if (gesture.current) {
+      pose = gesturePose(pose, g.kind, ge, g.opts)
+      invalidate()
+    }
     computeBones(bones, pose, 0, 0, 0)
     const a = anchorsRef.current
     a.head.copy(HEAD_CENTER).applyMatrix4(bones[HEAD])
@@ -250,6 +327,7 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef }) {
     a.feet.y += 0.06
     writeParts(meshRef.current, 0, parts, bones, pose.show)
     meshRef.current.instanceMatrix.needsUpdate = true
+    settle(bodyRef.current, reaction, mode === 'focus' || mode === 'away', invalidate)
 
     const head = headTop(bones, new Vector3(), parts.crown)
     // başlık odağı: baş ortası ile tepe (şapka dahil) arası
@@ -276,9 +354,11 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef }) {
       <instancedMesh ref={sceneRef} key={statics.length} args={[BOX, undefined, statics.length]} frustumCulled={false}>
         <meshLambertMaterial />
       </instancedMesh>
-      <instancedMesh ref={meshRef} key={parts.length} args={[BOX, undefined, parts.length]} frustumCulled={false}>
-        <meshLambertMaterial />
-      </instancedMesh>
+      <group ref={bodyRef}>
+        <instancedMesh ref={meshRef} key={parts.length} args={[BOX, undefined, parts.length]} frustumCulled={false}>
+          <meshLambertMaterial />
+        </instancedMesh>
+      </group>
       <instancedMesh ref={zzzRef} args={[BOX, undefined, 9]} frustumCulled={false}>
         <meshBasicMaterial color="#9aa8d8" />
       </instancedMesh>
@@ -309,12 +389,22 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
   })
   const drag = useRef(null)
   const store = useRef(null)
+  const figure = useRef(null)
+  // kısa basış karakterin üstündeyse el sallar
+  const poke = (e) => {
+    const s = store.current
+    if (!s || !figure.current) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const ndc = { x: ((e.clientX - rect.left) / rect.width) * 2 - 1, y: -((e.clientY - rect.top) / rect.height) * 2 + 1 }
+    s.raycaster.setFromCamera(ndc, s.camera)
+    figure.current.poke(s.raycaster)
+  }
 
   return (
     <div
       className={`avatar-preview ${className}`}
       onPointerDown={(e) => {
-        drag.current = { x: e.clientX, yaw: view.current.yaw }
+        drag.current = { x: e.clientX, y: e.clientY, yaw: view.current.yaw }
         e.currentTarget.setPointerCapture(e.pointerId)
       }}
       onPointerMove={(e) => {
@@ -322,8 +412,10 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         view.current.yaw = drag.current.yaw + (e.clientX - drag.current.x) * YAW_PER_PIXEL
         store.current?.invalidate()
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
+        const d = drag.current
         drag.current = null
+        if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < CLICK_SLOP) poke(e)
       }}
       onDoubleClick={() => {
         view.current.yaw = 0
@@ -344,10 +436,10 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <CameraRig view={view} mode={mode} focus={focus} anchorsRef={anchors} animated={animated} />
         <hemisphereLight color="#fff6e8" groundColor="#8a7a68" intensity={2.2} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} color="#fff1d8" />
-        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} />
+        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} />
         <Ticker animated={animated} />
       </Canvas>
-      <p className="avatar-preview__hint">Sürükle: döndür · Çift tık: sıfırla</p>
+      <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>
     </div>
   )
 }

@@ -23,8 +23,10 @@ function pickStatus(rnd, not) {
  * Oda arkadaşlarının durumu kendi kendine değişir (odak, mola, uzakta). forced verilirse herkes o
  * durumdadır ve kendi kendine değişmez (ekran görüntüsü, deneme). Dönüş: { occupants, setMyStatus }.
  * setMyStatus(status, spot?): kendi durumunu değiştirir; molada spot verilirse o mola noktasına gider.
+ * cheer: kendi avatarının sevinme sayacı (usePomodoro completed); artınca avatar yerinde kollarını
+ * kaldırıp sevinir, sonra molaya kalkar.
  */
-export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null }) {
+export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0 }) {
   const bots = useMemo(() => {
     const rnd = seededRandom(seed)
     const seats = Array.from({ length: capacity }, (_, i) => i)
@@ -83,7 +85,7 @@ export default function useRoomPeople({ capacity, seed = 1, me = null, forced = 
     let others = bots
     if (me) {
       const mySeat = bots[0]?.seat ?? 0
-      list.push({ id: 'me', name: me.name, avatar: me, seat: mySeat, me: true, ...mine, status: forced ?? mine.status })
+      list.push({ id: 'me', name: me.name, avatar: me, seat: mySeat, me: true, ...mine, status: forced ?? mine.status, cheer })
       others = bots.slice(1)
     }
     for (const b of others) {
@@ -91,7 +93,7 @@ export default function useRoomPeople({ capacity, seed = 1, me = null, forced = 
       list.push({ id: b.id, name: b.name, avatar: b.avatar, seat: b.seat, status: forced ?? s.status, since: s.since })
     }
     return list
-  }, [bots, status, me, mine, forced])
+  }, [bots, status, me, mine, forced, cheer])
 
   return { occupants, setMyStatus, myStatus: mine.status }
 }

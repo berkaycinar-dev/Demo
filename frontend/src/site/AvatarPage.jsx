@@ -144,6 +144,8 @@ function Wardrobe({ avatar, onLoad }) {
   const [presets, setPresets] = useState(loadPresets)
   const [slot, setSlot] = useState(0)
   const [saved, setSaved] = useState(null)
+  // her kayıtta artar: aynı slota yeniden kaydedince onay metni yine belirir
+  const [saves, setSaves] = useState(0)
   const pick = (i) => {
     setSlot(i)
     setSaved(null)
@@ -154,6 +156,7 @@ function Wardrobe({ avatar, onLoad }) {
     setPresets(next)
     savePresets(next)
     setSaved(slot)
+    setSaves((n) => n + 1)
   }
   return (
     <section className="wardrobe" aria-label="Kombinler">
@@ -181,8 +184,9 @@ function Wardrobe({ avatar, onLoad }) {
       <button type="button" className="site-btn" onClick={save}>
         Kombin {slot + 1}{SUFFIX[slot]} kaydet
       </button>
+      {/* canlı bölge sabit kalır; içindeki metin değişince yeniden kurulup belirir */}
       <span className="site-muted wardrobe__status" role="status">
-        {saved === slot ? `Kombin ${slot + 1} kaydedildi.` : presets[slot] ? 'Kaydetmek eskisinin üstüne yazar.' : ''}
+        <span key={`${slot}-${saved}-${saves}`}>{saved === slot ? `Kombin ${slot + 1} kaydedildi.` : presets[slot] ? 'Kaydetmek eskisinin üstüne yazar.' : ''}</span>
       </span>
     </section>
   )
@@ -256,7 +260,7 @@ export default function AvatarPage({ avatar, onChange }) {
     <>
       <h1>Avatar atölyesi</h1>
       <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
-      <div className="create">
+      <div className="create avatar-page">
         <section className="create-preview" aria-label="Önizleme">
           <div className="room-frame avatar-page__preview">
             <AvatarPreview avatar={avatar} mode={mode} activity={activity} focus={zone} />
@@ -297,6 +301,8 @@ export default function AvatarPage({ avatar, onChange }) {
             ))}
           </div>
 
+          {/* sekme değişince içerik yeniden kurulur ve yumuşakça gelir (avatar-page__panel) */}
+          <div key={tab} className="avatar-page__panel">
           {tab === 'body' && (
             <>
               <label className="field">
@@ -385,6 +391,7 @@ export default function AvatarPage({ avatar, onChange }) {
               </Zone>
             </>
           )}
+          </div>
 
           <div className="site-actions">
             <button type="button" className="site-btn" onClick={() => commit(randomAvatar(Math.random, avatar.name))}>

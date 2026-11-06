@@ -1000,6 +1000,99 @@ export function blendPose(a, b, k) {
 export const smooth = (k) => k * k * (3 - 2 * k)
 export { TAU }
 
+// ---------------------------------------------------------------- jestler
+//
+// Herhangi bir pozun üstüne kısa süreli eklenen hareketler (oturan da ayaktaki de yapar). Jest pozu
+// alttaki pozdan kurulur; giriş ve çıkışta kemikler dördey (quaternion) ile karışır, kol kısa yoldan
+// döner. e: jestin başından beri geçen sn. Jestler sol elle yapılır: varsayılan kamera avatarın sol
+// (+x) yanından bakar.
+//   wave: kameraya el sallar, başıyla selam verir (atölyede karaktere tıklanınca)
+//   glasses: sol eli gözlüğün menteşesine götürüp çerçeveyi iter
+//   hat: başını hafifçe ele yatırıp başlığın yanını (kepte siperin kenarını) tutup oturtur
+//   cheer: iki kol havada sevinir (odak bloku bitince)
+
+export const GESTURES = { wave: 2.1, glasses: 1.35, hat: 1.5, cheer: 2.6 }
+// giriş süresi: el sallamada kol masadan baş üstüne uzun yol gider
+const GESTURE_IN = { wave: 0.5, glasses: 0.3, hat: 0.32, cheer: 0.35 }
+const GESTURE_OUT = 0.4
+// El küpünün merkezinin değeceği noktalar, baş kemiğine göre (tasarım birimi; model.js ölçüleri).
+// Gözlük menteşesi x 0.178, y 0.226, z 0.17; el küpü 0.09: yüzü menteşeye dayanır.
+const GLASSES_TOUCH = [0.205, 0.215, 0.2]
+// Başlığın yan yüzü (x ≤ 0.205, bant 0.34-0.45) ve kepin siperi (x ≤ 0.15, y 0.34-0.36, z 0.17-0.3).
+const HAT_SIDE = [0.245, 0.37, 0.06]
+const BRIM_EDGE = [0.17, 0.335, 0.2]
+const _head = new Vector3()
+const _hm = new Matrix4()
+
+// Baş kemiğine göre noktanın köke göre konumu (baş dönüşü dahil).
+function headPoint(p, [x, y, z]) {
+  _hm.compose(_v.fromArray(BONES[HEAD].pivot), _q.setFromEuler(_e.set(...p.bones[HEAD])), ONE)
+  _hm.premultiply(torsoFrame(p))
+  return _head.set(x * SCALE, y * SCALE, z * SCALE).applyMatrix4(_hm).toArray()
+}
+
+const bump = (e, from, to) => (e > from && e < to ? Math.sin(((e - from) / (to - from)) * Math.PI) : 0)
+
+function gestureTarget(base, kind, e, opts) {
+  const p = { ...base, bones: base.bones.map((r) => [...r]) }
+  if (kind === 'wave') {
+    // üst kol yana ve biraz öne kalkar (omuz hizasının üstü), önkol dik durur ve dirsekten
+    // sağa sola sallanır
+    const swing = Math.sin((e - GESTURE_IN.wave) * Math.PI * 2 * 2.1)
+    set(p, ARM_L, -0.3, 0, 1.85)
+    set(p, FORE_L, 0, 0, 1.15 + 0.38 * swing)
+    p.bones[TORSO][2] += 0.04
+    // baş selamı: önce eğilir, sonra hafif yana yatık kalır
+    p.bones[HEAD][0] += 0.24 * bump(e, 0.15, 0.75) - 0.04
+    p.bones[HEAD][2] -= 0.1
+  } else if (kind === 'glasses') {
+    p.bones[HEAD][0] += 0.05
+    const push = bump(e, 0.45, 0.95)
+    const [x, y, z] = GLASSES_TOUCH
+    reach(p, 1, headPoint(p, [x, y + 0.03 * push, z]), [1, -0.55, -0.1])
+  } else if (kind === 'hat') {
+    // baş ele doğru yatar (sol yanı alçalır): başlığın yanı kolun erişimine girer
+    const tug = bump(e, 0.45, 1.05)
+    p.bones[HEAD][2] -= 0.12 + 0.05 * tug
+    p.bones[HEAD][0] += opts?.brim ? 0.06 : 0
+    const [x, y, z] = opts?.brim ? BRIM_EDGE : HAT_SIDE
+    reach(p, 1, headPoint(p, [x, y - 0.02 * tug, z]), [1, -0.45, -0.25])
+  } else if (kind === 'cheer') {
+    const pump = 0.12 * Math.sin((e - GESTURE_IN.cheer) * Math.PI * 2 * 1.6)
+    for (const [arm, fore, side] of [[ARM_L, FORE_L, 1], [ARM_R, FORE_R, -1]]) {
+      set(p, arm, -2.75 + pump, 0, side * 0.45)
+      set(p, fore, -0.35 - pump, 0, 0)
+    }
+    p.bones[TORSO][0] -= 0.1
+    p.bones[HEAD][0] = -0.28
+    p.bones[HEAD][1] *= 0.3
+    p.show = null
+  }
+  return p
+}
+
+// İki poz arasında kemik dönüşleri dördeyle (en kısa yay), konumlar doğrusal karışır.
+const _qa = new Quaternion()
+const _qb = new Quaternion()
+function slerpPose(a, b, k) {
+  const bones = a.bones.map((r, i) => {
+    _qa.setFromEuler(_e.set(r[0], r[1], r[2], 'XYZ'))
+    _qb.setFromEuler(_e.set(...b.bones[i], 'XYZ'))
+    _e.setFromQuaternion(_qa.slerp(_qb, k), 'XYZ')
+    return [_e.x, _e.y, _e.z]
+  })
+  const mixv = (x, y) => (x ?? 0) + ((y ?? 0) - (x ?? 0)) * k
+  return { hipY: mixv(a.hipY, b.hipY), hipX: mixv(a.hipX, b.hipX), hipZ: mixv(a.hipZ, b.hipZ), bones, show: k < 0.5 ? a.show : b.show }
+}
+
+/** Pozun üstüne jest ekler; süre dolduysa pozu olduğu gibi döner. opts: { brim } (hat: kep siperi). */
+export function gesturePose(base, kind, e, opts) {
+  const dur = GESTURES[kind]
+  if (!dur || e < 0 || e >= dur) return base
+  const k = smooth(Math.min(1, e / GESTURE_IN[kind], (dur - e) / GESTURE_OUT))
+  return slerpPose(base, gestureTarget(base, kind, e, opts), k)
+}
+
 // Mola hareketleri: ad → (t, seed, prop) => poz. Mola yerleri (activities.js) bunlara bağlanır.
 export const STAND_POSES = {
   look: lookPose,
