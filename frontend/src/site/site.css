@@ -304,6 +304,13 @@
   cursor: pointer;
 }
 
+.theme-option__swatch {
+  display: block;
+  height: 6px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+}
+
 .theme-option span {
   display: block;
   color: var(--muted);
@@ -372,6 +379,44 @@
 
 .create-preview__room {
   height: min(560px, 70svh);
+}
+
+.create-preview__scene {
+  height: 100%;
+  animation: sceneIn 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sceneIn {
+  from {
+    opacity: 0.35;
+  }
+}
+
+/* koyu modda oda sahnesinin boşluğu: gün zamanının rengi koyu zeminle karışır (gündüz kremi
+   göz almasın, odanın kendi ışığı öne çıksın); sahne düğmeleri de koyu yüzeye geçer */
+:root[data-mode='dark'] .room-canvas {
+  background: color-mix(in srgb, var(--room-bg) 16%, #1b1e23);
+}
+
+:root[data-mode='dark'] .room-canvas__group {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line), 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-mode='dark'] .room-canvas__group button {
+  color: var(--text);
+}
+
+:root[data-mode='dark'] .room-canvas__group button + button {
+  border-left-color: var(--line);
+}
+
+:root[data-mode='dark'] .room-canvas__group button:hover {
+  background: var(--surface-2);
+}
+
+:root[data-mode='dark'] .room-canvas__hint {
+  color: rgba(236, 238, 240, 0.6);
 }
 
 /* odadakiler listesi; nokta biçimleri avatar etiketleriyle aynı */
@@ -454,6 +499,44 @@
   cursor: default;
 }
 
+/* saç sekmesinde, başlık takılıyken: önizlemede başlığı gizle / göster (sol üst) */
+.avatar-page__hat {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.avatar-page__hat[aria-pressed='true'] {
+  border-color: var(--chip-on-edge);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+}
+
+/* o anki seçimde geçersiz alan (bu saç modelinde kahkül yok): ad ve düğmeler soluk, not okunur */
+.field--off .field__name,
+.field--off .choice-row {
+  opacity: 0.45;
+}
+
+.field--off .choice-row button {
+  border-style: solid;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.field--off .choice-row button:hover {
+  background: transparent;
+}
+
 /* kombin slotları */
 .wardrobe {
   display: flex;
@@ -534,12 +617,13 @@
 .swatch-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
 }
 
+/* 40 px + 6 px aralık: en uzun satır (yok + 12 renk) masaüstü panelde tek satıra sığar */
 .swatch {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 2px solid var(--line-strong);
   border-radius: 50%;
@@ -723,5 +807,9 @@
   .avatar-page__panel,
   .avatar-page .avatar-page__sub {
     animation-name: avatarFade;
+  }
+
+  .create-preview__scene {
+    animation: none;
   }
 }
