@@ -51,29 +51,29 @@ export const BODIES = [
   { id: 'female', label: 'Kadın' },
 ]
 
-// Unisex havuz: her beden tüm modelleri seçebilir.
+// Unisex havuz: her beden tüm modelleri seçebilir. group: atölyede alt başlık (uzunluğa göre).
 export const HAIR_STYLES = [
-  { id: 'short', label: 'Kısa' },
-  { id: 'sidepart', label: 'Yan ayrık' },
-  { id: 'quiff', label: 'Kabarık' },
-  { id: 'spiky', label: 'Dikenli' },
-  { id: 'undercut', label: 'Undercut' },
-  { id: 'manbun', label: 'Erkek topuzu' },
-  { id: 'mohawk', label: 'Mohikan' },
-  { id: 'buzz', label: 'Asker' },
-  { id: 'curly', label: 'Kıvırcık' },
-  { id: 'afro', label: 'Afro' },
-  { id: 'long', label: 'Uzun düz' },
-  { id: 'wavy', label: 'Uzun dalgalı' },
-  { id: 'halfup', label: 'Yarım toplu' },
-  { id: 'bob', label: 'Küt' },
-  { id: 'pixie', label: 'Pixie' },
-  { id: 'ponytail', label: 'At kuyruğu' },
-  { id: 'bun', label: 'Topuz' },
-  { id: 'spacebuns', label: 'Çift topuz' },
-  { id: 'pigtails', label: 'İki kuyruk' },
-  { id: 'braid', label: 'Örgü' },
-  { id: 'bald', label: 'Kel' },
+  { id: 'short', label: 'Kısa', group: 'Kısa' },
+  { id: 'sidepart', label: 'Yan ayrık', group: 'Kısa' },
+  { id: 'quiff', label: 'Kabarık', group: 'Kısa' },
+  { id: 'spiky', label: 'Dikenli', group: 'Kısa' },
+  { id: 'undercut', label: 'Undercut', group: 'Kısa' },
+  { id: 'mohawk', label: 'Mohikan', group: 'Kısa' },
+  { id: 'buzz', label: 'Asker', group: 'Kısa' },
+  { id: 'pixie', label: 'Pixie', group: 'Kısa' },
+  { id: 'bald', label: 'Kel', group: 'Kısa' },
+  { id: 'curly', label: 'Kıvırcık', group: 'Kıvırcık ve uzun' },
+  { id: 'afro', label: 'Afro', group: 'Kıvırcık ve uzun' },
+  { id: 'bob', label: 'Küt', group: 'Kıvırcık ve uzun' },
+  { id: 'long', label: 'Uzun düz', group: 'Kıvırcık ve uzun' },
+  { id: 'wavy', label: 'Uzun dalgalı', group: 'Kıvırcık ve uzun' },
+  { id: 'halfup', label: 'Yarım toplu', group: 'Kıvırcık ve uzun' },
+  { id: 'manbun', label: 'Erkek topuzu', group: 'Toplu ve örgülü' },
+  { id: 'ponytail', label: 'At kuyruğu', group: 'Toplu ve örgülü' },
+  { id: 'bun', label: 'Topuz', group: 'Toplu ve örgülü' },
+  { id: 'spacebuns', label: 'Çift topuz', group: 'Toplu ve örgülü' },
+  { id: 'pigtails', label: 'İki kuyruk', group: 'Toplu ve örgülü' },
+  { id: 'braid', label: 'Örgü', group: 'Toplu ve örgülü' },
 ]
 
 // Kulakları örten saçlar: küpe ve kulak içi kulaklık görünmez.
@@ -193,7 +193,7 @@ export const HATS = [
 // içi her başlıkla takılır.
 export const HEADPHONES = [
   { id: 'none', label: 'Yok' },
-  { id: 'gaming', label: 'Oyuncu kulaklığı (mikrofonlu)', over: true },
+  { id: 'gaming', label: 'Oyuncu (mikrofonlu)', over: true },
   { id: 'cat', label: 'Kedi kulaklı RGB', over: true },
   { id: 'retro', label: 'Retro süngerli', over: true },
   { id: 'neck', label: 'Boyunda' },
