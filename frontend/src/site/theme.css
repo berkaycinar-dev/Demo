@@ -40,6 +40,11 @@
   --scene-glow: #f6f2ea;
   --scene-bg: radial-gradient(circle at 50% 40%, var(--scene-glow), var(--scene-base));
   --scene-hint: #5c4e40;
+  /* kapı tabelası (oda adı): koyu ceviz levha, krem yazı */
+  --sign-wood: #5b4331;
+  --sign-edge: #3e2d20;
+  --sign-ink: #f7eedd;
+  --sign-ink-2: #d9c7ad;
   /* ana vurgu: açık turkuaz düğmeler (koyu yazıyla okunaklı), yazı vurguları koyu turkuaz */
   --primary: #126c7e;
   --primary-hover: #0f5d6d;
@@ -94,6 +99,8 @@
   --scene-base: #1d1a17;
   --scene-glow: #3b332b;
   --scene-hint: #e8ddd0;
+  --sign-wood: #4a382a;
+  --sign-edge: #2c2119;
   --primary: #9db8d6;
   --primary-hover: #b6cbe3;
   /* düğmeler: göz almayan lacivert */
