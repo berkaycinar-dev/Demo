@@ -180,7 +180,7 @@ export function SiteFooter({ user, pages, onGo, isDark }) {
       <div className="site-footer__bottom">
         <div className="site-footer__inner">
           <span>© 2026 Odakhane (çalışma adı)</span>
-          <span>Tema: Gri &amp; Mavi · {isDark ? 'koyu' : 'açık'}</span>
+          <span>Tema: Kâğıt &amp; Mavi · {isDark ? 'koyu' : 'açık'}</span>
         </div>
       </div>
     </footer>
