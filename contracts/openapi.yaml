@@ -22,6 +22,26 @@ servers:
 tags:
   - name: system
     description: Health and diagnostics
+  - name: auth
+    description: |
+      Accounts and tokens. DRAFT for review by D and A; decisions below are proposals until merged.
+
+      **Access token.** Signed JWT (HS256), valid 15 minutes. Claims: `iss` = `demo-backend`,
+      `sub` = user id (UUID), `iat`, `exp`, `jti`, `username`. No roles inside the token:
+      room roles are looked up on the server (room membership), so a role change applies at once.
+
+      **How it is sent.** REST: `Authorization: Bearer <accessToken>`. STOMP: the same value in the
+      CONNECT frame's `Authorization` header (never in the URL). No cookies.
+
+      **Refresh token.** Opaque random value (not a JWT), valid 14 days, stored only as a hash,
+      replaced on every use. Reusing an already-used refresh token revokes all refresh tokens of that user.
+
+      **Revocation.** Logout revokes the refresh token. Access tokens are not blacklisted; they end by
+      themselves within 15 minutes.
+
+      **Validation on the server.** One Spring app, so D's STOMP interceptor uses the same `JwtDecoder`
+      bean that C exposes; there is no second auth system. The signing key comes from the `JWT_SECRET`
+      environment variable (at least 32 bytes).
 
 paths:
   /api/v1/ping:
@@ -40,7 +60,176 @@ paths:
                 message: pong
                 serverTime: "2026-10-29T20:00:00Z"
 
+  /api/v1/auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Create an account and sign in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created. Tokens are returned, so the client is signed in at once.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Email or username is already taken (`code` is EMAIL_TAKEN or USERNAME_TAKEN).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: Email is already registered
+                code: EMAIL_TAKEN
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Sign in with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          description: |
+            Wrong email or password (`code` is INVALID_CREDENTIALS). The answer is the same for an
+            unknown email and a wrong password, so it does not reveal which accounts exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 401
+                title: Unauthorized
+                detail: Email or password is wrong
+                code: INVALID_CREDENTIALS
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      operationId: getMe
+      summary: Return the signed-in user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The user the access token belongs to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshToken
+      x-status: planned
+      summary: Exchange a refresh token for a new token pair
+      description: Planned for the second half of H2. The old refresh token stops working after this call.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New access token and new refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Refresh token is unknown, expired or already used (`code` is REFRESH_TOKEN_INVALID).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 401
+                title: Unauthorized
+                detail: Refresh token is not valid
+                code: REFRESH_TOKEN_INVALID
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      x-status: planned
+      summary: Revoke a refresh token
+      description: Planned for the second half of H2. Always answers 204, even for an unknown token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "204":
+          description: Refresh token revoked (or it never existed)
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from register, login or refresh.
+
+  responses:
+    ValidationError:
+      description: Request body failed validation (`code` is VALIDATION_ERROR, see `fieldErrors`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: 400
+            title: Validation error
+            detail: Request validation failed
+            code: VALIDATION_ERROR
+            fieldErrors:
+              password: size must be between 8 and 72
+    Unauthenticated:
+      description: Missing, malformed or expired access token (`code` is UNAUTHENTICATED).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: 401
+            title: Unauthorized
+            detail: Access token is missing or expired
+            code: UNAUTHENTICATED
+
   schemas:
     PingResponse:
       type: object
@@ -81,3 +270,80 @@ components:
             type: string
           example:
             name: must not be blank
+
+    RegisterRequest:
+      type: object
+      required: [email, username, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Stored in lower case. Must be unique.
+          example: ada@example.com
+        username:
+          type: string
+          pattern: "^[A-Za-z0-9_]{3,30}$"
+          description: 3-30 letters, digits or underscore. Unique ignoring case.
+          example: ada_l
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+          description: At most 72 characters (the limit of the password hash).
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: ada@example.com
+        password:
+          type: string
+          format: password
+
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    UserResponse:
+      type: object
+      required: [id, email, username, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      required: [user, accessToken, refreshToken, tokenType, expiresIn]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+        accessToken:
+          type: string
+          description: "JWT. Send it as the header `Authorization: Bearer <accessToken>`."
+        refreshToken:
+          type: string
+          description: Opaque value. Keep it safe; it is valid 14 days and works once.
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          description: Access token lifetime in seconds.
+          example: 900
