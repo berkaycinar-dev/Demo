@@ -473,68 +473,150 @@
   height: min(520px, 62svh);
 }
 
-/* önizlemenin köşesinde geri al / ileri al */
-.avatar-page__history {
+/* önizleme üstünde yüzen kontrol barları: saydam bulanık zemin 3D sahnenin üstünde okunur kalır */
+.hud {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  z-index: 1;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 70%, transparent),
+    0 6px 18px -10px rgba(20, 25, 35, 0.45);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  backdrop-filter: blur(10px) saturate(1.2);
+  color: var(--text-2);
 }
 
-.avatar-page__history button {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
+.hud--top {
+  top: 10px;
+  right: 10px;
+}
+
+.hud--bottom {
+  bottom: 10px;
+  left: 50%;
+  max-width: calc(100% - 20px);
+  padding-left: 12px;
+  transform: translateX(-50%);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.hud button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border: 0;
   border-radius: 999px;
-  background: var(--surface);
+  background: transparent;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
   cursor: pointer;
 }
 
-.avatar-page__history button:disabled {
-  opacity: 0.45;
+.hud__icon {
+  width: 34px;
+}
+
+.hud__text {
+  padding: 0 12px 0 10px;
+  font-weight: 600;
+}
+
+.hud button:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.hud button:disabled {
+  color: var(--muted);
+  opacity: 0.5;
   cursor: default;
 }
 
-/* saç sekmesinde, başlık takılıyken: önizlemede başlığı gizle / göster (sol üst) */
-.avatar-page__hat {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text);
+.hud button[aria-pressed='true'] {
+  background: var(--chip-on-bg);
+  box-shadow: inset 0 0 0 1px var(--chip-on-edge);
+  color: var(--chip-on-fg);
+}
+
+.hud__tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-right: 10px;
+  color: var(--text-2);
+}
+
+.hud__tip .icon {
+  color: var(--muted);
+}
+
+.hud__divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 3px;
+  background: var(--line-strong);
+}
+
+/* bitişik seçim şeridi: az ve kısa seçenekler (poz, beden, kahkül, kaş) */
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.segmented button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-2);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
-.avatar-page__hat[aria-pressed='true'] {
-  border-color: var(--chip-on-edge);
+.segmented button:hover {
+  color: var(--text);
+}
+
+.segmented button[aria-pressed='true'] {
   background: var(--chip-on-bg);
+  box-shadow: var(--primary-glow);
   color: var(--chip-on-fg);
+  font-weight: 600;
+}
+
+.avatar-page__poses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* o anki seçimde geçersiz alan (bu saç modelinde kahkül yok): ad ve düğmeler soluk, not okunur */
 .field--off .field__name,
-.field--off .choice-row {
+.field--off .segmented,
+.field--off .option-grid {
   opacity: 0.45;
 }
 
-.field--off .choice-row button {
-  border-style: solid;
-  opacity: 1;
+.field--off button {
   cursor: not-allowed;
 }
 
-.field--off .choice-row button:hover {
-  background: transparent;
+.field--off .segmented button:hover {
+  color: var(--text-2);
 }
 
 /* kombin slotları */
@@ -595,35 +677,216 @@
 }
 
 .avatar-page__sub {
-  margin-top: 8px;
+  animation: avatarRise 220ms var(--ease-out);
 }
 
-.avatar-page__tabs {
-  margin-bottom: 20px;
-  padding-bottom: 14px;
+/* düzenleyici: sekme çubuğu panelin üstüne yapışır, uzun sekmede kaydırırken kategori görünür kalır */
+.avatar-page__editor {
+  padding-top: 0;
+}
+
+.avatar-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 -24px 4px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--line);
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
 }
 
-.avatar-page__group + .avatar-page__group {
-  margin-top: 10px;
+.avatar-tabs button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.avatar-page__group > .site-muted {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 0.85em;
+.avatar-tabs button::after {
+  content: '';
+  position: absolute;
+  right: 18%;
+  bottom: -1px;
+  left: 18%;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--primary);
+  transform: scaleX(0);
+  transition: transform 220ms var(--ease-out);
 }
 
-.swatch-row {
+.avatar-tabs button:hover {
+  color: var(--text);
+}
+
+.avatar-tabs button[aria-selected='true'] {
+  color: var(--text);
+}
+
+.avatar-tabs button[aria-selected='true'] .icon {
+  color: var(--primary);
+}
+
+.avatar-tabs button[aria-selected='true']::after {
+  transform: scaleX(1);
+}
+
+/* dar ekranda sekme ikonu etiketin üstünde: dört sekme tek satıra sığar */
+@media (max-width: 560px) {
+  .avatar-tabs {
+    padding: 0 6px;
+  }
+
+  .avatar-tabs button {
+    flex-direction: column;
+    gap: 3px;
+    min-height: 60px;
+    font-size: 12.5px;
+    line-height: 1.2;
+  }
+}
+
+/* sekme içi bölümler: başlık + alanlar; çizgiyle ayrılır, kart yok */
+.avatar-page__panel {
+  container: options / inline-size;
+}
+
+.opt-section {
+  padding: 20px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.avatar-page__panel > .opt-section:first-child,
+.avatar-page__panel > :first-child > .opt-section {
+  border-top: 0;
+}
+
+.site .opt-section__title {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.avatar-page .field {
+  margin-bottom: 18px;
+}
+
+.avatar-page .field__label {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-size: 13px;
+}
+
+.field__value {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.field__note {
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+/* seçenek ızgarası: eşit sütunlar, kısa etiket tek satır, uzun etiket iki satıra kırılır */
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
   gap: 6px;
 }
 
-/* 40 px + 6 px aralık: en uzun satır (yok + 12 renk) masaüstü panelde tek satıra sığar */
+.option-group + .option-group {
+  margin-top: 12px;
+}
+
+.option-group__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.option-group__name::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.25;
+  text-align: center;
+  text-wrap: balance;
+  cursor: pointer;
+}
+
+.tile:hover {
+  border-color: var(--muted);
+  background: var(--surface-2);
+}
+
+.tile--none {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.tile[aria-pressed='true'] {
+  border-color: var(--chip-on-edge);
+  border-style: solid;
+  background: var(--chip-on-bg);
+  box-shadow: var(--primary-glow);
+  color: var(--chip-on-fg);
+  font-weight: 600;
+}
+
+/* renk yuvarlakları: geniş panelde tek satır; dar panelde eşit iki satır (tek renk alta düşmez) */
+.swatch-row {
+  --cols: var(--n);
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 40px));
+  gap: 6px;
+}
+
+@container options (max-width: 560px) {
+  .swatch-row {
+    --cols: var(--half);
+  }
+}
+
 .swatch {
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  aspect-ratio: 1;
   padding: 0;
   border: 2px solid var(--line-strong);
   border-radius: 50%;
@@ -641,22 +904,30 @@
   box-shadow: 0 0 0 3px var(--text);
 }
 
+.avatar-page__actions {
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
 /* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, sekme içeriği
    ve beliren satırlar yumuşakça gelir. Varsayılan hâl görünür; animasyon yalnızca "from" tanımlar. */
 .avatar-page {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.avatar-page .choice-row button,
+.avatar-page .tile,
+.avatar-page .segmented button,
 .avatar-page .wardrobe__slot,
-.avatar-page .avatar-page__history button {
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease,
-    transform 120ms var(--ease-out);
+.avatar-page .hud button {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease,
+    opacity 150ms ease, transform 120ms var(--ease-out);
 }
 
-.avatar-page .choice-row button:active:not(:disabled),
+.avatar-page .tile:active:not(:disabled),
+.avatar-page .segmented button:active:not(:disabled),
 .avatar-page .wardrobe__slot:active,
-.avatar-page .avatar-page__history button:active:not(:disabled) {
+.avatar-page .hud button:active:not(:disabled) {
   transform: scale(0.96);
 }
 
@@ -668,8 +939,7 @@
   transform: scale(0.9);
 }
 
-.avatar-page__panel,
-.avatar-page .avatar-page__sub {
+.avatar-page__panel {
   animation: avatarRise 220ms var(--ease-out);
 }
 
@@ -797,16 +1067,21 @@
   }
 
   /* atölye: yer değiştirme ve ölçek yok; renk geçişleri ve solma kalır */
-  .avatar-page .choice-row button:active,
+  .avatar-page .tile:active,
+  .avatar-page .segmented button:active,
   .avatar-page .wardrobe__slot:active,
-  .avatar-page .avatar-page__history button:active,
+  .avatar-page .hud button:active,
   .avatar-page .swatch:active {
     transform: none;
   }
 
   .avatar-page__panel,
-  .avatar-page .avatar-page__sub {
+  .avatar-page__sub {
     animation-name: avatarFade;
+  }
+
+  .avatar-tabs button::after {
+    transition: none;
   }
 
   .create-preview__scene {
