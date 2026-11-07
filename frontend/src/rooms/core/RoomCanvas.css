@@ -65,13 +65,14 @@
   left: 16px;
   bottom: 10px;
   margin: 0;
-  color: rgba(60, 48, 36, 0.6);
+  /* gündüz/akşam zemininde AA: 0.6 saydamlık 3.4:1 kalıyordu */
+  color: var(--scene-hint, #5c4e40);
   font-size: 12px;
   pointer-events: none;
 }
 
 .room-canvas[data-time='night'] .room-canvas__hint {
-  color: rgba(240, 232, 220, 0.55);
+  color: rgba(240, 232, 220, 0.82);
 }
 
 @media (max-width: 600px) {

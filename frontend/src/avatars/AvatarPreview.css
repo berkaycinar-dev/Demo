@@ -4,7 +4,8 @@
   height: 100%;
   min-height: 300px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, #f6f2ea, #e2dbcf);
+  /* ortak sahne zemini (theme.css --scene-bg): gündüz krem stüdyo, koyu modda sıcak akşam; token yoksa krem */
+  background: var(--scene-bg, radial-gradient(circle at 50% 40%, #f6f2ea, #e2dbcf));
   touch-action: pan-y;
   user-select: none;
   cursor: grab;
@@ -20,7 +21,7 @@
   border-radius: 999px;
   /* geri al / ileri al haplarıyla aynı yüzey; saydam ve bulanık zemin karakterin üstünde okunur */
   background: color-mix(in srgb, var(--surface, #fff) 80%, transparent);
-  box-shadow: inset 0 0 0 1px var(--line-strong, rgba(60, 45, 30, 0.2));
+  box-shadow: inset 0 0 0 1px var(--line-strong, rgba(60, 45, 30, 0.2)), 0 6px 18px -10px rgba(40, 26, 12, 0.45);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: var(--text-2, #3a3128);

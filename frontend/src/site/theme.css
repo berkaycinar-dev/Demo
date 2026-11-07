@@ -1,4 +1,5 @@
-/* Odakhane tasarım token'ları: açık modda beyaz header/footer, gri sayfa, turkuaz vurgular; koyu mod ayrı.
+/* Odakhane tasarım token'ları: sıcak malzeme nötrleri (kâğıt, kil, ahşap) + turkuaz vurgular; koyu mod
+   ayrı (sıcak kömür ve ahşap, akşam sahnesi).
    Koyu mod <html data-mode="dark"> ile açılır; bkz. useColorMode.js. */
 
 :root {
@@ -11,29 +12,49 @@
   /* düğme dolgusu: düz renk yerine üstten hafif aydınlanan geçiş */
   --button-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.06));
 
-  /* orta alan: yumuşak gri; kartlar beyaz */
-  --bg: #f4f5f7;
-  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 255, 255, 0.7), transparent 70%) fixed,
-    linear-gradient(180deg, #eff0f2 0%, #e6e8eb 100%) fixed, #eaecef;
-  --surface: #ffffff;
+  /* malzeme primitifleri: kâğıt (ikincil yüzey), kil (gömük şerit), ahşap (koyu modda ikincil yüzey) */
+  --material-paper: #f2ece2;
+  --material-clay: #ebe2d4;
+  --material-wood: #3b3530;
+
+  /* orta alan: sıcak kâğıt zemin; kartlar kırık beyaz */
+  --page-base: #efe9df;
+  --bg: #f5f0e8;
+  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 253, 249, 0.75), transparent 70%) fixed,
+    linear-gradient(180deg, #f3eee6 0%, #ebe4d9 100%) fixed, var(--page-base);
+  --surface: #fffdf9;
   --surface-hero: var(--surface);
-  --surface-2: #eef0f2;
-  --card-edge: inset 0 0 0 1px #e1e4e8, 0 1px 2px rgba(20, 25, 35, 0.05), 0 10px 24px -14px rgba(20, 25, 35, 0.18);
-  --line: #e1e4e8;
-  --line-strong: #c6cbd2;
-  --text: #1f2125;
-  --text-2: #3a3f47;
-  --muted: #5f6670;
+  --surface-2: var(--material-paper);
+  --surface-sunken: var(--material-clay);
+  --card-edge: inset 0 0 0 1px #e6ded2, 0 1px 2px rgba(60, 40, 20, 0.05), 0 10px 24px -14px rgba(60, 40, 20, 0.2);
+  --line: #e6ded2;
+  --line-strong: #cbbfae;
+  --text: #221e1a;
+  --text-2: #3d362f;
+  --muted: #675e54;
+  /* voxel kenarı: bloğun alt yüzü gibi 2 px iç gölge + 1 px üst ışık; köşeler blok gibi az yuvarlak */
+  --voxel-face: inset 0 -2px 0 rgba(90, 64, 36, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --radius-block: 6px;
+  /* 3D sahne zemini (avatar önizlemesi ve oda sahnesi ortak): gündüz krem stüdyo */
+  --scene-base: #e2dbcf;
+  --scene-glow: #f6f2ea;
+  --scene-bg: radial-gradient(circle at 50% 40%, var(--scene-glow), var(--scene-base));
+  --scene-hint: #5c4e40;
+  /* kapı tabelası (oda adı): koyu ceviz levha, krem yazı */
+  --sign-wood: #5b4331;
+  --sign-edge: #3e2d20;
+  --sign-ink: #f7eedd;
+  --sign-ink-2: #d9c7ad;
   /* ana vurgu: açık turkuaz düğmeler (koyu yazıyla okunaklı), yazı vurguları koyu turkuaz */
-  --primary: #157a8f;
-  --primary-hover: #106577;
+  --primary: #126c7e;
+  --primary-hover: #0f5d6d;
   --primary-fill: var(--button-sheen), #46bfd6;
   --primary-glow: inset 0 0 0 1px #2fa6be, 0 2px 6px -2px rgba(20, 120, 145, 0.35);
   --on-primary: #072b35;
   --primary-soft: #e3f4f8;
   --chip-on-bg: var(--primary-fill);
   --chip-on-fg: #072b35;
-  --chip-on-edge: #2fa6be;
+  --chip-on-edge: #1f8aa0;
   --badge: #a0700e;
   --badge-soft: #f6eedb;
   --timer: #1f93ab;
@@ -42,51 +63,66 @@
   --break: #245f58;
   --success: #1e6650;
   --success-soft: #ddede5;
-  /* header ve footer: beyaz */
-  --header-bg: #ffffff;
-  --header-text: #1f2125;
-  --header-muted: #5f6670;
-  --header-active: #eef0f2;
-  --header-border: #e1e4e8;
-  --header-accent: #1f93ab;
+  /* header ve footer: kırık beyaz */
+  --header-bg: #fffdf9;
+  --header-text: #221e1a;
+  --header-muted: #675e54;
+  --header-active: var(--material-paper);
+  --header-border: #e6ded2;
+  --header-accent: #167486;
+}
+
+/* sayfa sınırının ötesine kaydırınca görünen zemin de temaya uyar */
+:root {
+  background-color: var(--page-base);
 }
 
 :root[data-mode='dark'] {
   color-scheme: dark;
-  /* orta alan: koyu gri; kartlar bir ton açık gri */
-  --bg: #24272b;
-  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 255, 255, 0.04), transparent 70%) fixed,
-    linear-gradient(180deg, #2a2d31 0%, #222428 100%) fixed, #25282c;
-  --surface: #31353a;
-  --surface-2: #3b3f45;
-  --card-edge: inset 0 0 0 1px #40444b, 0 12px 28px -18px rgba(0, 0, 0, 0.55);
-  --line: #40444b;
-  --line-strong: #565b63;
-  --text: #eceef0;
-  --text-2: #c9cdd3;
-  --muted: #a0a6af;
+  /* orta alan: sıcak kömür; kartlar bir ton açık, ikincil yüzey ahşap */
+  --material-clay: #2a2622;
+  --page-base: #24211e;
+  --bg: #24211e;
+  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 236, 214, 0.045), transparent 70%) fixed,
+    linear-gradient(180deg, #2a2622 0%, #211e1b 100%) fixed, var(--page-base);
+  --surface: #302c28;
+  --surface-2: var(--material-wood);
+  --surface-sunken: var(--material-clay);
+  --card-edge: inset 0 0 0 1px #47403a, 0 12px 28px -18px rgba(0, 0, 0, 0.6);
+  --line: #47403a;
+  --line-strong: #625950;
+  --text: #efe9e1;
+  --text-2: #d4ccc1;
+  --muted: #b3a99c;
+  --voxel-face: inset 0 -2px 0 rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 236, 214, 0.05);
+  /* 3D sahne zemini: sıcak akşam (lamba ışığı ortada, kenarlar koyu ahşap) */
+  --scene-base: #1d1a17;
+  --scene-glow: #3b332b;
+  --scene-hint: #e8ddd0;
+  --sign-wood: #4a382a;
+  --sign-edge: #2c2119;
   --primary: #9db8d6;
   --primary-hover: #b6cbe3;
   /* düğmeler: göz almayan lacivert */
   --primary-fill: var(--button-sheen), #24426b;
   --primary-glow: inset 0 0 0 1px #34557f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
   --on-primary: #e8eef7;
-  --primary-soft: #36414d;
+  --primary-soft: #2e3a44;
   --chip-on-fg: #e8eef7;
-  --chip-on-edge: #34557f;
+  --chip-on-edge: #8fb0d6;
   --badge: #e2bd6a;
   --badge-soft: #433c2c;
   --timer: #9db8d6;
   --info: #9db8d6;
-  --info-soft: #36414d;
+  --info-soft: #2e3a44;
   --break: #9ad9ce;
   --success: #8fdcc6;
   --success-soft: #163029;
-  /* header ve footer: koyu gri (siyah değil) */
-  --header-bg: #2e3136;
-  --header-text: #eceef0;
-  --header-muted: #a6acb4;
-  --header-active: #3b3f45;
-  --header-border: #3d4148;
+  /* header ve footer: sıcak koyu (siyah değil) */
+  --header-bg: #2c2824;
+  --header-text: #efe9e1;
+  --header-muted: #b3a99c;
+  --header-active: var(--material-wood);
+  --header-border: #403a34;
   --header-accent: #9db8d6;
 }

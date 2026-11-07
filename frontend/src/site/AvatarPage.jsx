@@ -60,28 +60,39 @@ const ON_OFF = [
 // Rengi seçilemeyen başlıklar (kendi malzemesi var ya da metal rengini kullanır).
 const FIXED_COLOR_HATS = ['none', 'crown', 'viking', 'flowers']
 const HISTORY_LIMIT = 50
-const NO_COLOR = { id: 'none', label: 'Yok', color: null }
 // Kombin 1'e, 2'ye, 3'e
 const SUFFIX = ["'e", "'ye", "'e"]
 const sameLook = (a, b) => JSON.stringify({ ...a, name: '' }) === JSON.stringify({ ...b, name: '' })
 
-// Tek seçimlik düğme. "Yok" seçeneği ikonla ve kesik çerçeveyle ayrılır.
-function Option({ o, value, onChange }) {
+// Seçenek görselleri: scripts/render-avatar-thumbs.mjs ile avatar modelinden bir kez üretilir
+// (public/avatar-thumbs/<tür>-<id>.webp). thumbs: o alanın tür adı (hair, hat, glasses, beard, mustache).
+const thumbOf = (kind, id) => `${import.meta.env.BASE_URL}avatar-thumbs/${kind}-${id}.webp`
+
+// Tek seçimlik düğme. "Yok" seçeneği ikonla ve kesik çerçeveyle ayrılır; thumbs verilirse üstte
+// seçeneğin voxel görseli durur.
+function Option({ o, value, onChange, thumbs }) {
   const none = o.id === 'none'
+  const cls = ['tile', none && 'tile--none', thumbs && 'tile--thumb'].filter(Boolean).join(' ')
   return (
-    <button type="button" className={none ? 'tile tile--none' : 'tile'} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
-      {none && <Icon name="none" size={14} />}
-      {o.label}
+    <button type="button" className={cls} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
+      {thumbs && <img className="tile__thumb" src={thumbOf(thumbs, o.id)} alt="" width="56" height="56" loading="lazy" decoding="async" />}
+      <span className="tile__label">
+        {none && <Icon name="none" size={14} />}
+        {o.label}
+      </span>
     </button>
   )
 }
 
-function FieldLabel({ label, current, note }) {
+// Alan etiketi. bare: ad yalnızca ekran okuyucuya (bölüm başlığı zaten aynı şeyi söylüyor); not ve
+// seçili değer görünür kalır. action: etiket satırının sonunda küçük bir düğme.
+function FieldLabel({ label, current, note, bare = false, action }) {
   return (
-    <legend className="field__label">
-      <span className="field__name">{label}</span>
+    <legend className={bare ? 'field__label field__label--bare' : 'field__label'}>
+      <span className={bare ? 'field__name visually-hidden' : 'field__name'}>{label}</span>
       {current && <span className="field__value">{current}</span>}
       {note && <span className="field__note">{note}</span>}
+      {action}
     </legend>
   )
 }
@@ -89,11 +100,12 @@ function FieldLabel({ label, current, note }) {
 // Seçenekler (tek seçim). Az ve kısa seçenekler (variant="segment") bitişik bir şeritte, diğerleri
 // sıkı bir ızgarada. option.group varsa ızgara alt başlıklara bölünür. disabled: o anki seçimde
 // geçersiz; alan soluklaşır, düğmeler tıklanmaz ve klavyeyle de seçilmez, not (neden) okunur kalır.
-function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false }) {
+function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false, bare = false, thumbs }) {
   const groups = options[0]?.group ? [...new Set(options.map((o) => o.group))] : null
+  const grid = thumbs ? 'option-grid option-grid--thumbs' : 'option-grid'
   return (
     <fieldset className={disabled ? 'field field--off' : 'field'} disabled={disabled}>
-      <FieldLabel label={label} note={note} />
+      <FieldLabel label={label} note={note} bare={bare} />
       {variant === 'segment' ? (
         <div className="segmented">
           {options.map((o) => (
@@ -106,17 +118,17 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
         groups.map((g) => (
           <div key={g} className="option-group">
             <span className="option-group__name">{g}</span>
-            <div className="option-grid">
+            <div className={grid}>
               {options.filter((o) => o.group === g).map((o) => (
-                <Option key={o.id} o={o} value={value} onChange={onChange} />
+                <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} />
               ))}
             </div>
           </div>
         ))
       ) : (
-        <div className="option-grid">
+        <div className={grid}>
           {options.map((o) => (
-            <Option key={o.id} o={o} value={value} onChange={onChange} />
+            <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} />
           ))}
         </div>
       )}
@@ -126,11 +138,11 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
 
 // Renk yuvarlakları (tek seçim); seçilen rengin adı başlıkta görünür. color: null olan seçenek "yok".
 // Dengeli ızgara: geniş panelde hepsi tek satırda; dar panelde 8+ renk eşit iki satıra bölünür (tek renk alta düşmez).
-function Swatches({ label, options, value, onChange, note }) {
+function Swatches({ label, options, value, onChange, note, action }) {
   const current = options.find((o) => o.id === value)
   return (
     <fieldset className="field">
-      <FieldLabel label={label} current={current?.label} note={note} />
+      <FieldLabel label={label} current={current?.label} note={note} action={action} />
       <div className="swatch-row" style={{ '--n': options.length, '--half': options.length > 7 ? Math.ceil(options.length / 2) : options.length }}>
         {options.map((o) => (
           <button
@@ -147,6 +159,31 @@ function Swatches({ label, options, value, onChange, note }) {
       </div>
     </fieldset>
   )
+}
+
+// İkinci saç rengi (parlama ve uçlar): seçilmemişse "+ İkinci renk" düğmesinin arkasında katlı durur.
+// "Kaldır" rengi siler ve alanı yeniden katlar.
+function SecondHairColor({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  if (value === 'none' && !open)
+    return (
+      <button type="button" className="add-btn" onClick={() => setOpen(true)} aria-expanded="false">
+        <span aria-hidden="true">+</span> İkinci renk <span className="add-btn__hint">parlama ve uçlar</span>
+      </button>
+    )
+  const close = (
+    <button
+      type="button"
+      className="link-btn field__action"
+      onClick={() => {
+        onChange('none')
+        setOpen(false)
+      }}
+    >
+      Kaldır
+    </button>
+  )
+  return <Swatches label="İkinci renk" note="parlama ve uçlar" options={HAIR_COLORS} value={value} onChange={onChange} action={close} />
 }
 
 // Sekme içindeki bölüm: başlık + ilgili alanlar; bölümler ince çizgiyle ayrılır.
@@ -278,8 +315,9 @@ export default function AvatarPage({ avatar, onChange }) {
     setZone(t.zone)
     setHatShown(false)
   }
-  const hasHat = avatar.hat !== 'none'
-  const hideHat = tab === 'hair' && hasHat && !hatShown
+  // saçı örten başlık ya da kafa üstü kulaklık: saç sekmesinde önizlemede gizlenir
+  const hasHeadwear = avatar.hat !== 'none' || OVER_HEAD.includes(avatar.headphones)
+  const hideHeadwear = tab === 'hair' && hasHeadwear && !hatShown
   const male = avatar.body !== 'female'
   const earsCovered = EAR_COVERING.includes(avatar.hairStyle)
   const overHead = OVER_HEAD.includes(avatar.headphones)
@@ -300,20 +338,20 @@ export default function AvatarPage({ avatar, onChange }) {
       <div className="create avatar-page">
         <section className="create-preview" aria-label="Önizleme">
           <div className="room-frame avatar-page__preview">
-            <AvatarPreview avatar={avatar} mode={mode} activity={activity} focus={zone} hideHat={hideHat} hint={false} resetKey={resetKey} />
+            <AvatarPreview avatar={avatar} mode={mode} activity={activity} focus={zone} hideHeadwear={hideHeadwear} hint={false} resetKey={resetKey} />
             {/* yüzen kontrol barları: sağ üstte başlık gizle (saç sekmesi) + geri al / ileri al, altta ipuçları */}
             <div className="hud hud--top" role="toolbar" aria-label="Önizleme araçları">
-              {tab === 'hair' && hasHat && (
+              {tab === 'hair' && hasHeadwear && (
                 <>
                   <button
                     type="button"
                     className="hud__icon"
-                    aria-pressed={hideHat}
-                    aria-label="Başlığı gizle"
-                    title={hideHat ? 'Başlık gizli: göster' : 'Saça bakarken başlığı gizle'}
+                    aria-pressed={hideHeadwear}
+                    aria-label="Başlığı ve kulaklığı gizle"
+                    title={hideHeadwear ? 'Başlık ve kulaklık gizli: göster' : 'Saça bakarken başlığı ve kulaklığı gizle'}
                     onClick={() => setHatShown(!hatShown)}
                   >
-                    <Icon name={hideHat ? 'hatOff' : 'hat'} />
+                    <Icon name={hideHeadwear ? 'hatOff' : 'hat'} />
                   </button>
                   <span className="hud__divider" aria-hidden="true" />
                 </>
@@ -389,7 +427,7 @@ export default function AvatarPage({ avatar, onChange }) {
           {tab === 'hair' && (
             <>
               <Section title="Saç">
-                <Choices label="Model" options={HAIR_STYLES} value={avatar.hairStyle} onChange={set('hairStyle')} />
+                <Choices label="Saç modeli" bare thumbs="hair" options={HAIR_STYLES} value={avatar.hairStyle} onChange={set('hairStyle')} />
                 <Choices
                   label="Kahkül"
                   variant="segment"
@@ -400,16 +438,16 @@ export default function AvatarPage({ avatar, onChange }) {
                   onChange={(v) => set('bangs')(v === 'on')}
                 />
                 <Swatches label={male ? 'Saç ve sakal rengi' : 'Renk'} options={HAIR_COLORS} value={avatar.hairColor} onChange={set('hairColor')} />
-                <Swatches label="İkinci renk" note="parlama ve uçlar" options={[NO_COLOR, ...HAIR_COLORS]} value={avatar.hairColor2} onChange={set('hairColor2')} />
+                <SecondHairColor value={avatar.hairColor2} onChange={set('hairColor2')} />
               </Section>
               <Section title="Kaş">
-                <Choices label="Renk" variant="segment" note={browNote} options={BROW_MODES} value={avatar.brows} onChange={set('brows')} />
-                {avatar.brows === 'custom' && <Swatches label="Kaş rengi" options={HAIR_COLORS} value={avatar.browColor} onChange={set('browColor')} />}
+                <Choices label="Kaş rengi" bare variant="segment" note={browNote} options={BROW_MODES} value={avatar.brows} onChange={set('brows')} />
+                {avatar.brows === 'custom' && <Swatches label="Renk" options={HAIR_COLORS} value={avatar.browColor} onChange={set('browColor')} />}
               </Section>
               {male && (
                 <Section title="Sakal ve bıyık">
-                  <Choices label="Sakal" options={BEARDS} value={avatar.beard} onChange={set('beard')} />
-                  <Choices label="Bıyık" options={MUSTACHES} value={avatar.mustache} onChange={set('mustache')} />
+                  <Choices label="Sakal" thumbs="beard" options={BEARDS} value={avatar.beard} onChange={set('beard')} />
+                  <Choices label="Bıyık" thumbs="mustache" options={MUSTACHES} value={avatar.mustache} onChange={set('mustache')} />
                 </Section>
               )}
             </>
@@ -419,24 +457,24 @@ export default function AvatarPage({ avatar, onChange }) {
             <>
               <Zone zone="upper" onZone={setZone}>
                 <Section title="Üst">
-                  <Choices label="Model" note={replaced} options={TOPS} value={avatar.top} onChange={set('top')} />
+                  <Choices label="Üst" bare note={replaced} options={TOPS} value={avatar.top} onChange={set('top')} />
                   <Swatches label={topLabel} options={CLOTH_COLORS} value={avatar.topColor} onChange={set('topColor')} />
                 </Section>
               </Zone>
               <Zone zone="legs" onZone={setZone}>
                 <Section title="Alt">
-                  <Choices label="Model" note={outfit === 'none' ? null : replacedNote} options={BOTTOMS} value={avatar.bottom} onChange={set('bottom')} />
+                  <Choices label="Alt" bare note={outfit === 'none' ? null : replacedNote} options={BOTTOMS} value={avatar.bottom} onChange={set('bottom')} />
                   <Swatches label={bottomLabel} options={CLOTH_COLORS} value={avatar.bottomColor} onChange={set('bottomColor')} />
                 </Section>
               </Zone>
               <Zone zone="full" onZone={setZone}>
                 <Section title="Tek parça">
-                  <Choices label="Model" note="elbise ve tulum üst rengini, salopet alt rengini kullanır" options={OUTFITS} value={outfit} onChange={set('outfit')} />
+                  <Choices label="Tek parça" bare note="elbise ve tulum üst rengini, salopet alt rengini kullanır" options={OUTFITS} value={outfit} onChange={set('outfit')} />
                 </Section>
               </Zone>
               <Zone zone="feet" onZone={setZone}>
                 <Section title="Ayak">
-                  <Choices label="Model" options={FOOTWEAR} value={avatar.footwear} onChange={set('footwear')} />
+                  <Choices label="Ayakkabı" bare options={FOOTWEAR} value={avatar.footwear} onChange={set('footwear')} />
                   <Swatches label="Renk" options={SHOE_COLORS} value={avatar.shoes} onChange={set('shoes')} />
                 </Section>
               </Zone>
@@ -446,14 +484,14 @@ export default function AvatarPage({ avatar, onChange }) {
           {tab === 'extras' && (
             <>
               <Zone zone="hat" onZone={setZone}>
-                <Section title="Baş">
-                  <Choices label="Başlık" options={HATS} value={avatar.hat} onChange={set('hat')} />
-                  {FIXED_COLOR_HATS.includes(avatar.hat) ? null : <Swatches label="Başlık rengi" options={CLOTH_COLORS} value={avatar.hatColor} onChange={set('hatColor')} />}
+                <Section title="Başlık">
+                  <Choices label="Başlık" bare thumbs="hat" options={HATS} value={avatar.hat} onChange={set('hat')} />
+                  {FIXED_COLOR_HATS.includes(avatar.hat) ? null : <Swatches label="Renk" options={CLOTH_COLORS} value={avatar.hatColor} onChange={set('hatColor')} />}
                 </Section>
               </Zone>
               <Section title="Yüz ve kulak">
                 <Zone zone="face" onZone={setZone}>
-                  <Choices label="Gözlük" options={GLASSES} value={avatar.glasses} onChange={set('glasses')} />
+                  <Choices label="Gözlük" thumbs="glasses" options={GLASSES} value={avatar.glasses} onChange={set('glasses')} />
                 </Zone>
                 <Zone zone={avatar.headphones === 'neck' ? 'chest' : 'face'} onZone={setZone}>
                   <Choices label="Kulaklık" note={phoneNote} options={HEADPHONES} value={avatar.headphones} onChange={set('headphones')} />
