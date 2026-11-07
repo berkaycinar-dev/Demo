@@ -45,8 +45,9 @@ function CapacityStepper({ value, max, onChange }) {
   )
 }
 
-// Oda oluşturma: solda ad (kapı tabelası), tema kartları, kapasite ve erişim; sağda yapışkan canlı 3D
-// önizleme, özet ve oluştur düğmesi. Telefonda önizleme üstte, düğme ekranın altına yapışık.
+// Oda oluşturma: seçilen odanın canlı 3D sahnesi sayfanın kahramanı; oda adı sahnenin üstüne asılı kapı
+// tabelasına yazılır. Tema kartları sahnenin altında, kapasite / erişim / oluştur düğmesi sağdaki yapışkan
+// rafta. Telefonda sırayla sahne, temalar, ayarlar; düğme ekranın altına yapışık.
 // Lobi'nin alt sayfası; var olan odalara katılmak Lobi'de.
 export default function CreateRoomPage({ onCreate, onBack }) {
   const [name, setName] = useState('')
@@ -67,88 +68,91 @@ export default function CreateRoomPage({ onCreate, onBack }) {
   }
 
   return (
-    <>
+    <div className="create-room-page">
       <div className="page-head">
         <button type="button" className="link-btn back-link" onClick={onBack}>
           ← Lobiye dön
         </button>
         <h1>Oda oluştur</h1>
       </div>
-      <div className="create create--room">
-        <form id={FORM_ID} className="site-card create-form create-room__form" onSubmit={submit}>
-          <label className="field door-sign">
-            <span className="field__label">Oda adı</span>
+      <form id={FORM_ID} className="create-room" onSubmit={submit}>
+        <section className="create-room__hero" aria-label="Oda önizlemesi">
+          {/* oda adı: sahnenin üstüne asılı kapı tabelası */}
+          <label className="field door-sign create-room__sign">
+            <span className="door-sign__tag">Oda adı</span>
             <span className="door-sign__plate">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${label} odası`} maxLength={60} />
             </span>
           </label>
-
-          <fieldset className="field">
-            <legend className="field__label">Tema</legend>
-            <div className="theme-grid">
-              {LISTED_THEMES.map(([key, t]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className="theme-option"
-                  aria-pressed={theme === key}
-                  onClick={() => {
-                    setTheme(key)
-                    setCapacity((c) => Math.min(c, t.max))
-                    setSpot(null)
-                  }}
-                >
-                  <span className="theme-option__shot">
-                    <img src={thumbOf(key)} alt="" width="480" height="360" loading="lazy" decoding="async" />
-                  </span>
-                  <span className="theme-option__name">{t.label}</span>
-                  <span className="theme-option__desc">{t.description}</span>
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="field">
-            <legend className="field__label" id="capacity-label">
-              Kapasite
-            </legend>
-            <CapacityStepper value={capacity} max={max} onChange={changeCapacity} />
-          </fieldset>
-
-          <fieldset className="field create-room__last">
-            <legend className="field__label">Kimler girebilir</legend>
-            <div className="choice-row">
-              {Object.entries(ACCESS_LABELS).map(([key, text]) => (
-                <button key={key} type="button" aria-pressed={access === key} onClick={() => setAccess(key)}>
-                  {text}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-        </form>
-
-        {/* masaüstünde yapışkan sütun; telefonda display: contents ile sahne üste, eylem alta yapışır */}
-        <aside className="create-room__aside" aria-label="Oda önizlemesi">
-          <div className="room-frame create-preview__room create-room__stage">
+          <div className="room-frame create-room__stage">
             {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
             <div key={`${theme}-${capacity}`} className="create-preview__scene">
-              <Room capacity={capacity} onSpotClick={setSpot} />
+              <Room capacity={capacity} onSpotClick={setSpot} toolbar="compact" />
             </div>
           </div>
+        </section>
+
+        <fieldset className="field create-room__themes">
+          <legend className="field__label">Tema</legend>
+          <div className="theme-grid">
+            {LISTED_THEMES.map(([key, t]) => (
+              <button
+                key={key}
+                type="button"
+                className="theme-option"
+                aria-pressed={theme === key}
+                onClick={() => {
+                  setTheme(key)
+                  setCapacity((c) => Math.min(c, t.max))
+                  setSpot(null)
+                }}
+              >
+                <span className="theme-option__shot">
+                  <img src={thumbOf(key)} alt="" width="480" height="360" loading="lazy" decoding="async" />
+                  <span className="theme-option__check" aria-hidden="true">
+                    <Icon name="check" size={14} />
+                  </span>
+                </span>
+                <span className="theme-option__name">{t.label}</span>
+                <span className="theme-option__desc">{t.description}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* masaüstünde yapışkan raf; telefonda display: contents ile ayarlar akışta, eylem alta yapışır */}
+        <div className="create-room__rail">
+          <div className="create-room__fields">
+            <fieldset className="field">
+              <legend className="field__label" id="capacity-label">
+                Kapasite
+              </legend>
+              <CapacityStepper value={capacity} max={max} onChange={changeCapacity} />
+            </fieldset>
+
+            <fieldset className="field create-room__last">
+              <legend className="field__label">Kimler girebilir</legend>
+              <div className="choice-row">
+                {Object.entries(ACCESS_LABELS).map(([key, text]) => (
+                  <button key={key} type="button" aria-pressed={access === key} onClick={() => setAccess(key)}>
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+
           <div className="create-room__cta">
             <p className="create-room__summary">
-              <strong>{roomName}</strong>
-              <span>
-                {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
-                {spot && <> · Seçilen nokta: {spot.label}</>}
-              </span>
+              {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
+              {spot && <> · Seçilen nokta: {spot.label}</>}
             </p>
-            <button type="submit" form={FORM_ID} className="site-btn site-btn--primary site-btn--wide">
+            <button type="submit" className="site-btn site-btn--primary site-btn--wide">
               Odayı oluştur ve gir
             </button>
           </div>
-        </aside>
-      </div>
-    </>
+        </div>
+      </form>
+    </div>
   )
 }
