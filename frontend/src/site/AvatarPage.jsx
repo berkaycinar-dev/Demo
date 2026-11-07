@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import AvatarPreview from '../avatars/AvatarPreview'
 import {
   BEARDS,
@@ -27,23 +27,26 @@ import {
   SKIN_TONES,
   TOPS,
   WRISTWEAR,
-  colorOf,
   randomAvatar,
   resolveConflicts,
   sanitizeAvatar,
 } from '../avatars/options'
 import Icon from './AvatarIcons'
-import { PRESET_SLOTS, loadPresets, savePresets } from './avatarStore'
+import AvatarPortrait from './AvatarPortrait'
+import { loadPresets, savePresets } from './avatarStore'
 
+// icon: AvatarIcons adı; poz ve çalışma türü önizlemenin üstündeki HUD'da ikon + etiketle seçilir
 const MODES = [
-  { id: 'focus', label: 'Odakta' },
-  { id: 'break', label: 'Molada' },
-  { id: 'away', label: 'Uzakta' },
-  { id: 'walk', label: 'Yürüyüş' },
+  { id: 'focus', label: 'Odakta', icon: 'focus' },
+  { id: 'break', label: 'Molada', icon: 'break' },
+  { id: 'away', label: 'Uzakta', icon: 'away' },
+  { id: 'walk', label: 'Yürüyüş', icon: 'walk' },
 ]
+// çalışma türü yalnızca masada oturan pozlarda (Odakta, Uzakta) anlamlı
+const SEATED = ['focus', 'away']
 const ACTIVITIES = [
-  { id: 'read', label: 'Kitap' },
-  { id: 'type', label: 'Bilgisayar' },
+  { id: 'read', label: 'Kitap', icon: 'read' },
+  { id: 'type', label: 'Bilgisayar', icon: 'type' },
 ]
 // zone: sekme açılınca kameranın odağı. Sekmenin içinde bir seçeneğe dokunulunca o seçeneğin bölgesine
 // geçilir (Zone); açı ve yakınlık seçili poza göre (AvatarPreview VIEWS).
@@ -60,6 +63,9 @@ const ON_OFF = [
 // Rengi seçilemeyen başlıklar (kendi malzemesi var ya da metal rengini kullanır).
 const FIXED_COLOR_HATS = ['none', 'crown', 'viking', 'flowers']
 const HISTORY_LIMIT = 50
+// Zar: önizleme bu aralıklarla (ms, giderek yavaşlar) rastgele görünümlerden geçer; sonuncusu kalır.
+const ROLL_STEPS = [55, 60, 70, 85, 105, 135, 170]
+const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 // Kombin 1'e, 2'ye, 3'e
 const SUFFIX = ["'e", "'ye", "'e"]
 const sameLook = (a, b) => JSON.stringify({ ...a, name: '' }) === JSON.stringify({ ...b, name: '' })
@@ -137,13 +143,14 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
 }
 
 // Renk yuvarlakları (tek seçim); seçilen rengin adı başlıkta görünür. color: null olan seçenek "yok".
-// Dengeli ızgara: geniş panelde hepsi tek satırda; dar panelde 8+ renk eşit iki satıra bölünür (tek renk alta düşmez).
+// Dengeli ızgara: geniş panelde hepsi tek satırda; dar panelde 8+ renk eşit iki satıra bölünür (tek renk alta düşmez);
+// telefonda 44 px yuvarlaklar en çok 6 sütunlu dengeli satırlara (--fit) dizilir.
 function Swatches({ label, options, value, onChange, note, action }) {
   const current = options.find((o) => o.id === value)
   return (
     <fieldset className="field">
       <FieldLabel label={label} current={current?.label} note={note} action={action} />
-      <div className="swatch-row" style={{ '--n': options.length, '--half': options.length > 7 ? Math.ceil(options.length / 2) : options.length }}>
+      <div className="swatch-row" style={{ '--n': options.length, '--half': options.length > 7 ? Math.ceil(options.length / 2) : options.length, '--fit': Math.ceil(options.length / Math.ceil(options.length / 6)) }}>
         {options.map((o) => (
           <button
             key={o.id}
@@ -205,56 +212,122 @@ function Zone({ zone, onZone, children }) {
   )
 }
 
-// Kombin slotları: tıklayınca kayıtlı kombin giyilir; "Kaydet" mevcut görünümü seçili slota yazar.
+// Kombinler şeridi: üç slot. Portreye dokununca kayıtlı kombin giyilir (geri alınabilir); slotun kaydet ikonu
+// şu anki görünümü o slota yazar. Durum metni başlık satırında durur, yalnızca kayıttan sonra görünür.
 function Wardrobe({ avatar, onLoad }) {
   const [presets, setPresets] = useState(loadPresets)
-  const [slot, setSlot] = useState(0)
-  const [saved, setSaved] = useState(null)
+  // son kaydedilen slot: kaydet ikonu kısa süre onay işaretine döner
+  const [justSaved, setJustSaved] = useState(null)
   // her kayıtta artar: aynı slota yeniden kaydedince onay metni yine belirir
   const [saves, setSaves] = useState(0)
-  const pick = (i) => {
-    setSlot(i)
-    setSaved(null)
-    if (presets[i]) onLoad(sanitizeAvatar({ ...presets[i], name: avatar.name }))
-  }
-  const save = () => {
-    const next = presets.map((p, i) => (i === slot ? { ...avatar } : p))
+  useEffect(() => {
+    if (justSaved === null) return
+    const t = setTimeout(() => setJustSaved(null), 1600)
+    return () => clearTimeout(t)
+  }, [justSaved, saves])
+  const wear = (i) => onLoad(sanitizeAvatar({ ...presets[i], name: avatar.name }))
+  const save = (i) => {
+    const next = presets.map((p, k) => (k === i ? { ...avatar } : p))
     setPresets(next)
     savePresets(next)
-    setSaved(slot)
+    setJustSaved(i)
     setSaves((n) => n + 1)
   }
   return (
-    <section className="wardrobe" aria-label="Kombinler">
-      <div className="wardrobe__slots" role="group" aria-label="Kombin slotu">
-        {Array.from({ length: PRESET_SLOTS }, (_, i) => {
-          const p = presets[i]
+    <section className="wardrobe" aria-labelledby="wardrobe-title">
+      <div className="wardrobe__head">
+        <h2 id="wardrobe-title" className="wardrobe__title">Kombinler</h2>
+        {/* canlı bölge sabit kalır; içindeki metin değişince yeniden kurulup belirir */}
+        <span className="wardrobe__status" role="status">
+          <span key={saves}>{justSaved !== null && `Kombin ${justSaved + 1} kaydedildi`}</span>
+        </span>
+      </div>
+      <ul className="wardrobe__slots">
+        {presets.map((p, i) => {
           const worn = p && sameLook(p, avatar)
           return (
-            <button key={i} type="button" className="wardrobe__slot" aria-pressed={slot === i} onClick={() => pick(i)} title={p ? 'Bu kombini giy' : 'Boş slot'}>
-              <span>Kombin {i + 1}</span>
-              {p ? (
-                <span className="wardrobe__chips" aria-hidden="true">
-                  {[colorOf(HAIR_COLORS, p.hairColor), colorOf(CLOTH_COLORS, p.topColor), colorOf(CLOTH_COLORS, p.bottomColor), colorOf(SHOE_COLORS, p.shoes)].map((c, k) => (
-                    <i key={k} style={{ background: c }} />
-                  ))}
+            <li key={i} className="wardrobe__slot" data-worn={worn || undefined} data-empty={!p || undefined}>
+              <button type="button" className="wardrobe__wear" disabled={!p} aria-pressed={p ? worn : undefined} onClick={() => wear(i)} title={p ? 'Bu kombini giy' : undefined}>
+                {p ? (
+                  <AvatarPortrait avatar={p} />
+                ) : (
+                  <span className="wardrobe__ghost" aria-hidden="true">
+                    <Icon name="body" size={20} />
+                  </span>
+                )}
+                <span className="wardrobe__name">
+                  Kombin {i + 1}
+                  {(!p || worn) && <small>{p ? 'giyili' : 'boş'}</small>}
                 </span>
-              ) : (
-                <span className="site-muted">boş</span>
-              )}
-              {worn && <span className="wardrobe__worn">giyili</span>}
-            </button>
+              </button>
+              <button
+                type="button"
+                className="wardrobe__save"
+                data-done={justSaved === i || undefined}
+                onClick={() => save(i)}
+                aria-label={`Kombin ${i + 1}${SUFFIX[i]} kaydet`}
+                title={p ? 'Şu anki görünümü kaydet (eskisinin üstüne yazar)' : 'Şu anki görünümü buraya kaydet'}
+              >
+                <Icon name={justSaved === i ? 'check' : 'save'} size={16} />
+              </button>
+            </li>
           )
         })}
-      </div>
-      <button type="button" className="site-btn" onClick={save}>
-        Kombin {slot + 1}{SUFFIX[slot]} kaydet
-      </button>
-      {/* canlı bölge sabit kalır; içindeki metin değişince yeniden kurulup belirir */}
-      <span className="site-muted wardrobe__status" role="status">
-        <span key={`${slot}-${saved}-${saves}`}>{saved === slot ? `Kombin ${slot + 1} kaydedildi.` : presets[slot] ? 'Kaydetmek eskisinin üstüne yazar.' : ''}</span>
-      </span>
+      </ul>
     </section>
+  )
+}
+
+// Telefonda (≤900 px) poz ve kombinler alt sayfada: önizleme üstte görünür kalır, her seçim anında
+// sahnede görülür. Yerel <dialog>: odak hapsi, Esc ve dışarı dokununca kapanma tarayıcıdan gelir.
+function PoseSheet({ open, onClose, mode, setMode, activity, setActivity, children }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (open && !d.open) d.showModal()
+    if (!open && d.open) d.close()
+  }, [open])
+  const seated = SEATED.includes(mode)
+  return (
+    <dialog ref={ref} className="sheet" aria-labelledby="pose-sheet-title" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+      <div className="sheet__head">
+        <h2 id="pose-sheet-title" className="sheet__title">Poz ve kombinler</h2>
+        <button type="button" className="sheet__close" onClick={onClose} aria-label="Kapat">
+          <Icon name="close" />
+        </button>
+      </div>
+      <div className="segmented segmented--fill" role="group" aria-label="Poz" style={{ '--count': MODES.length }}>
+        {MODES.map((m) => (
+          <button key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>
+            <Icon name={m.icon} size={16} />
+            {m.label}
+          </button>
+        ))}
+      </div>
+      <div className="segmented segmented--fill sheet__sub" role="group" aria-label="Çalışma türü" style={{ '--count': ACTIVITIES.length }} data-off={!seated || undefined} inert={!seated} aria-hidden={!seated || undefined}>
+        {ACTIVITIES.map((a) => (
+          <button key={a.id} type="button" aria-pressed={activity === a.id} onClick={() => setActivity(a.id)}>
+            <Icon name={a.icon} size={16} />
+            {a.label}
+          </button>
+        ))}
+      </div>
+      {children}
+    </dialog>
+  )
+}
+
+// Ekran genişliği eşiği (CSS'teki @media ile aynı); değişince yeniden çizer.
+const COMPACT = '(max-width: 900px)'
+function useCompact() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(COMPACT)
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    () => window.matchMedia(COMPACT).matches,
   )
 }
 
@@ -268,6 +341,20 @@ export default function AvatarPage({ avatar, onChange }) {
   const [zone, setZone] = useState('full')
   // saç sekmesinde başlık önizlemede gizlenir (saç görünsün); kullanıcı düğmeyle geri açabilir
   const [hatShown, setHatShown] = useState(false)
+  // telefonda poz ve kombinler alt sayfada
+  const compact = useCompact()
+  const [sheetOpen, setSheetOpen] = useState(false)
+  // zar: karışma sürerken önizlemede geçici görünüm; sonuç tek adımda kaydedilir (tek geri alma)
+  const [roll, setRoll] = useState(null)
+  const rollTimers = useRef([])
+  useEffect(() => () => rollTimers.current.forEach(clearTimeout), [])
+  const previewRef = useRef(null)
+  // alt sayfa önizlemenin altındaki alanı kaplar: önce önizleme yapışkan konumuna (ekranın üstüne) gelir
+  const openSheet = () => {
+    const top = previewRef.current?.getBoundingClientRect().top ?? 0
+    if (top > 0) window.scrollBy({ top, behavior: 'instant' })
+    setSheetOpen(true)
+  }
   // her artışta önizlemenin döndürmesi sıfırlanır (kontrol barındaki Sıfırla)
   const [resetKey, setResetKey] = useState(0)
   // last: son değişen alan; art arda yazılan ad tek adımda geri alınır
@@ -310,6 +397,28 @@ export default function AvatarPage({ avatar, onChange }) {
   }, [])
 
   const set = (key) => (value) => commit(resolveConflicts({ ...avatar, [key]: value }, key))
+  const rollDice = () => {
+    if (roll) return
+    const final = randomAvatar(Math.random, avatar.name)
+    if (reducedMotion()) {
+      commit(final)
+      return
+    }
+    const ms = ROLL_STEPS.reduce((a, b) => a + b, 0)
+    const shuffle = { start: performance.now(), ms }
+    let at = 0
+    rollTimers.current = ROLL_STEPS.map((step, i) => {
+      at += step
+      const look = i === ROLL_STEPS.length - 1 ? final : randomAvatar(Math.random, avatar.name)
+      return setTimeout(() => setRoll({ shuffle, look }), at - step)
+    })
+    rollTimers.current.push(
+      setTimeout(() => {
+        commit(final)
+        setRoll(null)
+      }, at),
+    )
+  }
   const openTab = (t) => {
     setTab(t.id)
     setZone(t.zone)
@@ -318,6 +427,7 @@ export default function AvatarPage({ avatar, onChange }) {
   // saçı örten başlık ya da kafa üstü kulaklık: saç sekmesinde önizlemede gizlenir
   const hasHeadwear = avatar.hat !== 'none' || OVER_HEAD.includes(avatar.headphones)
   const hideHeadwear = tab === 'hair' && hasHeadwear && !hatShown
+  const seated = SEATED.includes(mode)
   const male = avatar.body !== 'female'
   const earsCovered = EAR_COVERING.includes(avatar.hairStyle)
   const overHead = OVER_HEAD.includes(avatar.headphones)
@@ -336,13 +446,52 @@ export default function AvatarPage({ avatar, onChange }) {
       <h1>Avatar atölyesi</h1>
       <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
       <div className="create avatar-page">
-        <section className="create-preview" aria-label="Önizleme">
+        <section className="create-preview" aria-label="Önizleme" ref={previewRef}>
           <div className="room-frame avatar-page__preview">
-            <AvatarPreview avatar={avatar} mode={mode} activity={activity} focus={zone} hideHeadwear={hideHeadwear} hint={false} resetKey={resetKey} />
-            {/* yüzen kontrol barları: sağ üstte başlık gizle (saç sekmesi) + geri al / ileri al, altta ipuçları */}
-            <div className="hud hud--top" role="toolbar" aria-label="Önizleme araçları">
+            <AvatarPreview avatar={roll?.look ?? avatar} shuffle={roll?.shuffle ?? null} mode={mode} activity={activity} focus={zone} hideHeadwear={hideHeadwear} hint={false} resetKey={resetKey} />
+            {/* yüzen kontrol barları. Sol üst: poz ve altında çalışma türü (oturmayan pozda yeri korunur,
+                gizlenir). Sağ üst: geri al / ileri al ve saç sekmesinde başlık gizle. Alt: ipuçları. */}
+            {!compact && (
+            <div className="hud-stack hud-stack--start">
+              <div className="hud" role="group" aria-label="Poz">
+                {MODES.map((m) => (
+                  <button key={m.id} type="button" className="hud__opt" aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>
+                    <Icon name={m.icon} size={16} />
+                    <span>{m.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="hud hud--sub" role="group" aria-label="Çalışma türü" data-off={!seated || undefined} inert={!seated} aria-hidden={!seated || undefined}>
+                {ACTIVITIES.map((a) => (
+                  <button key={a.id} type="button" className="hud__opt" aria-pressed={activity === a.id} onClick={() => setActivity(a.id)}>
+                    <Icon name={a.icon} size={16} />
+                    <span>{a.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            )}
+            <div className="hud-stack hud-stack--end">
+              <div className="hud" role="toolbar" aria-label="Geçmiş">
+                <button type="button" className="hud__icon" onClick={undo} disabled={!history.past.length} aria-label="Geri al" title="Geri al (Ctrl+Z)">
+                  <Icon name="undo" />
+                </button>
+                <button type="button" className="hud__icon" onClick={redo} disabled={!history.future.length} aria-label="İleri al" title="İleri al (Ctrl+Y)">
+                  <Icon name="redo" />
+                </button>
+              </div>
+              <div className="hud">
+                {compact && (
+                  <button type="button" className="hud__icon" onClick={openSheet} aria-haspopup="dialog" aria-label="Poz ve kombinler" title="Poz ve kombinler">
+                    <Icon name="outfits" />
+                  </button>
+                )}
+                <button type="button" className="hud__icon hud__dice" onClick={rollDice} data-rolling={roll ? '' : undefined} aria-label="Rastgele avatar" title="Rastgele avatar (geri alınabilir)">
+                  <Icon name="dice" />
+                </button>
+              </div>
               {tab === 'hair' && hasHeadwear && (
-                <>
+                <div className="hud">
                   <button
                     type="button"
                     className="hud__icon"
@@ -353,15 +502,8 @@ export default function AvatarPage({ avatar, onChange }) {
                   >
                     <Icon name={hideHeadwear ? 'hatOff' : 'hat'} />
                   </button>
-                  <span className="hud__divider" aria-hidden="true" />
-                </>
+                </div>
               )}
-              <button type="button" className="hud__icon" onClick={undo} disabled={!history.past.length} aria-label="Geri al" title="Geri al (Ctrl+Z)">
-                <Icon name="undo" />
-              </button>
-              <button type="button" className="hud__icon" onClick={redo} disabled={!history.future.length} aria-label="İleri al" title="İleri al (Ctrl+Y)">
-                <Icon name="redo" />
-              </button>
             </div>
             <div className="hud hud--bottom">
               <span className="hud__tip">
@@ -379,25 +521,13 @@ export default function AvatarPage({ avatar, onChange }) {
               </button>
             </div>
           </div>
-          <div className="avatar-page__poses">
-            <div className="segmented" role="group" aria-label="Poz">
-              {MODES.map((m) => (
-                <button key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            {(mode === 'focus' || mode === 'away') && (
-              <div className="segmented avatar-page__sub" role="group" aria-label="Çalışma">
-                {ACTIVITIES.map((a) => (
-                  <button key={a.id} type="button" aria-pressed={activity === a.id} onClick={() => setActivity(a.id)}>
-                    {a.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <Wardrobe avatar={avatar} onLoad={(next) => commit(next)} />
+          {compact ? (
+            <PoseSheet open={sheetOpen} onClose={() => setSheetOpen(false)} mode={mode} setMode={setMode} activity={activity} setActivity={setActivity}>
+              <Wardrobe avatar={avatar} onLoad={(next) => commit(next)} />
+            </PoseSheet>
+          ) : (
+            <Wardrobe avatar={avatar} onLoad={(next) => commit(next)} />
+          )}
         </section>
 
         <div className="site-card create-form avatar-page__editor">
@@ -524,11 +654,9 @@ export default function AvatarPage({ avatar, onChange }) {
           )}
           </div>
 
-          <div className="site-actions avatar-page__actions">
-            <button type="button" className="site-btn" onClick={() => commit(randomAvatar(Math.random, avatar.name))}>
-              Rastgele
-            </button>
-            <button type="button" className="site-btn" onClick={() => commit({ ...DEFAULT_AVATAR, name: avatar.name })}>
+          {/* sessiz sıfırlama: geri al ile döner; rastgele önizlemedeki zarda */}
+          <div className="avatar-page__actions">
+            <button type="button" className="quiet-link" onClick={() => commit({ ...DEFAULT_AVATAR, name: avatar.name })}>
               Varsayılana dön
             </button>
           </div>

@@ -380,7 +380,7 @@ export function randomAvatar(rnd, name) {
   const male = body === 'male'
   // fantastik başlıklar seyrek
   const r = rnd()
-  const hat = r < 0.2 ? pickId(HATS.filter((h) => h.group === 'Şapka' && h.id !== 'none')) : r < 0.26 ? pickId(HATS.filter((h) => h.group === 'Fantastik')) : 'none'
+  const hat = r < 0.2 ? pickId(HATS.filter((h) => h.group === 'Günlük' && h.id !== 'none')) : r < 0.26 ? pickId(HATS.filter((h) => h.group === 'Fantastik')) : 'none'
   const o = rnd()
   // saç çoğunlukla bedende yaygın modellerden; tek parça ve ev terlikleri seyrek
   const hairPool = male ? MALE_COMMON_HAIR : FEMALE_COMMON_HAIR

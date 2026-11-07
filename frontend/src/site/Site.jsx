@@ -155,6 +155,9 @@ export default function Site() {
         {page === 'hesap' && (
           <AccountPage
             user={user}
+            isDark={isDark}
+            onToggleMode={toggleMode}
+            onLogout={signOut}
             onUserChange={(u) => {
               setUser(u)
               setJoined(loadJoined(u))

@@ -4,7 +4,7 @@ import { Field, PasswordInput, PasswordRules } from './AuthPages'
 
 // Hesap: header'daki kullanıcı adına tıklayınca açılır. Görünen ad / kullanıcı adı, e-posta ve
 // şifre ayrı kartlarda değiştirilir. E-posta ve şifre için mevcut şifre istenir.
-export default function AccountPage({ user, onUserChange }) {
+export default function AccountPage({ user, onUserChange, isDark, onToggleMode, onLogout }) {
   return (
     <div className="account">
       <div className="page-head">
@@ -15,8 +15,26 @@ export default function AccountPage({ user, onUserChange }) {
         <ProfileCard user={user} onUserChange={onUserChange} />
         <EmailCard user={user} onUserChange={onUserChange} />
         <PasswordCard user={user} />
+        <SessionCard isDark={isDark} onToggleMode={onToggleMode} onLogout={onLogout} />
       </div>
     </div>
+  )
+}
+
+// Görünüm ve oturum: telefonda üst menüde yer olmadığı için koyu mod ve çıkış burada da durur.
+function SessionCard({ isDark, onToggleMode, onLogout }) {
+  return (
+    <section className="site-card account__card" aria-labelledby="oturumBaslik">
+      <h2 id="oturumBaslik">Görünüm ve oturum</h2>
+      <div className="site-actions">
+        <button type="button" className="site-btn" onClick={onToggleMode}>
+          {isDark ? 'Açık moda geç' : 'Koyu moda geç'}
+        </button>
+        <button type="button" className="site-btn" onClick={onLogout}>
+          Çıkış yap
+        </button>
+      </div>
+    </section>
   )
 }
 

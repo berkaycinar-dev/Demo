@@ -50,13 +50,15 @@
   background: #f3ebdf;
 }
 
+/* seçili: sitenin seçim dili (--chip-on-*, --sel-ring); token yoksa eski yeşil */
 .room-canvas__group button[aria-pressed='true'] {
-  background: #1f6b4a;
-  color: #fff;
+  background: var(--chip-on-bg, #1f6b4a);
+  box-shadow: inset 0 0 0 2px var(--sel-ring, transparent);
+  color: var(--chip-on-fg, #fff);
 }
 
 .room-canvas__group button:focus-visible {
-  outline: 2px solid #1f6b4a;
+  outline: 2px solid var(--primary, #1f6b4a);
   outline-offset: -2px;
 }
 
@@ -65,14 +67,13 @@
   left: 16px;
   bottom: 10px;
   margin: 0;
-  /* gündüz/akşam zemininde AA: 0.6 saydamlık 3.4:1 kalıyordu */
-  color: var(--scene-hint, #5c4e40);
+  /* her tema ve gün zamanı zemininde AA: yarı saydam yüzey hapı üstünde ikincil yazı */
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface, #fffaf3) 86%, transparent);
+  color: var(--text-2, #3d362f);
   font-size: 12px;
   pointer-events: none;
-}
-
-.room-canvas[data-time='night'] .room-canvas__hint {
-  color: rgba(240, 232, 220, 0.82);
 }
 
 @media (max-width: 600px) {
@@ -82,9 +83,11 @@
     gap: 6px;
   }
 
+  /* dokunma hedefi ≥ 44 px (10 temanın hepsinde ortak araç çubuğu) */
   .room-canvas__group button {
-    min-width: 32px;
-    padding: 6px 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 10px;
     font-size: 13px;
   }
 }

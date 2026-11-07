@@ -648,7 +648,7 @@
 }
 
 :root[data-mode='dark'] .room-canvas__hint {
-  color: color-mix(in srgb, var(--scene-hint) 80%, transparent);
+  color: var(--text-2);
 }
 
 /* odadakiler listesi; nokta biçimleri avatar etiketleriyle aynı */
@@ -703,6 +703,7 @@
 .avatar-page__preview {
   position: relative;
   height: min(520px, 62svh);
+  container-type: inline-size;
 }
 
 /* önizleme üstünde yüzen kontrol barları: saydam bulanık zemin 3D sahnenin üstünde okunur kalır */
@@ -722,9 +723,39 @@
   color: var(--text-2);
 }
 
-.hud--top {
+/* köşe yığınları: üst üste HUD çubukları. Sol: poz + çalışma türü, sağ: geçmiş + başlık gizle */
+.hud-stack {
+  position: absolute;
   top: 10px;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+}
+
+.hud-stack .hud {
+  position: static;
+}
+
+.hud-stack--start {
+  left: 10px;
+  justify-items: start;
+}
+
+.hud-stack--end {
   right: 10px;
+  justify-items: end;
+}
+
+/* çalışma türü: oturmayan pozda gizlenir ama yeri korunur; görünürlük solmadan sonra kapanır */
+.hud--sub {
+  transition: opacity 160ms ease, transform 200ms var(--ease-out, ease-out), visibility 0s linear 0s;
+}
+
+.hud--sub[data-off] {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 0s linear 120ms;
 }
 
 .hud--bottom {
@@ -758,6 +789,48 @@
 .hud__text {
   padding: 0 12px 0 10px;
   font-weight: 600;
+}
+
+/* poz ve çalışma türü seçeneği: ikon + etiket */
+.hud__opt {
+  padding: 0 12px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hud__opt .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.hud__opt[aria-pressed='true'] .icon {
+  color: currentColor;
+}
+
+/* dar önizleme (telefon): etiket ikonun altına iner, dört poz ve geçmiş çubuğu tek sırada kalır */
+@container (max-width: 480px) {
+  .hud .hud__opt {
+    flex-direction: column;
+    gap: 2px;
+    height: auto;
+    min-width: 52px;
+    padding: 5px 4px 4px;
+    border-radius: 14px;
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .hud-stack .hud:has(.hud__opt) {
+    border-radius: 17px;
+  }
+}
+
+/* çok dar önizleme: "Tıkla: selam" ipucu düşer, Sıfırla sığar */
+@container (max-width: 360px) {
+  .hud__tip + .hud__tip {
+    display: none;
+  }
+
 }
 
 .hud button:hover:not(:disabled) {
@@ -830,12 +903,6 @@
   font-weight: 600;
 }
 
-.avatar-page__poses {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 /* o anki seçimde geçersiz alan (bu saç modelinde kahkül yok): ad ve düğmeler soluk, not okunur */
 .field--off .segmented,
 .field--off .option-grid {
@@ -850,66 +917,156 @@
   color: var(--text-2);
 }
 
-/* kombin slotları */
+/* kombinler şeridi: başlık + kayıt onayı tek satırda, altında üç eşit slot. Slotun gövdesi giyer,
+   köşedeki ikon kaydeder. */
 .wardrobe {
+  margin-top: 16px;
+}
+
+.wardrobe__head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.site .wardrobe__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-label, 14px);
+  line-height: 1.3;
+}
+
+.wardrobe__status {
+  min-height: 1.3em;
+  color: var(--success);
+  font-size: var(--type-caption, 12px);
+  font-weight: 600;
 }
 
 .wardrobe__slots {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  container-type: inline-size;
 }
 
 .wardrobe__slot {
-  display: grid;
-  gap: 4px;
-  min-width: 96px;
-  padding: 8px 12px;
+  position: relative;
   border: 2px solid transparent;
   border-radius: var(--radius-block);
   background: var(--surface-2);
   box-shadow: var(--voxel-face);
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
 }
 
-.wardrobe__slot[aria-pressed='true'] {
+.wardrobe__slot[data-worn] {
   border-color: var(--primary);
   background: var(--primary-soft);
 }
 
-.wardrobe__chips {
+.wardrobe__slot[data-empty] {
+  border: 2px dashed var(--line-strong);
+  background: transparent;
+  box-shadow: none;
+}
+
+.wardrobe__wear {
   display: flex;
-  gap: 3px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 40px 8px 8px;
+  border: 0;
+  border-radius: calc(var(--radius-block) - 2px);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.wardrobe__chips i {
-  width: 12px;
-  height: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 50%;
+.wardrobe__wear:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
 }
 
-.wardrobe__worn {
-  color: var(--success);
-  font-size: 12px;
+.wardrobe__wear:disabled {
+  cursor: default;
 }
 
-.wardrobe__status {
+.portrait,
+.wardrobe__ghost {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.portrait {
+  background: var(--scene-base, var(--surface-sunken));
+}
+
+.wardrobe__ghost {
+  display: grid;
+  place-items: center;
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+
+.wardrobe__name {
+  display: grid;
+  min-width: 0;
   font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
-.avatar-page__sub {
-  animation: avatarRise 220ms var(--ease-out);
+.wardrobe__name small {
+  color: var(--muted);
+  font-size: var(--type-caption, 12px);
+  font-weight: 500;
+}
+
+.wardrobe__slot[data-worn] .wardrobe__name small {
+  color: var(--chip-on-fg, var(--primary));
+}
+
+.wardrobe__save {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.wardrobe__save:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.wardrobe__save[data-done] {
+  color: var(--success);
+}
+
+/* dar slot (telefon): portre üstte, ad altında; kaydet köşede kalır */
+@container (max-width: 400px) {
+  .wardrobe .wardrobe__wear {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px;
+  }
 }
 
 /* düzenleyici: sekme çubuğu panelin üstüne yapışır, uzun sekmede kaydırırken kategori görünür kalır */
@@ -1231,7 +1388,7 @@
 
 /* "yok" seçeneği: çapraz çizgili beyaz */
 .swatch--none {
-  background: linear-gradient(135deg, var(--surface) 45%, #c44 45%, #c44 55%, var(--surface) 55%);
+  background: linear-gradient(135deg, var(--surface-sunken) 45%, var(--none-mark) 45%, var(--none-mark) 55%, var(--surface-sunken) 55%);
 }
 
 .swatch[aria-pressed='true'] {
@@ -1241,8 +1398,45 @@
 
 .avatar-page__actions {
   margin-top: 4px;
-  padding-top: 18px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
+}
+
+/* sessiz metin bağlantısı: ikincil, geri alınabilir eylem */
+.quiet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 150ms ease, text-decoration-color 150ms ease;
+}
+
+.quiet-link:hover {
+  color: var(--text);
+  text-decoration-color: currentColor;
+}
+
+/* zar: karışma boyunca ikon yuvarlanır (önizlemedeki karakterle aynı süre, yavaşlayarak) */
+.hud__dice[data-rolling] .icon {
+  animation: diceRoll 680ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes diceRoll {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, sekme içeriği
@@ -1254,6 +1448,8 @@
 .avatar-page .tile,
 .avatar-page .segmented button,
 .avatar-page .wardrobe__slot,
+.avatar-page .wardrobe__wear,
+.avatar-page .wardrobe__save,
 .avatar-page .hud button {
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease,
     opacity 150ms ease, transform 120ms var(--ease-out);
@@ -1261,7 +1457,8 @@
 
 .avatar-page .tile:active:not(:disabled),
 .avatar-page .segmented button:active:not(:disabled),
-.avatar-page .wardrobe__slot:active,
+.avatar-page .wardrobe__slot:has(.wardrobe__wear:active:not(:disabled)),
+.avatar-page .wardrobe__save:active,
 .avatar-page .hud button:active:not(:disabled) {
   transform: scale(0.96);
 }
@@ -1279,7 +1476,7 @@
 }
 
 .avatar-page .wardrobe__status > span,
-.avatar-page .wardrobe__worn {
+.avatar-page .wardrobe__save[data-done] .icon {
   animation: avatarFade 200ms ease-out;
 }
 
@@ -1445,15 +1642,20 @@
   /* atölye: yer değiştirme ve ölçek yok; renk geçişleri ve solma kalır */
   .avatar-page .tile:active,
   .avatar-page .segmented button:active,
-  .avatar-page .wardrobe__slot:active,
+  .avatar-page .wardrobe__slot:has(.wardrobe__wear:active),
+  .avatar-page .wardrobe__save:active,
   .avatar-page .hud button:active,
   .avatar-page .swatch:active {
     transform: none;
   }
 
-  .avatar-page__panel,
-  .avatar-page__sub {
+  .avatar-page__panel {
     animation-name: avatarFade;
+  }
+
+  .hud--sub,
+  .hud--sub[data-off] {
+    transform: none;
   }
 
   .avatar-tabs button::after {
@@ -1469,4 +1671,325 @@
   .stepper__btn {
     transition: none;
   }
+}
+
+/* ---------- telefon ve dar tablet (≤900 px, eşik AvatarPage COMPACT ile aynı) ---------- */
+
+/* poz ve kombinler alt sayfası (yerel <dialog>, yalnızca dar ekranda açılır) */
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100svh - max(var(--pv-h, 38svh), 240px) - 24px);
+  margin: 0 auto;
+  padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
+  overflow: auto;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -14px 32px -18px rgba(40, 26, 12, 0.5);
+  color: var(--text);
+}
+
+.sheet::backdrop {
+  background: rgba(30, 20, 10, 0.18);
+}
+
+.sheet[open] {
+  animation: sheetUp 280ms var(--ease-out);
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.site .sheet__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-section, 20px);
+  line-height: 1.3;
+}
+
+.sheet__close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.sheet__close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* tam genişlik segment: eşit sütunlar, ikon etiketin üstünde */
+.segmented--fill {
+  display: grid;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  width: 100%;
+}
+
+.segmented--fill button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 54px;
+  padding: 4px;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+/* çalışma türü: oturmayan pozda yeri korunur */
+.sheet__sub {
+  margin-top: 8px;
+  transition: opacity 160ms ease, visibility 0s linear 0s;
+}
+
+.sheet__sub[data-off] {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 120ms ease, visibility 0s linear 120ms;
+}
+
+.sheet .wardrobe {
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  /* atölye: önizleme yapışkan ve kompakt; sekmeler hemen altına yapışır, her seçim sahnede görünür */
+  .avatar-page {
+    --pv-h: 38svh;
+    --pv-top: calc(max(var(--pv-h), 240px) + 16px);
+    gap: 0;
+  }
+
+  .avatar-page .create-preview {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    padding: 8px 0;
+    background: var(--page-base);
+  }
+
+  .avatar-page__preview {
+    height: max(var(--pv-h), 240px);
+  }
+
+  .avatar-page__editor {
+    padding: 0 16px 16px;
+  }
+  .avatar-page .avatar-tabs {
+    top: var(--pv-top);
+    margin: 0 -16px 4px;
+    border-radius: 0;
+  }
+
+  /* dokunma hedefleri ≥ 44 px */
+  .hud button {
+    height: 44px;
+  }
+
+  .hud__icon {
+    width: 44px;
+  }
+
+  .hud--bottom {
+    padding-left: 10px;
+    font-size: 12px;
+  }
+
+  .segmented button {
+    min-height: 44px;
+  }
+
+  .swatch-row {
+    grid-template-columns: repeat(var(--cols), 44px);
+    gap: 8px;
+  }
+
+  .wardrobe__save {
+    top: 2px;
+    right: 2px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .wardrobe__wear {
+    padding-right: 46px;
+  }
+
+  .avatar-page .avatar-page__preview {
+    margin-bottom: 0;
+  }
+
+  .choice-row button {
+    min-height: 44px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 4px;
+  }
+}
+
+/* dar seçenek paneli (telefon): 44 px yuvarlaklar en çok 6 sütunlu dengeli satırlarda */
+@container options (max-width: 400px) {
+  .swatch-row {
+    --cols: var(--fit, var(--half));
+  }
+}
+
+/* telefonda üst menü tek satır: logo yalnızca işaret, dört sayfa, hesap avatarı. Koyu mod ve çıkış
+   hesap sayfasında (Görünüm ve oturum). */
+@media (max-width: 560px) {
+  .site-header:has(.site-nav:not(.site-nav--sections)) {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px 12px;
+  }
+
+  .site-header:has(.site-nav:not(.site-nav--sections)) .site-brand__text,
+  .site-header__mode,
+  .site-header .header-link {
+    display: none;
+  }
+
+  .site-header .site-nav:not(.site-nav--sections) {
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .site-nav:not(.site-nav--sections) button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 14px;
+  }
+
+  .site-header .site-header__tools {
+    gap: 4px;
+  }
+
+  .site-header .site-brand {
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .site-header .user-chip {
+    padding: 3px;
+  }
+
+  .site-header .user-chip__avatar {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 374px) {
+  .site-nav:not(.site-nav--sections) button {
+    padding: 0 6px;
+    font-size: 13.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: avatarFade 160ms ease-out;
+  }
+}
+
+/* ---------- seçim dili: tek biçim ----------
+   Seçili denetim: dolgu --chip-on-bg, yazı --chip-on-fg, 2 px --sel-ring halkası (koyu modda --primary).
+   Görsel seçenekler (tema kartı, renk yuvarlağı) yalnızca halkayı alır. Seçilince yazı ağırlığı
+   değişmez (genişlik oynamasın); renkli zeminde ikincil yazı --text-2. */
+.tile[aria-pressed='true'],
+.choice-row button[aria-pressed='true'],
+.choice-row button[aria-selected='true'] {
+  border-color: var(--sel-ring);
+  box-shadow: inset 0 0 0 1px var(--sel-ring), var(--voxel-face);
+  font-weight: inherit;
+}
+
+.segmented button[aria-pressed='true'],
+.hud button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--sel-ring), var(--voxel-face);
+  font-weight: inherit;
+}
+
+.hud__opt[aria-pressed='true'] {
+  font-weight: 600;
+}
+
+.wardrobe__slot[data-worn] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+}
+
+.wardrobe__slot[data-worn] .wardrobe__wear {
+  color: var(--chip-on-fg);
+}
+
+.wardrobe__slot[data-worn] .wardrobe__name small,
+.wardrobe__slot[data-worn] .wardrobe__save {
+  color: var(--text-2);
+}
+
+:is([aria-pressed='true'], [aria-selected='true'], [data-worn]) :is(small, .field__note, .site-muted) {
+  color: var(--text-2);
+}
+
+.theme-option__shot {
+  box-shadow: inset 0 0 0 1px var(--line-strong), var(--voxel-face);
+}
+
+.theme-option:hover .theme-option__shot {
+  box-shadow: inset 0 0 0 1px var(--muted), var(--voxel-face);
+}
+
+.theme-option[aria-pressed='true'] .theme-option__shot {
+  box-shadow: inset 0 0 0 2px var(--sel-ring), var(--voxel-face);
+}
+
+.theme-option[aria-pressed='true'] .theme-option__name {
+  color: var(--text);
+}
+
+.swatch[aria-pressed='true'] {
+  border-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--sel-ring);
+}
+
+/* o anki seçimde geçersiz alan: yalnızca denetim solar; ad ve not okunur kalır, tarayıcının gri
+   "disabled" yazısı ikinci kez soldurmaz */
+.field--off .field__label {
+  opacity: 1;
+  color: var(--text-2);
+}
+
+.field--off button:disabled {
+  color: var(--text-2);
 }
