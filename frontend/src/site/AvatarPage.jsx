@@ -442,7 +442,7 @@ export default function AvatarPage({ avatar, onChange }) {
   const replaced = outfit === 'dress' || outfit === 'onesie' ? replacedNote : null
 
   return (
-    <>
+    <div className="avatar-workshop">
       <h1>Avatar atölyesi</h1>
       <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
       <div className="create avatar-page">
@@ -662,6 +662,6 @@ export default function AvatarPage({ avatar, onChange }) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }
