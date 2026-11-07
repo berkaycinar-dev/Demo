@@ -375,7 +375,9 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
  * | 'hat' | 'chest' (boyun) | 'wrist' (sol bilek) | 'upper' (gövde) | 'legs' | 'feet'; açı ve yakınlık
  * poza göre (VIEWS). hideHat: başlığı yalnızca önizlemede gizler (saç seçerken saç görünsün).
  */
-export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHat = false, reducedMotion, className = '' }) {
+// hint: false ise ipucu satırı çizilmez (atölye kendi kontrol barını gösterir). resetKey her değiştiğinde
+// görünüm döndürmesi sıfırlanır (çift tıkla aynı).
+export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHat = false, hint = true, resetKey = 0, reducedMotion, className = '' }) {
   const animated = !(reducedMotion ?? prefersReducedMotion())
   const view = useRef({ yaw: 0 })
   const anchors = useRef({
@@ -390,6 +392,12 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
   })
   const drag = useRef(null)
   const store = useRef(null)
+  const firstReset = useRef(resetKey)
+  useEffect(() => {
+    if (resetKey === firstReset.current) return
+    view.current.yaw = 0
+    store.current?.invalidate()
+  }, [resetKey])
   const figure = useRef(null)
   // kısa basış karakterin üstündeyse el sallar
   const poke = (e) => {
@@ -440,7 +448,7 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHat={hideHat} />
         <Ticker animated={animated} />
       </Canvas>
-      <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>
+      {hint && <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>}
     </div>
   )
 }
