@@ -295,8 +295,9 @@
   gap: 4px;
   padding: 12px 14px;
   border: 2px solid transparent;
-  border-radius: 14px;
+  border-radius: var(--radius-block);
   background: var(--surface-2);
+  box-shadow: var(--voxel-face);
   color: var(--text);
   font: inherit;
   font-weight: 600;
@@ -341,8 +342,9 @@
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: transparent;
+  border-radius: var(--radius-block);
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
   color: var(--text-2);
   font: inherit;
   font-size: 14px;
@@ -395,7 +397,8 @@
 /* koyu modda oda sahnesinin boşluğu: gün zamanının rengi koyu zeminle karışır (gündüz kremi
    göz almasın, odanın kendi ışığı öne çıksın); sahne düğmeleri de koyu yüzeye geçer */
 :root[data-mode='dark'] .room-canvas {
-  background: color-mix(in srgb, var(--room-bg) 16%, #1b1e23);
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--room-bg) 14%, var(--scene-glow)),
+    color-mix(in srgb, var(--room-bg) 8%, var(--scene-base)));
 }
 
 :root[data-mode='dark'] .room-canvas__group {
@@ -416,7 +419,7 @@
 }
 
 :root[data-mode='dark'] .room-canvas__hint {
-  color: rgba(236, 238, 240, 0.6);
+  color: color-mix(in srgb, var(--scene-hint) 80%, transparent);
 }
 
 /* odadakiler listesi; nokta biçimleri avatar etiketleriyle aynı */
@@ -484,7 +487,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 84%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 70%, transparent),
-    0 6px 18px -10px rgba(20, 25, 35, 0.45);
+    0 6px 18px -10px rgba(40, 26, 12, 0.45);
   -webkit-backdrop-filter: blur(10px) saturate(1.2);
   backdrop-filter: blur(10px) saturate(1.2);
   color: var(--text-2);
@@ -570,16 +573,16 @@
   gap: 2px;
   max-width: 100%;
   padding: 3px;
-  border-radius: 12px;
-  background: var(--surface-2);
-  box-shadow: inset 0 0 0 1px var(--line);
+  border-radius: calc(var(--radius-block) + 3px);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line), inset 0 2px 0 rgba(60, 40, 20, 0.06);
 }
 
 .segmented button {
   min-height: 36px;
   padding: 0 14px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-block);
   background: transparent;
   color: var(--text-2);
   font: inherit;
@@ -593,7 +596,7 @@
 
 .segmented button[aria-pressed='true'] {
   background: var(--chip-on-bg);
-  box-shadow: var(--primary-glow);
+  box-shadow: inset 0 0 0 1px var(--chip-on-edge), var(--voxel-face);
   color: var(--chip-on-fg);
   font-weight: 600;
 }
@@ -605,10 +608,9 @@
 }
 
 /* o anki seçimde geçersiz alan (bu saç modelinde kahkül yok): ad ve düğmeler soluk, not okunur */
-.field--off .field__name,
 .field--off .segmented,
 .field--off .option-grid {
-  opacity: 0.45;
+  opacity: 0.5;
 }
 
 .field--off button {
@@ -640,8 +642,9 @@
   min-width: 96px;
   padding: 8px 12px;
   border: 2px solid transparent;
-  border-radius: 14px;
+  border-radius: var(--radius-block);
   background: var(--surface-2);
+  box-shadow: var(--voxel-face);
   color: var(--text);
   font: inherit;
   font-size: 13px;
@@ -840,8 +843,9 @@
   min-height: 42px;
   padding: 6px 10px;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-block);
   background: var(--surface);
+  box-shadow: var(--voxel-face);
   color: var(--text-2);
   font: inherit;
   font-size: 13.5px;
@@ -858,6 +862,7 @@
 
 .tile--none {
   border-style: dashed;
+  box-shadow: none;
   color: var(--muted);
 }
 
@@ -865,7 +870,7 @@
   border-color: var(--chip-on-edge);
   border-style: solid;
   background: var(--chip-on-bg);
-  box-shadow: var(--primary-glow);
+  box-shadow: var(--voxel-face);
   color: var(--chip-on-fg);
   font-weight: 600;
 }
@@ -896,7 +901,7 @@
 
 /* "yok" seçeneği: çapraz çizgili beyaz */
 .swatch--none {
-  background: linear-gradient(135deg, #fff 45%, #c44 45%, #c44 55%, #fff 55%);
+  background: linear-gradient(135deg, var(--surface) 45%, #c44 45%, #c44 55%, var(--surface) 55%);
 }
 
 .swatch[aria-pressed='true'] {
