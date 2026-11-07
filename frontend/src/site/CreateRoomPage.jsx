@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { ACCESS_LABELS } from './access'
-import { swatchOf } from './themeLook'
+import Icon from './AvatarIcons'
 import { normalizeCode } from './roomStore'
 
 const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
+const FORM_ID = 'create-room-form'
+// Oda kartı görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir.
+const thumbOf = (theme) => `${import.meta.env.BASE_URL}room-thumbs/${theme}.webp`
 
 // Gizli odaların davet kodu: tema adından kısa önek + 4 rakam (ORMAN-4821 gibi).
 function inviteCode(name) {
@@ -16,7 +19,34 @@ function inviteCode(name) {
   return `${prefix}-${String(Math.floor(1000 + Math.random() * 9000))}`
 }
 
-// Oda oluşturma: ad, tema, kapasite ve erişim seçilir; sağda seçilen odanın canlı 3D önizlemesi.
+// Kapasite adım seçici: − / + ve kişi ikonları (dolu: oda kapasitesi, soluk: temanın üst sınırına kadar).
+function CapacityStepper({ value, max, onChange }) {
+  return (
+    <div className="stepper" role="group" aria-labelledby="capacity-label">
+      <button type="button" className="stepper__btn" onClick={() => onChange(value - 1)} disabled={value <= 1} aria-label="Bir kişi azalt">
+        <span aria-hidden="true">−</span>
+      </button>
+      <div className="stepper__value">
+        <output className="stepper__count" aria-live="polite">
+          {value} <span>kişilik</span>
+        </output>
+        <span className="stepper__people" aria-hidden="true">
+          {Array.from({ length: max }, (_, i) => (
+            <span key={i} className={i < value ? 'stepper__person stepper__person--on' : 'stepper__person'}>
+              <Icon name="body" size={15} />
+            </span>
+          ))}
+        </span>
+      </div>
+      <button type="button" className="stepper__btn" onClick={() => onChange(value + 1)} disabled={value >= max} aria-label="Bir kişi artır">
+        <span aria-hidden="true">+</span>
+      </button>
+    </div>
+  )
+}
+
+// Oda oluşturma: solda ad (kapı tabelası), tema kartları, kapasite ve erişim; sağda yapışkan canlı 3D
+// önizleme, özet ve oluştur düğmesi. Telefonda önizleme üstte, düğme ekranın altına yapışık.
 // Lobi'nin alt sayfası; var olan odalara katılmak Lobi'de.
 export default function CreateRoomPage({ onCreate, onBack }) {
   const [name, setName] = useState('')
@@ -25,12 +55,15 @@ export default function CreateRoomPage({ onCreate, onBack }) {
   const [access, setAccess] = useState('public')
   const [spot, setSpot] = useState(null)
   const { label, Room, max } = THEMES[theme]
-  const capacities = Array.from({ length: max }, (_, i) => i + 1)
+  const roomName = name.trim() || `${label} odası`
 
   const submit = (e) => {
     e.preventDefault()
-    const roomName = name.trim() || `${label} odası`
     onCreate({ id: `room-${Date.now()}`, name: roomName, theme, capacity, access, code: access === 'invite' ? inviteCode(roomName) : undefined })
+  }
+  const changeCapacity = (n) => {
+    setCapacity(Math.max(1, Math.min(max, n)))
+    setSpot(null)
   }
 
   return (
@@ -40,13 +73,14 @@ export default function CreateRoomPage({ onCreate, onBack }) {
           ← Lobiye dön
         </button>
         <h1>Oda oluştur</h1>
-        <p className="site-muted">Odayı kur, temasını seç; ister herkese aç, ister yalnızca davet koduyla girilsin.</p>
       </div>
-      <div className="create">
-        <form className="site-card create-form" onSubmit={submit}>
-          <label className="field">
+      <div className="create create--room">
+        <form id={FORM_ID} className="site-card create-form create-room__form" onSubmit={submit}>
+          <label className="field door-sign">
             <span className="field__label">Oda adı</span>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${label} odası`} maxLength={60} />
+            <span className="door-sign__plate">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${label} odası`} maxLength={60} />
+            </span>
           </label>
 
           <fieldset className="field">
@@ -64,35 +98,24 @@ export default function CreateRoomPage({ onCreate, onBack }) {
                     setSpot(null)
                   }}
                 >
-                  {/* temanın renk şeridi (lobi kartlarıyla aynı) */}
-                  <i className="theme-option__swatch" aria-hidden="true" style={{ background: swatchOf(key) }} />
-                  {t.label}
-                  <span>{t.description}</span>
+                  <span className="theme-option__shot">
+                    <img src={thumbOf(key)} alt="" width="480" height="360" loading="lazy" decoding="async" />
+                  </span>
+                  <span className="theme-option__name">{t.label}</span>
+                  <span className="theme-option__desc">{t.description}</span>
                 </button>
               ))}
             </div>
           </fieldset>
 
           <fieldset className="field">
-            <legend className="field__label">Kapasite</legend>
-            <div className="choice-row">
-              {capacities.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  aria-pressed={capacity === n}
-                  onClick={() => {
-                    setCapacity(n)
-                    setSpot(null)
-                  }}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
+            <legend className="field__label" id="capacity-label">
+              Kapasite
+            </legend>
+            <CapacityStepper value={capacity} max={max} onChange={changeCapacity} />
           </fieldset>
 
-          <fieldset className="field">
+          <fieldset className="field create-room__last">
             <legend className="field__label">Kimler girebilir</legend>
             <div className="choice-row">
               {Object.entries(ACCESS_LABELS).map(([key, text]) => (
@@ -102,25 +125,29 @@ export default function CreateRoomPage({ onCreate, onBack }) {
               ))}
             </div>
           </fieldset>
-
-          <button type="submit" className="site-btn site-btn--primary site-btn--wide">
-            Odayı oluştur ve gir
-          </button>
         </form>
 
-        <section className="create-preview" aria-label="Önizleme">
-          <h2>Önizleme</h2>
-          <div className="room-frame create-preview__room">
+        {/* masaüstünde yapışkan sütun; telefonda display: contents ile sahne üste, eylem alta yapışır */}
+        <aside className="create-room__aside" aria-label="Oda önizlemesi">
+          <div className="room-frame create-preview__room create-room__stage">
             {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
             <div key={`${theme}-${capacity}`} className="create-preview__scene">
               <Room capacity={capacity} onSpotClick={setSpot} />
             </div>
           </div>
-          <p className="site-muted">
-            {name.trim() || `${label} odası`} · {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
-            {spot && <> · Seçilen nokta: {spot.label}</>}
-          </p>
-        </section>
+          <div className="create-room__cta">
+            <p className="create-room__summary">
+              <strong>{roomName}</strong>
+              <span>
+                {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
+                {spot && <> · Seçilen nokta: {spot.label}</>}
+              </span>
+            </p>
+            <button type="submit" form={FORM_ID} className="site-btn site-btn--primary site-btn--wide">
+              Odayı oluştur ve gir
+            </button>
+          </div>
+        </aside>
       </div>
     </>
   )
