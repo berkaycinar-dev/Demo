@@ -2,6 +2,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, Color, Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { BONE_INDEX, SCALE, buildAvatarParts } from './model'
+import { OVER_HEAD } from './options'
 import { GESTURES, STAND_POSES, deskReadPose, gesturePose, sleepDeskPose, standPose, typePose, walkPose, writePose } from './poses'
 import { computeBones, createBoneMatrices, headTop, writeParts } from './render'
 import './AvatarPreview.css'
@@ -218,9 +219,13 @@ const WRIST_POINT = new Vector3(0.05 * SCALE, -0.16 * SCALE, 0)
 const LEGS_POINT = new Vector3(0, -0.18 * SCALE, 0.04 * SCALE)
 const SHOE_CENTER = new Vector3(0, -0.2 * SCALE, 0.02 * SCALE)
 
-function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHat }) {
-  // hideHat: yalnızca önizlemede başlıksız çizer (kayıtlı avatar değişmez, tepki tetiklenmez)
-  const parts = useMemo(() => buildAvatarParts(hideHat ? { ...avatar, hat: 'none' } : avatar), [avatar, hideHat])
+// Saç seçerken saçı örten başlık ve kafa üstü kulaklık (bant + kulak kapları) önizlemede çizilmez.
+const bareHead = (avatar) => ({ ...avatar, hat: 'none', headphones: OVER_HEAD.includes(avatar.headphones) ? 'none' : avatar.headphones })
+
+function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHeadwear }) {
+  // hideHeadwear: yalnızca önizlemede başlıksız ve kafa üstü kulaklıksız çizer (kayıtlı avatar değişmez,
+  // tepki tetiklenmez)
+  const parts = useMemo(() => buildAvatarParts(hideHeadwear ? bareHead(avatar) : avatar), [avatar, hideHeadwear])
   const statics = useMemo(() => sceneBoxes(mode === 'focus' || mode === 'away', activity), [mode, activity])
   const meshRef = useRef(null)
   const sceneRef = useRef(null)
@@ -373,11 +378,12 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
  * manzara) | 'away' (masada uyur, zZz) | 'walk' (yerinde yürür). activity: 'read' (masadaki açık
  * kitabı okur, not alır) | 'type' (dizüstü bilgisayar). focus: kamera odağı 'full' (tam boy) | 'face'
  * | 'hat' | 'chest' (boyun) | 'wrist' (sol bilek) | 'upper' (gövde) | 'legs' | 'feet'; açı ve yakınlık
- * poza göre (VIEWS). hideHat: başlığı yalnızca önizlemede gizler (saç seçerken saç görünsün).
+ * poza göre (VIEWS). hideHeadwear: başlığı ve kafa üstü kulaklığı yalnızca önizlemede gizler (saç seçerken
+ * saç görünsün).
  */
 // hint: false ise ipucu satırı çizilmez (atölye kendi kontrol barını gösterir). resetKey her değiştiğinde
 // görünüm döndürmesi sıfırlanır (çift tıkla aynı).
-export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHat = false, hint = true, resetKey = 0, reducedMotion, className = '' }) {
+export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHeadwear = false, hint = true, resetKey = 0, reducedMotion, className = '' }) {
   const animated = !(reducedMotion ?? prefersReducedMotion())
   const view = useRef({ yaw: 0 })
   const anchors = useRef({
@@ -445,7 +451,7 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <CameraRig view={view} mode={mode} focus={focus} anchorsRef={anchors} animated={animated} />
         <hemisphereLight color="#fff6e8" groundColor="#8a7a68" intensity={2.2} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} color="#fff1d8" />
-        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHat={hideHat} />
+        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHeadwear={hideHeadwear} />
         <Ticker animated={animated} />
       </Canvas>
       {hint && <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>}

@@ -996,8 +996,17 @@
   container: options / inline-size;
 }
 
+/* atölye tip ölçeği: bölüm başlığı 20 / alan etiketi ve seçenek 14 / grup notu ve açıklama 12.
+   Hiyerarşi iki katman: belirgin bölüm başlığı, sessiz grup notu; tek seçicili bölümde alan adı yalnızca
+   ekran okuyucuda (.field__label--bare). */
+.avatar-page {
+  --type-section: 20px;
+  --type-label: 14px;
+  --type-caption: 12px;
+}
+
 .opt-section {
-  padding: 20px 0 2px;
+  padding: 24px 0 4px;
   border-top: 1px solid var(--line);
 }
 
@@ -1009,13 +1018,14 @@
 .site .opt-section__title {
   margin: 0 0 14px;
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: var(--type-section);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 .avatar-page .field {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .avatar-page .field__label {
@@ -1023,17 +1033,73 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 2px 8px;
-  font-size: 13px;
+  width: 100%;
+  color: var(--text);
+  font-size: var(--type-label);
+  font-weight: 600;
+}
+
+/* adı gizli etiket: yalnızca not / değer kalır; ikisi de yoksa yer kaplamaz */
+.avatar-page .field__label--bare {
+  margin-bottom: 8px;
+}
+
+.avatar-page .field__label--bare:not(:has(.field__note, .field__value)) {
+  margin-bottom: 0;
 }
 
 .field__value {
-  color: var(--text);
+  color: var(--text-2);
   font-weight: 500;
 }
 
 .field__note {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--type-caption, 12px);
+  font-weight: 400;
+}
+
+.field__action {
+  margin-left: auto;
+  font-size: var(--type-caption, 12px);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* katlı alan: "+ İkinci renk" */
+.add-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-height: 44px;
+  margin-bottom: 20px;
+  padding: 0 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-block);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--type-label);
+  font-weight: 600;
+  line-height: 44px;
+  cursor: pointer;
+}
+
+.add-btn:hover {
+  border-style: solid;
+  background: var(--surface-2);
+}
+
+.add-btn__hint {
+  color: var(--muted);
+  font-size: var(--type-caption);
   font-weight: 400;
 }
 
@@ -1045,16 +1111,22 @@
 }
 
 .option-group + .option-group {
-  margin-top: 12px;
+  margin-top: 16px;
+}
+
+/* görselli seçenekler: voxel küçük görsel üstte, ad altta */
+.option-grid--thumbs {
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
 }
 
 .option-group__name {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--type-caption);
+  font-weight: 500;
 }
 
 .option-group__name::after {
@@ -1077,7 +1149,7 @@
   box-shadow: var(--voxel-face);
   color: var(--text-2);
   font: inherit;
-  font-size: 13.5px;
+  font-size: var(--type-label);
   line-height: 1.25;
   text-align: center;
   text-wrap: balance;
@@ -1087,6 +1159,35 @@
 .tile:hover {
   border-color: var(--muted);
   background: var(--surface-2);
+}
+
+.tile__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tile--thumb {
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 6px 8px;
+}
+
+.tile__thumb {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: calc(var(--radius-block) - 2px);
+  background: radial-gradient(circle at 50% 40%, var(--surface), var(--surface-sunken));
+}
+
+.tile[aria-pressed='true'] .tile__thumb {
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.15));
+}
+
+.tile--thumb .tile__label {
+  font-size: 13px;
 }
 
 .tile--none {
