@@ -1023,8 +1023,9 @@
 }
 
 .design-option[aria-pressed='true'] {
-  border-color: var(--primary);
-  background: var(--primary-soft);
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
 }
 
 .design-option__swatch {
@@ -1581,10 +1582,16 @@
   color: var(--text);
 }
 
+/* sayfa zemininde AA: --primary 4.2:1 kalıyordu, bir ton koyusu */
 .back-link {
   display: inline-block;
   margin-bottom: 10px;
+  color: var(--primary-hover);
   font-weight: 600;
+}
+
+.back-link:hover {
+  color: var(--text);
 }
 
 @media (max-width: 1000px) {

@@ -55,6 +55,10 @@
   --chip-on-bg: var(--primary-fill);
   --chip-on-fg: #072b35;
   --chip-on-edge: #1f8aa0;
+  /* seçim dili: seçili öğenin 2 px halkası (dolgu --chip-on-bg, yazı --chip-on-fg) */
+  --sel-ring: var(--chip-on-edge);
+  /* "yok" renk seçeneğinin çaprazı */
+  --none-mark: #c44;
   --badge: #a0700e;
   --badge-soft: #f6eedb;
   --timer: #1f93ab;
@@ -90,7 +94,7 @@
   --surface-sunken: var(--material-clay);
   --card-edge: inset 0 0 0 1px #47403a, 0 12px 28px -18px rgba(0, 0, 0, 0.6);
   --line: #47403a;
-  --line-strong: #625950;
+  --line-strong: #6a707a;
   --text: #efe9e1;
   --text-2: #d4ccc1;
   --muted: #b3a99c;
@@ -110,6 +114,9 @@
   --primary-soft: #2e3a44;
   --chip-on-fg: #e8eef7;
   --chip-on-edge: #8fb0d6;
+  /* koyu zeminde seçili öğe --primary halkasıyla ayrılır (yüzeye karşı ≥ 3:1) */
+  --sel-ring: var(--primary);
+  --none-mark: #b86b60;
   --badge: #e2bd6a;
   --badge-soft: #433c2c;
   --timer: #9db8d6;
