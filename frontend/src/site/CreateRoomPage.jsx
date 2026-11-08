@@ -31,10 +31,10 @@ function inviteCode(name) {
 }
 
 // Tema kartı görseli: yüklenirken iskelet, yüklenemezse çizgi ikonlu yer tutucu (kırık resim simgesi yok).
-function ThemeShot({ src }) {
+function ThemeShot({ src, className = '' }) {
   const [state, imgProps] = useImageState()
   return (
-    <span className="theme-option__img" data-state={state}>
+    <span className={`theme-option__img ${className}`} data-state={state}>
       {state === 'error' ? <Icon name="image" size={28} /> : <img src={src} alt="" width="480" height="360" loading="lazy" decoding="async" {...imgProps} />}
     </span>
   )
@@ -83,6 +83,12 @@ export default function CreateRoomPage({ onCreate, onBack }) {
   const roomName = name.trim() || fallbackName
   const status = nameStatus(name, NAME_MAX, `Boş bırakırsan adı “${fallbackName}” olur.`)
   const nameRef = useRef(null)
+  const heroRef = useRef(null)
+  // telefonda mini önizlemeye dokununca canlı sahneye çıkar (azaltılmış harekette anında)
+  const showStage = () => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    heroRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+  }
   // tabela yazısı satıra sığmazsa alt satıra geçer; levha yazıyla birlikte uzar (baş hiç kaybolmaz)
   useLayoutEffect(() => {
     const el = nameRef.current
@@ -120,7 +126,7 @@ export default function CreateRoomPage({ onCreate, onBack }) {
         <h1>Oda oluştur</h1>
       </div>
       <form id={FORM_ID} className="create-room" onSubmit={submit}>
-        <section className="create-room__hero" aria-label="Oda önizlemesi">
+        <section className="create-room__hero" aria-label="Oda önizlemesi" ref={heroRef}>
           {/* oda adı: sahnenin üstüne asılı kapı tabelası. Çok satırlı alan: uzun ad levhada alt satıra geçer;
               Enter satır açmaz, formu gönderir. Sınır sessizce kesmez; altındaki not ve sayaç uyarır. */}
           <div className="field door-sign create-room__sign">
@@ -206,10 +212,22 @@ export default function CreateRoomPage({ onCreate, onBack }) {
             </fieldset>
           </div>
 
+          {/* telefonda yapışkan çubuk: mini önizleme (seçili tema + kişi sayısı, seçim değişince yeniden
+              belirir; dokununca canlı sahneye çıkar) ve kırpılmadan iki satıra sarılan özet */}
           <div className="create-room__cta">
+            <button type="button" key={`${theme}-${capacity}`} className="create-room__mini" onClick={showStage} aria-label={`Canlı önizlemeye git: ${label}, ${capacity} kişilik`}>
+              <ThemeShot src={thumbOf(theme)} className="create-room__mini-img" />
+              <span className="create-room__mini-count" aria-hidden="true">
+                <Icon name="body" size={12} />
+                {capacity}
+              </span>
+            </button>
             <p className="create-room__summary">
-              {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
-              {spot && <> · Seçilen nokta: {spot.label}</>}
+              <span className="create-room__summary-name">{roomName}</span>
+              <span>
+                {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
+                {spot && <> · Seçilen nokta: {spot.label}</>}
+              </span>
             </p>
             <div className="create-room__error" role="alert">
               {failure && (

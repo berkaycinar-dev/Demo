@@ -340,13 +340,14 @@ function PoseSheet({ open, onClose, mode, setMode, activity, setActivity, childr
   }, [open])
   const seated = SEATED.includes(mode)
   return (
-    <dialog ref={ref} className="sheet" aria-labelledby="pose-sheet-title" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+    <dialog ref={ref} className="sheet" aria-labelledby="pose-sheet-title" aria-describedby="pose-sheet-note" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
       <div className="sheet__head">
         <h2 id="pose-sheet-title" className="sheet__title">Poz ve kombinler</h2>
         <button type="button" className="sheet__close" onClick={onClose} aria-label="Kapat">
           <Icon name="close" />
         </button>
       </div>
+      <p id="pose-sheet-note" className="sheet__note">Önizleme pozu: odadaki durumunu değiştirmez</p>
       <div className="segmented segmented--fill" role="group" aria-label="Poz" style={{ '--count': MODES.length }}>
         {MODES.map((m) => (
           <button key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>
@@ -544,8 +545,9 @@ export default function AvatarPage({ avatar, onChange }) {
               </div>
               <div className="hud">
                 {compact && (
-                  <button type="button" className="hud__icon" onClick={openSheet} aria-haspopup="dialog" aria-label="Poz ve kombinler" title="Poz ve kombinler">
-                    <Icon name="outfits" />
+                  <button type="button" className="hud__text hud__pose" onClick={openSheet} aria-haspopup="dialog" title="Poz ve kombinler">
+                    <Icon name={MODES.find((m) => m.id === mode)?.icon ?? 'focus'} size={16} />
+                    Poz
                   </button>
                 )}
                 <button type="button" className="hud__icon hud__dice" onClick={rollDice} data-rolling={roll ? '' : undefined} aria-label="Rastgele avatar" title="Rastgele avatar (geri alınabilir)">
