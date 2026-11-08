@@ -289,6 +289,7 @@ function Wardrobe({ avatar, onLoad }) {
           </button>
         )}
       </div>
+      <p className="wardrobe__hint">Kaydet simgesiyle şu anki görünümü sakla, sonra kombine dokunup tek seferde giy.</p>
       <p className="form-error wardrobe__error" role="alert">
         {notice?.kind === 'error' && noticeText(notice)}
       </p>
@@ -385,7 +386,7 @@ function useCompact() {
 // Avatarım: avatar atölyesi. Solda canlı 3D önizleme (poz ve çalışma türü seçilir; kamera seçilen
 // bölgeye yaklaşır), geri al / ileri al ve kombin slotları; sağda sekmelere ayrılmış özelleştirme. Her
 // değişiklik hemen kaydedilir; odalarda "Sen" olarak bu avatar oturur.
-export default function AvatarPage({ avatar, onChange }) {
+export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [mode, setMode] = useState('focus')
   const [activity, setActivity] = useState('read')
   const [tab, setTab] = useState('body')
@@ -412,7 +413,7 @@ export default function AvatarPage({ avatar, onChange }) {
   const [history, setHistory] = useState({ past: [], future: [], last: null })
   // sınırı aşan görünen ad: kaydedilmez, kısaltılana dek alanda bu taslak durur
   const [nameDraft, setNameDraft] = useState(null)
-  const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan adın “${DEFAULT_AVATAR.name}” olur.`)
+  const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan odadakiler seni “${DEFAULT_AVATAR.name}” adıyla görür.`)
 
   const commit = (next, key = null) => {
     if (JSON.stringify(next) === JSON.stringify(avatar)) return
@@ -497,7 +498,8 @@ export default function AvatarPage({ avatar, onChange }) {
   const earNote = avatar.earrings === 'none' ? null : earsCovered ? 'saç kulakları örtüyor' : overHead ? 'kulaklık örtüyor' : null
   const phoneNote = avatar.headphones === 'earbuds' && earsCovered ? 'saç kulakları örtüyor' : HEADPHONE_HATS.includes(avatar.hat) ? null : 'kafa üstü modeller seçilirse başlık çıkar'
   const hair = HAIR_COLORS.find((h) => h.id === avatar.hairColor)
-  const browNote = avatar.brows === 'auto' ? (hair?.natural ? 'şu an saça uyumlu' : 'şu an doğal koyu') : null
+  // Otomatik kaş: doğal saç renginde saçla aynı, diğerlerinde doğal koyu. Not kuralı ve şu anki sonucu söyler.
+  const browNote = avatar.brows === 'auto' ? (hair?.natural ? 'Otomatik: doğal saç renginde kaş saçla aynı olur' : 'Otomatik: bu saç renginde kaş doğal koyu olur') : null
   const outfit = avatar.outfit
   const topLabel = outfit === 'dress' ? 'Elbise rengi' : outfit === 'onesie' ? 'Tulum rengi' : 'Renk'
   const bottomLabel = outfit === 'overalls' ? 'Salopet rengi' : 'Renk'
@@ -506,8 +508,17 @@ export default function AvatarPage({ avatar, onChange }) {
 
   return (
     <div className="avatar-workshop">
-      <h1>Avatar atölyesi</h1>
-      <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
+      <div className="avatar-workshop__head">
+        <div>
+          <h1>Avatar atölyesi</h1>
+          <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
+        </div>
+        {onEnterRoom && (
+          <button type="button" className="site-btn avatar-workshop__enter" onClick={onEnterRoom}>
+            Bu hâliyle odama gir
+          </button>
+        )}
+      </div>
       <div className="create avatar-page">
         <section className="create-preview" aria-label="Önizleme" ref={previewRef}>
           <div className="room-frame avatar-page__preview">

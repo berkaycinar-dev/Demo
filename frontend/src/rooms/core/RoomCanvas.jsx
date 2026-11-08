@@ -161,6 +161,7 @@ function Lighting({ bounds, preset, lamps }) {
  * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
  * toolbar: 'full' (varsayılan; zoom + dört gün zamanı düğmesi) ya da 'compact' (zoom + katlanır gün zamanı
  *          menüsü, sağ altta; oda oluşturma gibi asıl eylemin sahne dışında olduğu sayfalar için).
+ * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık).
  * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
  *              ({ width: 'calc(100% - 400px)' } gibi). Verilmezse sahne kutunun tamamını kullanır.
  */
@@ -242,6 +243,7 @@ export default function RoomCanvas({
   style,
   canvasStyle,
   toolbar = 'full',
+  hint = 'Sürükle: döndür · Çift tık: sıfırla',
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
@@ -360,7 +362,7 @@ export default function RoomCanvas({
         </div>
       )}
 
-      <p className="room-canvas__hint">Sürükle: döndür · Çift tık: sıfırla</p>
+      <p className="room-canvas__hint">{hint}</p>
     </div>
   )
 }
