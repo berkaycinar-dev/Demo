@@ -1,4 +1,4 @@
-/* Odakhane tasarım token'ları: sıcak malzeme nötrleri (kâğıt, kil, ahşap) + turkuaz vurgular; koyu mod
+/* Odakhane tasarım token'ları: sıcak malzeme nötrleri (kâğıt, kil, ahşap) + terakota vurgu; koyu mod
    ayrı (sıcak kömür ve ahşap, akşam sahnesi).
    Koyu mod <html data-mode="dark"> ile açılır; bkz. useColorMode.js. */
 
@@ -45,23 +45,30 @@
   --sign-edge: #3e2d20;
   --sign-ink: #f7eedd;
   --sign-ink-2: #d9c7ad;
-  /* ana vurgu: açık turkuaz düğmeler (koyu yazıyla okunaklı), yazı vurguları koyu turkuaz */
-  --primary: #126c7e;
-  --primary-hover: #0f5d6d;
-  --primary-fill: var(--button-sheen), #46bfd6;
-  --primary-glow: inset 0 0 0 1px #2fa6be, 0 2px 6px -2px rgba(20, 120, 145, 0.35);
-  --on-primary: #072b35;
-  --primary-soft: #e3f4f8;
-  --chip-on-bg: var(--primary-fill);
-  --chip-on-fg: #072b35;
-  --chip-on-edge: #1f8aa0;
-  /* seçim dili: seçili öğenin 2 px halkası (dolgu --chip-on-bg, yazı --chip-on-fg) */
-  --sel-ring: var(--chip-on-edge);
+  /* ana vurgu: terakota, odalardaki tuğla / kil tonu. Düğme dolgusu (#aa4a2a, krem yazı) açık ve
+     koyu modda aynı; yazı vurgusu, odak halkası ve logo her modda zemine göre ayarlanır. */
+  --primary: #9c4122;
+  --primary-hover: #85361c;
+  --primary-fill: var(--button-sheen), #aa4a2a;
+  --primary-glow: inset 0 0 0 1px #8a3a1d, 0 2px 6px -2px rgba(140, 60, 30, 0.4);
+  --on-primary: #fff8f1;
+  --primary-soft: #f8e7dd;
+  /* seçim dili: kil tonu dolgu + 2 px terakota halka; --on-ring halka renginin üstündeki işaret */
+  --chip-on-bg: #f5ddd0;
+  --chip-on-fg: #3d1a0c;
+  --chip-on-edge: #b5502d;
+  --sel-ring: #b5502d;
+  --on-ring: #fff8f1;
+  /* klavye odağı: sitenin her yerinde tek halka rengi */
+  --focus-ring: #9c4122;
+  /* kullanıcı avatarı (üst menü): düğmeyle aynı malzeme */
+  --avatar-bg: #aa4a2a;
+  --avatar-fg: #fff8f1;
   /* "yok" renk seçeneğinin çaprazı */
   --none-mark: #c44;
   --badge: #a0700e;
   --badge-soft: #f6eedb;
-  --timer: #1f93ab;
+  --timer: #b5502d;
   --info: #1f93ab;
   --info-soft: #e3f4f8;
   --break: #245f58;
@@ -73,7 +80,7 @@
   --header-muted: #675e54;
   --header-active: var(--material-paper);
   --header-border: #e6ded2;
-  --header-accent: #167486;
+  --header-accent: #9c4122;
 }
 
 /* sayfa sınırının ötesine kaydırınca görünen zemin de temaya uyar */
@@ -105,21 +112,22 @@
   --scene-hint: #e8ddd0;
   --sign-wood: #4a382a;
   --sign-edge: #2c2119;
-  --primary: #9db8d6;
-  --primary-hover: #b6cbe3;
-  /* düğmeler: göz almayan lacivert */
-  --primary-fill: var(--button-sheen), #24426b;
-  --primary-glow: inset 0 0 0 1px #34557f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
-  --on-primary: #e8eef7;
-  --primary-soft: #2e3a44;
-  --chip-on-fg: #e8eef7;
-  --chip-on-edge: #8fb0d6;
-  /* koyu zeminde seçili öğe --primary halkasıyla ayrılır (yüzeye karşı ≥ 3:1) */
-  --sel-ring: var(--primary);
+  /* terakota: düğme dolgusu açık modla aynı; yazı vurgusu ve halkalar koyu zeminde açık kil tonu */
+  --primary: #eb9a78;
+  --primary-hover: #f2b195;
+  --primary-glow: inset 0 0 0 1px #c4643f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+  --primary-soft: #3f2b23;
+  --chip-on-bg: #4b2d22;
+  --chip-on-fg: #f9e9df;
+  --chip-on-edge: #e08a66;
+  /* koyu zeminde seçili öğe açık terakota halkayla ayrılır (yüzeye karşı ≥ 3:1) */
+  --sel-ring: #e08a66;
+  --on-ring: #2a1209;
+  --focus-ring: #eb9a78;
   --none-mark: #b86b60;
   --badge: #e2bd6a;
   --badge-soft: #433c2c;
-  --timer: #9db8d6;
+  --timer: #e08a66;
   --info: #9db8d6;
   --info-soft: #2e3a44;
   --break: #9ad9ce;
@@ -131,5 +139,5 @@
   --header-muted: #b3a99c;
   --header-active: var(--material-wood);
   --header-border: #403a34;
-  --header-accent: #9db8d6;
+  --header-accent: #eb9a78;
 }

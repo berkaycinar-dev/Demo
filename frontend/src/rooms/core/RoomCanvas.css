@@ -58,7 +58,7 @@
 }
 
 .room-canvas__group button:focus-visible {
-  outline: 2px solid var(--primary, #1f6b4a);
+  outline: 2px solid var(--focus-ring, #9c4122);
   outline-offset: -2px;
 }
 
@@ -209,7 +209,7 @@
 
 .room-canvas__time-btn:focus-visible,
 .room-canvas__time-menu button:focus-visible {
-  outline: 2px solid var(--primary, #1f6b4a);
+  outline: 2px solid var(--focus-ring, #9c4122);
   outline-offset: 1px;
 }
 
