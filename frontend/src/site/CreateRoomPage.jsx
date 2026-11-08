@@ -174,6 +174,8 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
                 type="button"
                 className="theme-option"
                 aria-pressed={theme === key}
+                aria-labelledby={`theme-${key}-name`}
+                aria-describedby={`theme-${key}-desc`}
                 onClick={() => {
                   setTheme(key)
                   setCapacity((c) => Math.min(c, t.max))
@@ -186,8 +188,9 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
                     <Icon name="check" size={14} />
                   </span>
                 </span>
-                <span className="theme-option__name">{t.label}</span>
-                <span className="theme-option__desc">{t.description}</span>
+                {/* ad ve açıklama ayrı: ekran okuyucu adı düğme adı, açıklamayı ek bilgi olarak okur */}
+                <span id={`theme-${key}-name`} className="theme-option__name">{t.label}</span>
+                <span id={`theme-${key}-desc`} className="theme-option__desc">{t.description}</span>
               </button>
             ))}
           </div>

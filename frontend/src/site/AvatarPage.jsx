@@ -536,11 +536,19 @@ export default function AvatarPage({ avatar, onChange }) {
             )}
             <div className="hud-stack hud-stack--end">
               <div className="hud" role="toolbar" aria-label="Geçmiş">
-                <button type="button" className="hud__icon" onClick={undo} disabled={!history.past.length} aria-label="Geri al" title="Geri al (Ctrl+Z)">
+                {/* simge düğmeleri: fareyle üstüne gelince ya da klavye odağında ipucu balonu, dokunmatikte
+                    (hover: none) etiket simgenin altında hep görünür. Kısayol yalnızca balonda. */}
+                <button type="button" className="hud__icon" onClick={undo} disabled={!history.past.length} aria-label="Geri al" aria-keyshortcuts="Control+Z">
                   <Icon name="undo" />
+                  <span className="hud__label" aria-hidden="true">
+                    Geri al<kbd className="hud__key">Ctrl+Z</kbd>
+                  </span>
                 </button>
-                <button type="button" className="hud__icon" onClick={redo} disabled={!history.future.length} aria-label="İleri al" title="İleri al (Ctrl+Y)">
+                <button type="button" className="hud__icon" onClick={redo} disabled={!history.future.length} aria-label="İleri al" aria-keyshortcuts="Control+Y">
                   <Icon name="redo" />
+                  <span className="hud__label" aria-hidden="true">
+                    İleri al<kbd className="hud__key">Ctrl+Y</kbd>
+                  </span>
                 </button>
               </div>
               <div className="hud">
@@ -550,8 +558,11 @@ export default function AvatarPage({ avatar, onChange }) {
                     Poz
                   </button>
                 )}
-                <button type="button" className="hud__icon hud__dice" onClick={rollDice} data-rolling={roll ? '' : undefined} aria-label="Rastgele avatar" title="Rastgele avatar (geri alınabilir)">
+                <button type="button" className="hud__icon hud__dice" onClick={rollDice} data-rolling={roll ? '' : undefined} aria-label="Rastgele avatar">
                   <Icon name="dice" />
+                  <span className="hud__label" aria-hidden="true">
+                    Rastgele
+                  </span>
                 </button>
               </div>
               {tab === 'hair' && hasHeadwear && (
@@ -561,10 +572,12 @@ export default function AvatarPage({ avatar, onChange }) {
                     className="hud__icon"
                     aria-pressed={hideHeadwear}
                     aria-label="Başlığı ve kulaklığı gizle"
-                    title={hideHeadwear ? 'Başlık ve kulaklık gizli: göster' : 'Saça bakarken başlığı ve kulaklığı gizle'}
                     onClick={() => setHatShown(!hatShown)}
                   >
                     <Icon name={hideHeadwear ? 'hatOff' : 'hat'} />
+                    <span className="hud__label" aria-hidden="true">
+                      {hideHeadwear ? 'Başlık gizli' : 'Başlığı gizle'}
+                    </span>
                   </button>
                 </div>
               )}
