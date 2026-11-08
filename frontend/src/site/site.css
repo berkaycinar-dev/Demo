@@ -2526,3 +2526,37 @@
     animation: none;
   }
 }
+
+/* ---------- Oda oluşturulamadı: oluştur düğmesinin hemen üstünde, ne olduğu ve çıkış yolu ---------- */
+.create-room__error:empty {
+  display: none;
+}
+
+.create-room__error {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-block);
+  background: rgba(180, 67, 47, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(180, 67, 47, 0.35);
+  color: #8a2f1f;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.create-room__error p {
+  margin: 0;
+}
+
+.create-room__error .link-btn {
+  min-height: 40px;
+  margin-top: 4px;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+:root[data-mode='dark'] .create-room__error {
+  background: rgba(240, 138, 106, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(240, 138, 106, 0.4);
+  color: #f6b9a3;
+}

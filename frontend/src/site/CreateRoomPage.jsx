@@ -14,6 +14,13 @@ const NAME_MAX = 60
 // Oda kartı görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir.
 const thumbOf = (theme) => `${import.meta.env.BASE_URL}room-thumbs/${theme}.webp`
 
+// Oda oluşturulamadığında: ne oldu ve ne yapılabilir
+const FAILURE_TEXT = {
+  full: 'Oda kaydedilemedi: tarayıcının bu siteye ayırdığı depolama alanı dolu. Tarayıcı ayarlarından site verilerini temizleyip tekrar dene ya da odaya kaydetmeden gir; sayfayı yenileyince ya da kapatınca oda silinir.',
+  blocked: 'Oda kaydedilemedi: tarayıcı bu sitenin veri saklamasına izin vermiyor (gizli pencere ya da kapalı site verileri olabilir). İzin verip tekrar dene ya da odaya kaydetmeden gir; sayfayı yenileyince ya da kapatınca oda silinir.',
+  failed: 'Oda oluşturulamadı, beklenmeyen bir hata oldu. Seçimlerin duruyor; tekrar dene.',
+}
+
 // Gizli odaların davet kodu: tema adından kısa önek + 4 rakam (ORMAN-4821 gibi).
 function inviteCode(name) {
   const prefix =
@@ -69,6 +76,8 @@ export default function CreateRoomPage({ onCreate, onBack }) {
   const [capacity, setCapacity] = useState(DEFAULT_CAPACITY)
   const [access, setAccess] = useState('public')
   const [spot, setSpot] = useState(null)
+  // oluşturma başarısızsa { reason: 'full' | 'blocked' | 'failed', room }
+  const [failure, setFailure] = useState(null)
   const { label, Room, max } = THEMES[theme]
   const fallbackName = `${label} odası`
   const roomName = name.trim() || fallbackName
@@ -88,7 +97,14 @@ export default function CreateRoomPage({ onCreate, onBack }) {
       nameRef.current?.focus()
       return
     }
-    onCreate({ id: `room-${Date.now()}`, name: roomName, theme, capacity, access, code: access === 'invite' ? inviteCode(roomName) : undefined })
+    const room = { id: `room-${Date.now()}`, name: roomName, theme, capacity, access, code: access === 'invite' ? inviteCode(roomName) : undefined }
+    const reason = onCreate(room)
+    setFailure(reason ? { reason, room } : null)
+  }
+  // depolama yazılamadıysa: oda yalnızca bu oturumda tutulup girilir
+  const enterForSession = () => {
+    const reason = onCreate(failure.room, { keepForSession: true })
+    setFailure(reason ? { reason: 'failed', room: failure.room } : null)
   }
   const changeCapacity = (n) => {
     setCapacity(Math.max(1, Math.min(max, n)))
@@ -195,8 +211,20 @@ export default function CreateRoomPage({ onCreate, onBack }) {
               {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
               {spot && <> · Seçilen nokta: {spot.label}</>}
             </p>
+            <div className="create-room__error" role="alert">
+              {failure && (
+                <>
+                  <p>{FAILURE_TEXT[failure.reason]}</p>
+                  {failure.reason !== 'failed' && (
+                    <button type="button" className="link-btn link-btn--strong" onClick={enterForSession}>
+                      Kaydetmeden, bu oturumluk gir
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
             <button type="submit" className="site-btn site-btn--primary site-btn--wide">
-              Odayı oluştur ve gir
+              {failure ? 'Tekrar dene' : 'Odayı oluştur ve gir'}
             </button>
           </div>
         </div>
