@@ -181,13 +181,13 @@ export function deskPod(center, { back = 0, front = 0 }, rnd, room) {
   for (const u of seatsAt(back)) {
     const c = f.frame(u, 0, -0.42)
     officeChair(c, rnd)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'keyboard', kind: 'chair' })
     workstation(f.frame(u, H, 0), rnd, room)
   }
   for (const u of seatsAt(front)) {
     const c = f.frame(u, 0, depth + 0.42, Math.PI)
     officeChair(c, rnd)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'keyboard', kind: 'chair' })
     workstation(f.frame(u, H, depth, Math.PI), rnd, room)
   }
 
@@ -225,7 +225,9 @@ function workstation(t, rnd, room) {
 }
 
 // Monitör; orijin ayak tabanı, ekran yerel +z'ye bakar. Son kod satırının sonunda imleç yanıp söner.
-function monitor(m, rnd, room) {
+function monitor(root, rnd, room) {
+  // tıklanınca ekran bir an söner, kırpışıp yeniden açılır
+  const m = root.interactive('screen')
   const w = 0.56
   const h = 0.33
   const y0 = 0.17
@@ -308,7 +310,7 @@ export function coffeeBar(f, length, room) {
   const top = 0.9
 
   // espresso makinesi
-  const m = f.frame(0.4, top, 0.3)
+  const m = f.interactive('machine', 0.4, top, 0.3, 0, { puff: { at: [-0.075, 0.1, 0.205], kind: 'steam' } })
   m.box(-0.2, 0, -0.2, 0.4, 0.34, 0.36, C.steel)
   m.box(-0.18, 0.08, 0.16, 0.36, 0.18, 0.02, C.ink)
   for (const x of [-0.1, 0.06]) m.box(x, 0.1, 0.17, 0.05, 0.05, 0.07, C.steelDark)
@@ -336,7 +338,8 @@ export function coffeeBar(f, length, room) {
   }
 }
 
-export function waterCooler(f) {
+export function waterCooler(root) {
+  const f = root.interactive('machine', 0, 0, 0, 0, { puff: { at: [0, 0.99, 0.128], kind: 'bubbles' } })
   f.box(-0.16, 0, -0.16, 0.32, 0.95, 0.32, C.cabinet)
   f.box(-0.1, 0.6, 0.16, 0.2, 0.12, 0.02, C.steelDark)
   f.box(-0.12, 0.95, -0.12, 0.24, 0.36, 0.24, C.water)
@@ -395,7 +398,8 @@ export function pingPong(f) {
 }
 
 // Saksıda paşa kılıcı (dik yapraklar).
-export function snakePlant(f, rnd) {
+export function snakePlant(root, rnd) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.42 })
   f.box(-0.2, 0, -0.2, 0.4, 0.42, 0.4, C.pot)
   f.box(-0.17, 0.42, -0.17, 0.34, 0.01, 0.34, C.soil)
   for (let i = 0; i < 7; i++) {
@@ -448,7 +452,8 @@ export function taskBoard(f, rnd) {
 }
 
 // CI/proje panosu gösteren duvar ekranı.
-export function dashboardTv(f, rnd) {
+export function dashboardTv(root, rnd) {
+  const f = root.interactive('screen')
   const W = 1.3
   const H = 0.75
   f.box(-W / 2, -H / 2, 0, W, H, 0.05, C.screenBody)

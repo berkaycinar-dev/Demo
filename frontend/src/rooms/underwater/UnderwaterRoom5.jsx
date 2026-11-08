@@ -1,25 +1,26 @@
 import UnderwaterScene from './UnderwaterScene'
 
-// 5 kişi · 8x6.5 · 2+2+1 araştırma masası; denizanası tankı, gözlem kamerası, tüp kafesi.
+// 5 kişi · 8x6.5 · 5 kişilik yuvarlak sonar masası; basınç kapısı, dalış giysisi, kahve köşesi, yosun bahçesi, batiskaflı dalış havuzu, denizanası tankı, tüp kafesi.
 const LAYOUT = {
   width: 8,
   depth: 6.5,
   seed: 9105,
-  table: { x: 3.8, z: 3.85, back: 2, front: 2, ends: 1 },
-  wall: [
-    { type: 'hatch', at: 0.87 },
-    { type: 'suit', at: 2.34 },
-    { type: 'sonar', at: 3.87, length: 1.8 },
-    { type: 'galley', at: 5.57 },
+  back: [
+    { type: 'port', at: 0.9 },
+    { type: 'port', at: 2.69 },
+    { type: 'suit', at: 4.13 },
+    { type: 'galley', at: 5.39 },
     { type: 'kelp', at: 7.05, length: 1.4 },
   ],
-  props: [
-    { type: 'jellies', x: 7.35, z: 2.5, facing: '-x' },
-    { type: 'camera', x: 0.8, z: 3.2, facing: '-x' },
-    { type: 'tanks', x: 7.4, z: 5.6 },
+  left: [
+    { type: 'hatch', z: 1.55 },
+    { type: 'port', z: 3.2 },
   ],
-  spots: [
-    { id: 'window', label: 'Akvaryum camı', x: 0.85, z: 5.65 },
+  table: { x: 4.6, z: 3.45, seats: 5 },
+  props: [
+    { type: 'jellies', x: 7.35, z: 2.6, facing: '-x' },
+    { type: 'moonpool', x: 1.25, z: 5.25, facing: '+x' },
+    { type: 'tanks', x: 7.5, z: 4.9 },
   ],
 }
 

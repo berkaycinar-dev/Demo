@@ -17,6 +17,7 @@ const LAYOUT = {
   ],
   windowSeats: [
     { at: 1.8, length: 1.3 },
+    { at: 3.8, length: 1.3 },
   ],
   tables: [
     { x: 3.68, z: 5.07, length: 3, depth: 1.1, back: 3, front: 2 },

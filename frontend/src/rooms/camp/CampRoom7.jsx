@@ -22,7 +22,7 @@ const LAYOUT = {
     { type: 'ridge', x: 5.9, z: 1.3, facing: 0, color: 'orange', spot: true },
     { type: 'dome', x: 7.55, z: 1.4, facing: -20, color: 'blue' },
     { type: 'ridge', x: 8, z: 3.9, facing: -30, color: 'yellow' },
-    { type: 'dome', x: 6.35, z: 5.2, facing: -45, color: 'red' },
+    { type: 'dome', x: 6.35, z: 5.2, facing: 0, color: 'red' },
   ],
   lanterns: [
     { x: 5.15, z: 6.4, facing: -144 },

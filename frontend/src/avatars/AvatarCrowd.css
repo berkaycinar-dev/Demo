@@ -1,0 +1,67 @@
+/* Avatar etiketleri: tuvalin üstünde. Katman tıklamaları geçirir; etiketin kendisi üstüne gelinince
+   adı açar. Kapalı etiket yalnızca durum noktasıdır; durum renkle ve biçimle ayrılır: odakta dolu
+   yuvarlak, molada baklava, uzakta içi boş halka. */
+.avatar-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.avatar-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  will-change: transform;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.avatar-label__text {
+  display: none;
+}
+
+.avatar-label--open {
+  padding: 3px 9px 3px 6px;
+  background: rgba(18, 18, 22, 0.72);
+}
+
+.avatar-label--open .avatar-label__text {
+  display: inline;
+}
+
+.avatar-label--me.avatar-label--open {
+  background: #1f6b4a;
+}
+
+.avatar-label__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3ddc84;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.avatar-label--break .avatar-label__dot {
+  width: 9px;
+  height: 9px;
+  margin: 0 1px;
+  border-radius: 2px;
+  background: #f5a623;
+  transform: rotate(45deg);
+}
+
+.avatar-label--away .avatar-label__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 3px #9a9a9a, 0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.35);
+}

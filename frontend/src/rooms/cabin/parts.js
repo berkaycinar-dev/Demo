@@ -318,15 +318,15 @@ export function farmTable(f, { length, depth, back = 0, front = 0 }, rnd, room) 
   for (const u of backSeats) {
     const c = f.frame(u, 0, -0.3)
     chair(c)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
-    deskItems(f.frame(u, H, 0), rnd)
+    const desk = deskItems(f.frame(u, H, 0), rnd)
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk, kind: 'chair' })
   }
   if (front > 0) {
     bench(f.frame(0.1, 0, depth + 0.12), length - 0.2)
     for (const u of frontSeats) {
       const c = f.frame(u, 0, depth + 0.3, Math.PI)
-      room.seats.push({ position: c.point(0, BENCH_HEIGHT, 0).toArray(), yaw: c.facing() })
-      deskItems(f.frame(u, H, depth, Math.PI), rnd)
+      const desk = deskItems(f.frame(u, H, depth, Math.PI), rnd)
+      room.seats.push({ position: c.point(0, BENCH_HEIGHT, 0).toArray(), yaw: c.facing(), desk, kind: 'bench' })
     }
   }
 
@@ -340,29 +340,36 @@ export function farmTable(f, { length, depth, back = 0, front = 0 }, rnd, room) 
     lanterns = [[Math.max(0.2, backSeats[0] - 0.45), depth * 0.6]]
   }
   for (const [u, v] of lanterns) {
-    lantern(f.frame(u, H, v))
+    // fener ve ışık havuzu tek eşya: tıklanınca birlikte söner
+    const lamp = f.interactive('lamp', u, H, v)
+    lantern(lamp)
     const u0 = Math.max(0, u - 0.55)
     const v0 = Math.max(0, v - 0.45)
-    f.glow(u0, H + 0.004, v0, Math.min(length, u + 0.55) - u0, Math.min(depth, v + 0.45) - v0)
+    lamp.glow(u0 - u, 0.004, v0 - v, Math.min(length, u + 0.55) - u0, Math.min(depth, v + 0.45) - v0)
   }
 
   room.lights.push(f.point(length / 2, H + 0.5, depth / 2).toArray())
 }
 
 // Masadaki eşyalar; t'nin orijini oturanın önündeki masa kenarı, +z masanın içine.
+// Dönüş: oturanın önündeki ana eşya ('laptop' | 'notebook' | 'book').
 function deskItems(t, rnd) {
   const r = rnd()
+  let kind
   if (r < 0.4) {
+    kind = 'laptop'
     t.box(-0.17, 0, 0.1, 0.34, 0.02, 0.23, C.laptop)
     t.box(-0.15, 0.02, 0.12, 0.3, 0.003, 0.12, '#55595f')
     const s = t.frame(0, 0.02, 0.33, 0, 0.22)
     s.box(-0.17, 0, -0.015, 0.34, 0.23, 0.015, C.laptop)
     s.box(-0.155, 0.015, -0.018, 0.31, 0.2, 0.003, C.screen, BULB)
   } else if (r < 0.7) {
+    kind = 'notebook'
     t.box(-0.13, 0, 0.12, 0.26, 0.015, 0.2, pick(rnd, [C.sage, C.rust, C.skiBlue]))
     t.box(-0.11, 0.015, 0.13, 0.22, 0.004, 0.18, C.paper)
     t.box(0.16, 0, 0.16, 0.012, 0.012, 0.16, C.mustard)
   } else {
+    kind = 'book'
     t.box(-0.21, 0, 0.12, 0.42, 0.012, 0.28, pick(rnd, C.books))
     t.box(-0.2, 0.012, 0.13, 0.195, 0.02, 0.26, C.paper)
     t.box(0.005, 0.012, 0.13, 0.195, 0.02, 0.26, C.paper)
@@ -371,6 +378,7 @@ function deskItems(t, rnd) {
   t.box(0.27, 0, 0.18, 0.08, 0.1, 0.08, pick(rnd, [C.enamel, C.wool, C.sage]))
   t.box(0.28, 0.1, 0.19, 0.06, 0.004, 0.06, C.cocoa)
   t.box(0.295, 0.1, 0.2, 0.025, 0.02, 0.025, C.snow)
+  return kind
 }
 
 // Örgü minderli kır sandalyesi; oturan +z yönüne bakar, sırtlık -z tarafında.
@@ -412,8 +420,6 @@ export function windowSeat(f, length) {
   f.box(0.03, 0.42, 0.02, length - 0.06, 0.1, 0.52, C.wool)
   f.box(0.08, 0.52, 0.04, 0.3, 0.26, 0.12, C.plaidRed, { rot: [-0.3, 0, 0] })
   f.box(length - 0.4, 0.52, 0.04, 0.28, 0.24, 0.12, C.mustard, { rot: [-0.3, 0, 0] })
-  f.box(length * 0.45, 0.52, 0.22, 0.32, 0.05, 0.26, C.sage)
-  f.box(length * 0.45, 0.57, 0.24, 0.32, 0.04, 0.22, C.wool)
 }
 
 const FABRIC = {
@@ -472,7 +478,8 @@ export function cocoaCorner(f, room) {
 
   const top = H + 0.01
   f.box(-0.36, top, -0.13, 0.28, 0.012, 0.26, C.iron)
-  const k = f.frame(-0.22, top + 0.012, 0)
+  // çaydanlık tıklanınca sarsılır, ağzından buhar püskürür
+  const k = f.interactive('machine', -0.22, top + 0.012, 0, 0, { puff: { at: [0.19, 0.11, 0], kind: 'steam' } })
   k.box(-0.12, 0, -0.1, 0.24, 0.17, 0.2, C.enamel)
   k.box(-0.09, 0.17, -0.07, 0.18, 0.03, 0.14, C.enamel)
   k.box(-0.02, 0.2, -0.02, 0.04, 0.03, 0.04, C.iron)
@@ -488,7 +495,8 @@ export function cocoaCorner(f, room) {
 }
 
 // Fıçıda küçük köknar.
-export function firPlant(f) {
+export function firPlant(root) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.45 })
   f.box(-0.25, 0, -0.25, 0.5, 0.45, 0.5, C.woodLight)
   f.box(-0.26, 0.08, -0.26, 0.52, 0.04, 0.52, C.iron)
   f.box(-0.26, 0.33, -0.26, 0.52, 0.04, 0.52, C.iron)
@@ -580,5 +588,5 @@ export function wallShelf(f, length, rnd) {
 export function sconce(f) {
   f.box(-0.05, -0.14, 0, 0.1, 0.26, 0.03, C.iron)
   f.box(-0.015, 0.02, 0.03, 0.03, 0.03, 0.14, C.iron)
-  lantern(f.frame(0, -0.22, 0.17))
+  lantern(f.interactive('lamp', 0, -0.22, 0.17))
 }

@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   FLOOR_BOTTOM,
   POST_HEIGHT,
@@ -39,14 +40,19 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 
 // Zemine konan eşyalar. spot: önünde mola halkası açılır (distance sayı ya da item'a göre).
 const PROPS = {
-  tree: { draw: planeTree, spot: { id: 'tree', label: 'Çınar altı', distance: 1.2 } },
+  tree: { draw: planeTree, spot: { id: 'tree', label: 'Çınar altı', distance: 1.2, stations: [[-0.3, 0.43, 0.46], [0.3, 0.43, 0.46]] } },
   olive: { draw: oliveTree },
   geranium: { draw: geraniumTin },
   cat: { draw: cat },
   sedir: {
     draw: (f, rnd, item) => sedir(f, rnd, item.length, item.sini),
     // sini sehpa varsa halka sehpanın ötesinde açılır
-    spot: { id: 'sedir', label: 'Sedir', distance: (item) => (item.sini ? 1.55 : 0.85) },
+    spot: {
+      id: 'sedir',
+      label: 'Sedir',
+      distance: (item) => (item.sini ? 1.55 : 0.85),
+      stations: (item) => [-1, 1].map((s) => [s * Math.min((item.length ?? 1.8) / 4, (item.length ?? 1.8) / 2 - 0.3), 0.4, 0.07]),
+    },
   },
   menuBoard: { draw: (f) => menuBoard(f) },
   simitCart: { draw: (f) => simitCart(f), spot: { id: 'simit', label: 'Simitçi', distance: 0.95 } },
@@ -102,9 +108,10 @@ export function buildTeaGarden(layout) {
   const { root, layers } = createVoxelBuilder()
   const room = { seats: [], spots: [], lights: [], steams: [], view: { movers: [], gulls: [], twinkles: [] } }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   floor(root, width, depth, rnd)
@@ -123,7 +130,7 @@ export function buildTeaGarden(layout) {
     decor.draw(root.frame(item.at, item.y ?? 0, 0), rnd, item, room)
     if (decor.spot) {
       const u = decor.spot.center ? item.length / 2 : 0
-      addSpot(decor.spot.id, decor.spot.label, root.point(item.at + u, 0, decor.spot.distance))
+      addSpot(decor.spot.id, decor.spot.label, root.point(item.at + u, 0, decor.spot.distance), null, Math.PI)
     }
   }
 
@@ -135,7 +142,7 @@ export function buildTeaGarden(layout) {
     prop.draw(f, rnd, item)
     if (prop.spot) {
       const { distance } = prop.spot
-      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, typeof distance === 'function' ? distance(item) : distance))
+      addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, typeof distance === 'function' ? distance(item) : distance), stations(prop.spot.stations, f, item), f.facing() + Math.PI)
     }
   }
 
