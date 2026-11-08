@@ -2147,13 +2147,18 @@
   line-gap-override: 0%;
 }
 
+/* İki font, iki görev. Piksel (Pixelify Sans): bir şeyi adlandıran ya da bir değeri okutan kısa yazı;
+   sayfa ve bölüm başlıkları, alt sayfa başlığı, tabela, sayaç, rozet, seçili değer. Inter: okunan ve
+   tıklanan her şey; gövde, açıklama, not, form etiketi (tabeladaki "Oda adı" dahil), karakter sayacı gibi
+   yardım metni, seçenek ve düğme yazısı.
+   Piksel ızgarası: bir font pikseli 92/1000 em. Yalnızca 11 / 22 / 33 px'te bu tam 1 / 2 / 3 ekran
+   pikseline oturur ve kenarlar keskin kalır; ara boyut (16, 28…) kenarları bulanıklaştırır, kullanılmaz. */
 .avatar-workshop,
 .create-room-page {
-  /* piksel ızgarası ~0.09 em: 22 px'te 2 px, 33 px'te 3 px piksel (en keskin boyutlar) */
   --font-pixel: 'Pixelify Sans', 'Pixelify Fallback', var(--font-display);
-  --pixel-xl: 33px;
-  --pixel-l: 22px;
-  --pixel-s: 16px;
+  --pixel-xl: 33px; /* sayfa başlığı, kapı tabelası, kapasite sayacı */
+  --pixel-l: 22px; /* bölüm ve alt sayfa başlığı, tema adı, seçili değer */
+  --pixel-s: 11px; /* küçük rozet: mini önizlemedeki kişi sayısı */
 }
 
 .avatar-page,
@@ -2166,18 +2171,19 @@
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .92 0 0 0 0 .82 0 0 0 .04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ---------- piksel rol: sayfa başlığı, bölüm başlığı, kapı tabelası, rakam, rozet, seçili değer.
-   Tek ağırlık (500), sahte kalınlık yok; piksel harf negatif aralık istemez. */
-:is(.avatar-workshop, .create-room-page) h1,
-.avatar-page .opt-section__title,
+/* ---------- piksel rol. Tek ağırlık (500), sahte kalınlık yok. Harf aralığı 0: eklenen kesirli aralık
+   harfleri piksel ızgarasından kaydırır. Telefonda da aynı boyutlar (ızgara dışı ara boyut yok). */
+.site :is(.avatar-workshop, .create-room-page) h1,
+.site .avatar-page :is(.opt-section__title, .wardrobe__title, .sheet__title),
 .create-room-page .door-sign__plate textarea,
-.create-room-page .door-sign__tag,
 .create-room-page .stepper__count,
+.create-room-page .create-room__theme-name,
+.create-room-page .create-room__mini-count,
 .avatar-page .field__value {
   font-family: var(--font-pixel);
   font-weight: 500;
   font-synthesis: none;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 .site :is(.avatar-workshop, .create-room-page) h1 {
@@ -2185,26 +2191,34 @@
   line-height: 1.1;
 }
 
-.site .avatar-page .opt-section__title {
+/* bölüm başlığı (Saç, Kaş), Kombinler ve telefondaki "Poz ve kombinler" alt sayfası aynı rol */
+.site .avatar-page :is(.opt-section__title, .wardrobe__title, .sheet__title) {
   font-size: var(--pixel-l);
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
-/* seçili değer ("Kahverengi"): etiketle aynı taban çizgisinde, 16 px piksel */
+/* seçili değer ("Kahverengi"): etiketin yanında okunan değer; 22 px piksel, etiketten 12 px açık,
+   ikincil renkte (bölüm başlığıyla karışmaz). Etiketle aynı taban çizgisi, dar ekranda alt satıra geçer. */
+.avatar-page .field__label:has(.field__value) {
+  column-gap: 12px;
+}
+
 .avatar-page .field__value {
-  font-size: var(--pixel-s);
+  color: var(--text-2);
+  font-size: var(--pixel-l);
   line-height: 1;
 }
 
-/* rakam: piksel rakamlar zaten eşit genişlikte; "kişilik" okunur fontta kalır */
+/* kapasite sayacı: piksel rakamlar zaten eşit genişlikte; "kişilik" okunur fontta kalır */
 .create-room-page .stepper__count {
-  font-size: var(--pixel-l);
+  font-size: var(--pixel-xl);
   line-height: 1;
 }
 
 .create-room-page .stepper__count span {
-  letter-spacing: 0;
+  font-family: var(--font-body);
 }
+
 
 /* ---------- kâğıt yüzeyli paneller (köşeler ve kenarlar değişmez) */
 .avatar-page__editor,
@@ -2265,8 +2279,9 @@
   background: var(--material-paper);
   box-shadow: 0 1px 2px rgba(40, 26, 12, 0.3);
   color: var(--sign-wood);
-  font-size: var(--pixel-s);
-  line-height: 1.2;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
   transform: translateX(-50%) rotate(1.2deg);
   pointer-events: none;
 }
@@ -2275,8 +2290,10 @@
   padding: 6px 36px 4px;
 }
 
-/* tabela yazısı: 33 px piksel (3 px ızgara); yer tutucu ile yazılan ad aynı yükseklikte */
+/* tabela yazısı: 33 px piksel (3 px ızgara); yer tutucu ile yazılan ad aynı yükseklikte. Tabela -0.6°
+   eğik asılı; yazı ters döndürülüp yatay eksene oturur, yoksa eğik çizilen piksel kenarlar bulanıklaşır. */
 .field.create-room__sign .door-sign__plate textarea {
+  transform: rotate(0.6deg);
   min-height: 58px;
   font-size: var(--pixel-xl);
   font-weight: 500;
@@ -2327,7 +2344,6 @@
 
   .create-room__rail .create-room__theme-name {
     margin-right: 6px;
-    font-size: var(--pixel-s);
   }
 
   .create-room__fields .field {
@@ -2637,12 +2653,6 @@
   }
 }
 
-@media (max-width: 560px) {
-  .site :is(.avatar-workshop, .create-room-page) h1 {
-    font-size: 28px;
-  }
-}
-
 /* dar sahnede ipucu alttaki araç çubuğuyla çakışır: sol üste çıkar (halkaların ne olduğu telefonda da okunur) */
 @media (max-width: 600px) {
   .create-room__stage .room-canvas__hint {
@@ -2870,9 +2880,6 @@
     padding: 10px 0 8px;
   }
 
-  .field.create-room__sign .door-sign__plate textarea[data-long] {
-    font-size: var(--pixel-s);
-  }
 
   .create-room__name-hint.name-hint {
     margin-bottom: 18px;

@@ -2,8 +2,45 @@
    ayrı (sıcak kömür ve ahşap, akşam sahnesi).
    Koyu mod <html data-mode="dark"> ile açılır; bkz. useColorMode.js. */
 
+/* Inter (OFL 1.1, fonts/inter/OFL.txt): kendi sunucumuzdan, değişken ağırlık yalnızca 400-700 (sitede
+   kullanılan aralık). Türkçe çekirdek tek dosyada: temel Latin + Latin-1 + ğ Ğ ı İ ş Ş + tipografik
+   noktalama; Türkçe metin yalnızca bu 29 KB'ı indirir. Diğer Latin genişletilmiş harfler (ā, ł, ő…)
+   ancak sayfada geçerse ikinci dosyayı indirir. Kapsam dışı yazılar (Kiril, emoji) sistem fontuna düşer. */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fonts/inter/inter-tr.woff2') format('woff2');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+011E-011F, U+0130-0131, U+0152-0153, U+015E-015F, U+2009-200A,
+    U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026, U+2032-2033, U+2039-203A, U+2044, U+20AC, U+20BA,
+    U+2122, U+2190-2193, U+2212;
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fonts/inter/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-011D, U+0120-012F, U+0132-0151, U+0154-015D, U+0160-02BA, U+02BD-02C5, U+02C7-02CC,
+    U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20B9, U+20BB-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* yükleme sürerken yedek: Arial, Inter ölçülerine eşlenmiş (boyut ×1.0712, üst 0.9044 / alt 0.2252 em);
+   Inter gelince satır yüksekliği ve satır kırılması kaymaz */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}
+
 :root {
-  --font-body: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-body: Inter, 'Inter Fallback', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   /* sayılar (sayaç, istatistik, sıralama): düz sıfır, eşit genişlikte rakamlar */
