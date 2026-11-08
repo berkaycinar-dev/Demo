@@ -212,36 +212,71 @@ function Zone({ zone, onZone, children }) {
   )
 }
 
+// Kombin 1'in, 2'nin, 3'ün
+const OF = ["'in", "'nin", "'ün"]
+// Bildirim süreleri (ms): üstüne yazınca "Geri al" 5 sn durur; fare ya da odak üstündeyken süre işlemez.
+const NOTICE_MS = { saved: 2000, same: 2000, overwrote: 5000, restored: 2000, error: 6000 }
+const noticeText = ({ kind, slot }) =>
+  ({
+    saved: `Kombin ${slot + 1}${SUFFIX[slot]} kaydedildi`,
+    same: `Kombin ${slot + 1} zaten bu görünüm`,
+    overwrote: `Kombin ${slot + 1}${OF[slot]} üstüne yazıldı`,
+    restored: `Kombin ${slot + 1} eski hâline döndü`,
+    error: 'Kaydedilemedi: tarayıcı depolaması dolu ya da kapalı. Kombin yalnızca bu oturumda duracak.',
+  })[kind]
+
 // Kombinler şeridi: üç slot. Portreye dokununca kayıtlı kombin giyilir (geri alınabilir); slotun kaydet ikonu
-// şu anki görünümü o slota yazar. Durum metni başlık satırında durur, yalnızca kayıttan sonra görünür.
+// şu anki görünümü o slota yazar. Dolu slota yazınca 5 sn'lik "Geri al" çıkar; kayıt ve üstüne yazma ayrı
+// mesajla duyurulur. Durum metni başlık satırında durur, yalnızca bir işlemden sonra görünür.
 function Wardrobe({ avatar, onLoad }) {
   const [presets, setPresets] = useState(loadPresets)
-  // son kaydedilen slot: kaydet ikonu kısa süre onay işaretine döner
-  const [justSaved, setJustSaved] = useState(null)
-  // her kayıtta artar: aynı slota yeniden kaydedince onay metni yine belirir
-  const [saves, setSaves] = useState(0)
+  // son işlem: { kind, slot, prev (üstüne yazılan kombin), id }; id her işlemde artar, metin yeniden belirir
+  const [notice, setNotice] = useState(null)
+  const [hold, setHold] = useState(false)
   useEffect(() => {
-    if (justSaved === null) return
-    const t = setTimeout(() => setJustSaved(null), 1600)
+    if (!notice || hold) return
+    const t = setTimeout(() => setNotice(null), NOTICE_MS[notice.kind])
     return () => clearTimeout(t)
-  }, [justSaved, saves])
+  }, [notice, hold])
+  const write = (next, kind, slot, prev = null) => {
+    setPresets(next)
+    const ok = savePresets(next)
+    setNotice((n) => ({ kind: ok ? kind : 'error', slot, prev, id: (n?.id ?? 0) + 1 }))
+    if (kind !== 'overwrote') setHold(false)
+  }
   const wear = (i) => onLoad(sanitizeAvatar({ ...presets[i], name: avatar.name }))
   const save = (i) => {
-    const next = presets.map((p, k) => (k === i ? { ...avatar } : p))
-    setPresets(next)
-    savePresets(next)
-    setJustSaved(i)
-    setSaves((n) => n + 1)
+    const old = presets[i]
+    if (old && sameLook(old, avatar)) {
+      setNotice((n) => ({ kind: 'same', slot: i, id: (n?.id ?? 0) + 1 }))
+      return
+    }
+    write(presets.map((p, k) => (k === i ? { ...avatar } : p)), old ? 'overwrote' : 'saved', i, old)
   }
+  const restore = () => {
+    const { slot, prev } = notice
+    write(presets.map((p, k) => (k === slot ? prev : p)), 'restored', slot)
+  }
+  const justSaved = notice && (notice.kind === 'saved' || notice.kind === 'overwrote' || notice.kind === 'same') ? notice.slot : null
+  const holdOn = { onMouseEnter: () => setHold(true), onMouseLeave: () => setHold(false), onFocus: () => setHold(true), onBlur: () => setHold(false) }
   return (
     <section className="wardrobe" aria-labelledby="wardrobe-title">
       <div className="wardrobe__head">
         <h2 id="wardrobe-title" className="wardrobe__title">Kombinler</h2>
-        {/* canlı bölge sabit kalır; içindeki metin değişince yeniden kurulup belirir */}
-        <span className="wardrobe__status" role="status">
-          <span key={saves}>{justSaved !== null && `Kombin ${justSaved + 1} kaydedildi`}</span>
+        {/* canlı bölge sabit kalır; içindeki metin değişince yeniden kurulup belirir. Hata ayrı, ısrarlı
+            (alert) bölgede duyurulur. */}
+        <span className="wardrobe__status" role="status" data-kind={notice?.kind}>
+          <span key={notice?.id}>{notice && notice.kind !== 'error' && noticeText(notice)}</span>
         </span>
+        {notice?.kind === 'overwrote' && (
+          <button type="button" className="link-btn wardrobe__undo" onClick={restore} {...holdOn}>
+            Geri al
+          </button>
+        )}
       </div>
+      <p className="form-error wardrobe__error" role="alert">
+        {notice?.kind === 'error' && noticeText(notice)}
+      </p>
       <ul className="wardrobe__slots">
         {presets.map((p, i) => {
           const worn = p && sameLook(p, avatar)
@@ -265,10 +300,10 @@ function Wardrobe({ avatar, onLoad }) {
                 className="wardrobe__save"
                 data-done={justSaved === i || undefined}
                 onClick={() => save(i)}
-                aria-label={`Kombin ${i + 1}${SUFFIX[i]} kaydet`}
-                title={p ? 'Şu anki görünümü kaydet (eskisinin üstüne yazar)' : 'Şu anki görünümü buraya kaydet'}
+                aria-label={p ? `Kombin ${i + 1}${OF[i]} üstüne yaz` : `Kombin ${i + 1}${SUFFIX[i]} kaydet`}
+                title={p ? 'Şu anki görünümü bunun üstüne yaz (5 sn geri alınabilir)' : 'Şu anki görünümü buraya kaydet'}
               >
-                <Icon name={justSaved === i ? 'check' : 'save'} size={16} />
+                <Icon name={justSaved === i ? 'check' : 'save'} size={18} />
               </button>
             </li>
           )

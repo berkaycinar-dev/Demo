@@ -2268,3 +2268,70 @@
     transform: none;
   }
 }
+
+/* ---------- Kombinler: üstüne yazma bildirimi, geri al, hata; kaydet ikonu masaüstünde 40 px ---------- */
+.wardrobe__status {
+  margin-left: auto;
+}
+
+.wardrobe__status[data-kind='overwrote'],
+.wardrobe__status[data-kind='restored'] {
+  color: var(--text-2);
+}
+
+.wardrobe__undo.link-btn {
+  min-height: 32px;
+  margin: -8px -6px -8px 0;
+  padding: 0 6px;
+  font-size: var(--type-caption, 12px);
+  font-weight: 700;
+}
+
+.wardrobe__error {
+  margin: 0 0 8px;
+}
+
+.wardrobe__error:empty {
+  margin: 0;
+}
+
+.wardrobe__save {
+  top: 50%;
+  right: 4px;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+}
+
+.wardrobe__wear {
+  gap: 8px;
+  padding-right: 46px;
+}
+
+.wardrobe__name {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .wardrobe__save {
+    top: 2px;
+    right: 2px;
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+  }
+
+  .wardrobe__undo.link-btn {
+    min-height: 44px;
+    margin-block: -14px;
+  }
+}
+
+/* dar slot: portre üstte; kaydet ikonu köşede kalır */
+@container (max-width: 400px) {
+  .wardrobe .wardrobe__save {
+    top: 2px;
+    right: 2px;
+    margin-top: 0;
+  }
+}
