@@ -12,7 +12,9 @@ const DEFAULT_CAPACITY = 4
 const FORM_ID = 'create-room-form'
 const NAME_MAX = 60
 // Oda kartı görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir.
-const thumbOf = (theme) => `${import.meta.env.BASE_URL}room-thumbs/${theme}.webp`
+// koyu modda akşam ışığında çizilmiş varyant (<tema>-evening.webp): krem gündüz duvarları koyu
+// zeminde parlak kutu gibi durmaz, kart canlı sahneyle aynı ışıkta görünür
+const thumbOf = (theme, isDark) => `${import.meta.env.BASE_URL}room-thumbs/${theme}${isDark ? '-evening' : ''}.webp`
 
 // Oda oluşturulamadığında: ne oldu ve ne yapılabilir
 const FAILURE_TEXT = {
@@ -70,7 +72,7 @@ function CapacityStepper({ value, max, onChange }) {
 // tabelasına yazılır. Tema kartları sahnenin altında, kapasite / erişim / oluştur düğmesi sağdaki yapışkan
 // rafta. Telefonda sırayla sahne, temalar, ayarlar; düğme ekranın altına yapışık.
 // Lobi'nin alt sayfası; var olan odalara katılmak Lobi'de.
-export default function CreateRoomPage({ onCreate, onBack }) {
+export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
   const [name, setName] = useState('')
   const [theme, setTheme] = useState(DEFAULT_THEME)
   const [capacity, setCapacity] = useState(DEFAULT_CAPACITY)
@@ -178,7 +180,7 @@ export default function CreateRoomPage({ onCreate, onBack }) {
                 }}
               >
                 <span className="theme-option__shot">
-                  <ThemeShot src={thumbOf(key)} />
+                  <ThemeShot key={isDark ? 'dark' : 'light'} src={thumbOf(key, isDark)} />
                   <span className="theme-option__check" aria-hidden="true">
                     <Icon name="check" size={14} />
                   </span>
@@ -216,7 +218,7 @@ export default function CreateRoomPage({ onCreate, onBack }) {
               belirir; dokununca canlı sahneye çıkar) ve kırpılmadan iki satıra sarılan özet */}
           <div className="create-room__cta">
             <button type="button" key={`${theme}-${capacity}`} className="create-room__mini" onClick={showStage} aria-label={`Canlı önizlemeye git: ${label}, ${capacity} kişilik`}>
-              <ThemeShot src={thumbOf(theme)} className="create-room__mini-img" />
+              <ThemeShot key={isDark ? 'dark' : 'light'} src={thumbOf(theme, isDark)} className="create-room__mini-img" />
               <span className="create-room__mini-count" aria-hidden="true">
                 <Icon name="body" size={12} />
                 {capacity}
