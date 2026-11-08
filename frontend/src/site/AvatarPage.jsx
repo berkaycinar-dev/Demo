@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Fragment, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import AvatarPreview from '../avatars/AvatarPreview'
 import {
   BEARDS,
@@ -65,6 +65,22 @@ const ON_OFF = [
 ]
 // Rengi seçilemeyen başlıklar (kendi malzemesi var ya da metal rengini kullanır).
 const FIXED_COLOR_HATS = ['none', 'crown', 'viking', 'flowers']
+// Ortak renkleri kullanan takılı öğeler (avatars/model.js ile aynı kural). Boşsa o renk alanı gizlenir.
+const ACC_PHONES = ['gaming', 'cat', 'retro', 'neck']
+const ACC_NECK = { scarf: 'atkı', bowtie: 'papyon', tie: 'kravat' }
+const accessoryColorUsers = (a) =>
+  [ACC_PHONES.includes(a.headphones) && 'kulaklık', ACC_NECK[a.neck], a.wrist === 'watch' && 'saat kayışı'].filter(Boolean)
+const metalUsersOf = (a) =>
+  [
+    a.hat === 'crown' && 'taç',
+    a.glasses === 'monocle' && 'monokl',
+    a.earrings !== 'none' && !EAR_COVERING.includes(a.hairStyle) && !OVER_HEAD.includes(a.headphones) && 'küpe',
+    a.neck === 'necklace' && 'kolye',
+    a.wrist === 'watch' && 'saat kasası',
+    a.wrist === 'bracelet' && 'bileklik',
+  ].filter(Boolean)
+// "kulaklık, atkı ve saat kayışı"
+const listOf = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} ve ${items.at(-1)}`)
 const HISTORY_LIMIT = 50
 // görünen ad sınırı (harf sayısı); sanitizeAvatar da aynı sınırı kullanır
 const NAME_MAX = 24
@@ -122,9 +138,18 @@ function FieldLabel({ label, current, note, bare = false, action }) {
 // Seçenekler (tek seçim). Az ve kısa seçenekler (variant="segment") bitişik bir şeritte, diğerleri
 // sıkı bir ızgarada. option.group varsa ızgara alt başlıklara bölünür. disabled: o anki seçimde
 // geçersiz; alan soluklaşır, düğmeler tıklanmaz ve klavyeyle de seçilmez, not (neden) okunur kalır.
-function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false, bare = false, thumbs, body }) {
+// detail: seçili seçeneğin ayrıntısı (ör. başlık rengi). Izgarada seçili düğmeden hemen sonra tam satır
+// olarak durur; ızgara "dense" akışla seçili seçeneğin satırını doldurur, ayrıntı o satırın altına iner.
+function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false, bare = false, thumbs, body, detail = null }) {
   const groups = options[0]?.group ? [...new Set(options.map((o) => o.group))] : null
-  const grid = thumbs ? 'option-grid option-grid--thumbs' : 'option-grid'
+  const grid = ['option-grid', thumbs && 'option-grid--thumbs', detail && 'option-grid--detail'].filter(Boolean).join(' ')
+  const tiles = (list) =>
+    list.map((o) => (
+      <Fragment key={o.id}>
+        <Option o={o} value={value} onChange={onChange} thumbs={thumbs} body={body} />
+        {detail && o.id === value && <div className="option-detail">{detail}</div>}
+      </Fragment>
+    ))
   return (
     <fieldset className={disabled ? 'field field--off' : 'field'} disabled={disabled}>
       <FieldLabel label={label} note={note} bare={bare} />
@@ -140,19 +165,11 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
         groups.map((g) => (
           <div key={g} className="option-group">
             <span className="option-group__name">{g}</span>
-            <div className={grid}>
-              {options.filter((o) => o.group === g).map((o) => (
-                <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} body={body} />
-              ))}
-            </div>
+            <div className={grid}>{tiles(options.filter((o) => o.group === g))}</div>
           </div>
         ))
       ) : (
-        <div className={grid}>
-          {options.map((o) => (
-            <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} body={body} />
-          ))}
-        </div>
+        <div className={grid}>{tiles(options)}</div>
       )}
     </fieldset>
   )
@@ -161,12 +178,23 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
 // Renk yuvarlakları (tek seçim); seçilen rengin adı başlıkta görünür. color: null olan seçenek "yok".
 // Dengeli ızgara: geniş panelde hepsi tek satırda; dar panelde 8+ renk eşit iki satıra bölünür (tek renk alta düşmez);
 // telefonda 44 px yuvarlaklar en çok 6 sütunlu dengeli satırlara (--fit) dizilir.
-function Swatches({ label, options, value, onChange, note, action }) {
+// collapsible: renkler "+ İkinci renk" gibi katlı durur; satırda seçili renk ve "Değiştir" görünür,
+// düğme yuvarlakları açar ve kapatır (seçim yapınca açık kalır, renkler karşılaştırılabilsin).
+function Swatches({ label, options, value, onChange, note, action, collapsible = false }) {
   const current = options.find((o) => o.id === value)
+  const [open, setOpen] = useState(!collapsible)
+  const rowId = useId()
+  const toggle = collapsible && (
+    <button type="button" className="color-toggle field__action" aria-expanded={open} aria-controls={rowId} onClick={() => setOpen(!open)}>
+      <span className={current?.color ? 'color-toggle__chip' : 'color-toggle__chip swatch--none'} style={current?.color ? { background: current.color } : undefined} aria-hidden="true" />
+      {open ? 'Kapat' : 'Değiştir'}
+      <span className="visually-hidden">: {label}</span>
+    </button>
+  )
   return (
-    <fieldset className="field">
-      <FieldLabel label={label} current={current?.label} note={note} action={action} />
-      <div className="swatch-row" style={{ '--n': options.length, '--half': options.length > 7 ? Math.ceil(options.length / 2) : options.length, '--fit': Math.ceil(options.length / Math.ceil(options.length / 6)) }}>
+    <fieldset className={collapsible && !open ? 'field field--folded' : 'field'}>
+      <FieldLabel label={label} current={current?.label} note={note} action={action ?? toggle} />
+      {open && <div id={rowId} className="swatch-row" style={{ '--n': options.length, '--half': options.length > 7 ? Math.ceil(options.length / 2) : options.length, '--fit': Math.ceil(options.length / Math.ceil(options.length / 6)) }}>
         {options.map((o) => (
           <button
             key={o.id}
@@ -179,7 +207,7 @@ function Swatches({ label, options, value, onChange, note, action }) {
             onClick={() => onChange(o.id)}
           />
         ))}
-      </div>
+      </div>}
     </fieldset>
   )
 }
@@ -506,6 +534,10 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const bottomLabel = outfit === 'overalls' ? 'Salopet rengi' : 'Renk'
   const replacedNote = 'tek parça seçili; seçilirse tek parça çıkar'
   const replaced = outfit === 'dress' || outfit === 'onesie' ? replacedNote : null
+  const hatLabel = HATS.find((h) => h.id === avatar.hat)?.label ?? 'Başlık'
+  // ortak renkler: yalnızca o rengi kullanan bir öğe takılıysa görünür; not hangilerinin boyandığını söyler
+  const accUsers = accessoryColorUsers(avatar)
+  const metalUsers = metalUsersOf(avatar)
 
   return (
     <div className="avatar-workshop">
@@ -669,8 +701,8 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
                 <NameHint id="avatar-name-hint" status={nameState} max={NAME_MAX} />
               </div>
               <Choices label="Beden" variant="segment" options={BODIES} value={avatar.body} onChange={set('body')} />
-              <Swatches label="Ten rengi" options={SKIN_TONES} value={avatar.skin} onChange={set('skin')} />
-              <Swatches label="Göz rengi" options={EYE_COLORS} value={avatar.eyes} onChange={set('eyes')} />
+              <Swatches label="Ten rengi" collapsible options={SKIN_TONES} value={avatar.skin} onChange={set('skin')} />
+              <Swatches label="Göz rengi" collapsible options={EYE_COLORS} value={avatar.eyes} onChange={set('eyes')} />
             </Section>
           )}
 
@@ -687,7 +719,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
                   value={avatar.bangs ? 'on' : 'off'}
                   onChange={(v) => set('bangs')(v === 'on')}
                 />
-                <Swatches label={male ? 'Saç ve sakal rengi' : 'Renk'} options={HAIR_COLORS} value={avatar.hairColor} onChange={set('hairColor')} />
+                <Swatches label={male ? 'Saç ve sakal rengi' : 'Renk'} collapsible options={HAIR_COLORS} value={avatar.hairColor} onChange={set('hairColor')} />
                 <SecondHairColor value={avatar.hairColor2} onChange={set('hairColor2')} />
               </Section>
               <Section title="Kaş">
@@ -708,13 +740,13 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
               <Zone zone="upper" onZone={setZone}>
                 <Section title="Üst">
                   <Choices label="Üst" bare note={replaced} options={TOPS} value={avatar.top} onChange={set('top')} />
-                  <Swatches label={topLabel} options={CLOTH_COLORS} value={avatar.topColor} onChange={set('topColor')} />
+                  <Swatches label={topLabel} collapsible options={CLOTH_COLORS} value={avatar.topColor} onChange={set('topColor')} />
                 </Section>
               </Zone>
               <Zone zone="legs" onZone={setZone}>
                 <Section title="Alt">
                   <Choices label="Alt" bare note={outfit === 'none' ? null : replacedNote} options={BOTTOMS} value={avatar.bottom} onChange={set('bottom')} />
-                  <Swatches label={bottomLabel} options={CLOTH_COLORS} value={avatar.bottomColor} onChange={set('bottomColor')} />
+                  <Swatches label={bottomLabel} collapsible options={CLOTH_COLORS} value={avatar.bottomColor} onChange={set('bottomColor')} />
                 </Section>
               </Zone>
               <Zone zone="full" onZone={setZone}>
@@ -725,7 +757,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
               <Zone zone="feet" onZone={setZone}>
                 <Section title="Ayak">
                   <Choices label="Ayakkabı" bare options={FOOTWEAR} value={avatar.footwear} onChange={set('footwear')} />
-                  <Swatches label="Renk" options={SHOE_COLORS} value={avatar.shoes} onChange={set('shoes')} />
+                  <Swatches label="Renk" collapsible options={SHOE_COLORS} value={avatar.shoes} onChange={set('shoes')} />
                 </Section>
               </Zone>
             </>
@@ -735,8 +767,16 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
             <>
               <Zone zone="hat" onZone={setZone}>
                 <Section title="Başlık">
-                  <Choices label="Başlık" bare thumbs="hat" body={avatar.body} options={HATS} value={avatar.hat} onChange={set('hat')} />
-                  {FIXED_COLOR_HATS.includes(avatar.hat) ? null : <Swatches label="Renk" options={CLOTH_COLORS} value={avatar.hatColor} onChange={set('hatColor')} />}
+                  <Choices
+                    label="Başlık"
+                    bare
+                    thumbs="hat"
+                    body={avatar.body}
+                    options={HATS}
+                    value={avatar.hat}
+                    onChange={set('hat')}
+                    detail={FIXED_COLOR_HATS.includes(avatar.hat) ? null : <Swatches label={`${hatLabel} rengi`} options={CLOTH_COLORS} value={avatar.hatColor} onChange={set('hatColor')} />}
+                  />
                 </Section>
               </Zone>
               <Section title="Yüz ve kulak">
@@ -758,18 +798,16 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
                   <Choices label="Bilek" options={WRISTWEAR} value={avatar.wrist} onChange={set('wrist')} />
                 </Zone>
               </Section>
-              <Zone zone="upper" onZone={setZone}>
-                <Section title="Renkler">
-                  <Swatches
-                    label="Diğer aksesuar rengi"
-                    note="kulaklık, atkı, papyon, kravat, saat kayışı"
-                    options={CLOTH_COLORS}
-                    value={avatar.accessoryColor}
-                    onChange={set('accessoryColor')}
-                  />
-                  <Swatches label="Metal" note="taç, küpe, kolye, saat" options={METALS} value={avatar.metal} onChange={set('metal')} />
-                </Section>
-              </Zone>
+              {(accUsers.length > 0 || metalUsers.length > 0) && (
+                <Zone zone="upper" onZone={setZone}>
+                  <Section title="Renkler">
+                    {accUsers.length > 0 && (
+                      <Swatches label="Diğer aksesuar rengi" collapsible note={listOf(accUsers)} options={CLOTH_COLORS} value={avatar.accessoryColor} onChange={set('accessoryColor')} />
+                    )}
+                    {metalUsers.length > 0 && <Swatches label="Metal" collapsible note={listOf(metalUsers)} options={METALS} value={avatar.metal} onChange={set('metal')} />}
+                  </Section>
+                </Zone>
+              )}
             </>
           )}
           </div>
