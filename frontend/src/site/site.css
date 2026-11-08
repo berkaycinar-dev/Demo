@@ -54,7 +54,7 @@
 .site button:focus-visible,
 .site input:focus-visible,
 .site a:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -373,7 +373,7 @@
 }
 
 .theme-option:focus-visible .theme-option__shot {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -432,7 +432,7 @@
 }
 
 .door-sign__plate:focus-within {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -1918,8 +1918,8 @@
 }
 
 /* ==========================================================================
-   Avatar atölyesi + Oda oluştur: terracotta vurgu ve piksel başlık yazısı
-   Global token'lar (theme.css) değişmez; iki sayfanın kökünde vurgu ve seçim rolleri yeniden eşlenir.
+   Avatar atölyesi + Oda oluştur: piksel başlık yazısı ve kâğıt dokusu
+   Terakota vurgu ve seçim rolleri sitenin geneliyle aynı (theme.css); burada yalnızca doku eklenir.
    Kontrollerin köşe, kenar ve boşlukları sitenin geri kalanıyla aynı; voxel hissi yalnızca
    tipografiden gelir (Pixelify Sans, OFL 1.1, fonts/pixelify-sans/OFL.txt).
    ========================================================================== */
@@ -1967,35 +1967,11 @@
 
 .avatar-page,
 .create-room-page {
-  /* terracotta: odalardaki tuğla / kil tonu. Açık ve koyu modda aynı düğme dolgusu (#aa4a2a) */
-  --primary: #9c4122;
-  --primary-hover: #85361c;
-  --primary-fill: var(--button-sheen), #aa4a2a;
-  --primary-glow: inset 0 0 0 1px #8a3a1d, 0 2px 6px -2px rgba(140, 60, 30, 0.4);
-  --on-primary: #fff8f1;
-  --primary-soft: #f8e7dd;
-  /* seçim dili: kil tonu dolgu + terracotta halka */
-  --chip-on-bg: #f5ddd0;
-  --chip-on-fg: #3d1a0c;
-  --chip-on-edge: #b5502d;
-  --sel-ring: #b5502d;
-  --on-ring: #fff8f1;
   /* kâğıt lifi: panellerin yüzeyine çok hafif doku */
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .25 0 0 0 0 .14 0 0 0 .075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 :root[data-mode='dark'] :is(.avatar-page, .create-room-page) {
-  --primary: #eb9a78;
-  --primary-hover: #f2b195;
-  --primary-fill: var(--button-sheen), #aa4a2a;
-  --primary-glow: inset 0 0 0 1px #c4643f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
-  --on-primary: #fff8f1;
-  --primary-soft: #3f2b23;
-  --chip-on-bg: #4b2d22;
-  --chip-on-fg: #f9e9df;
-  --chip-on-edge: #e08a66;
-  --sel-ring: #e08a66;
-  --on-ring: #2a1209;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .92 0 0 0 0 .82 0 0 0 .04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 

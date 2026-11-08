@@ -189,8 +189,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--header-accent);
-  color: var(--header-bg);
+  background: var(--avatar-bg);
+  color: var(--avatar-fg);
   font-size: 13px;
   font-weight: 700;
 }
