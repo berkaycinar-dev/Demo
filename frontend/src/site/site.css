@@ -2022,20 +2022,36 @@
 }
 
 /* ---------- Oda oluştur: sahne kahraman, ad kapı tabelası, ayarlar yapışkan rafta ---------- */
+/* başlık sıkı: geri bağlantı ile h1 arası ve formun üstü kısa, sahneye ve temalara yer kalsın */
+.create-room-page .page-head {
+  margin-bottom: 4px;
+}
+
+.create-room-page .page-head .back-link {
+  margin-bottom: 2px;
+}
+
+.create-room-page .page-head h1 {
+  margin-bottom: 0;
+}
+
+/* Sahne + raf üst satırda, temalar altta tam genişlik. Sahne yüksekliği ekrandan kalan yer kadar:
+   başlık (~176) + tabela payı + tema satırı (~170) çıkınca 1440×900'de 528, en az 320, en çok 600. */
 .create-room {
+  --sign-room: 26px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
   grid-template-areas:
     'hero rail'
-    'themes rail';
-  gap: 32px 28px;
+    'themes themes';
+  gap: 20px 24px;
   align-items: start;
 }
 
 .create-room__hero {
   position: relative;
   grid-area: hero;
-  padding-top: 36px;
+  padding-top: var(--sign-room);
 }
 
 .create-room__sign.field {
@@ -2065,7 +2081,7 @@
 }
 
 .create-room__sign .door-sign__plate {
-  padding: 10px 36px 6px;
+  padding: 6px 36px 4px;
 }
 
 /* tabela yazısı: 33 px piksel (3 px ızgara); yer tutucu ile yazılan ad aynı yükseklikte */
@@ -2078,7 +2094,7 @@
 }
 
 .create-room__stage.room-frame {
-  height: clamp(360px, calc(100svh - 300px), 620px);
+  height: clamp(320px, calc(100svh - 372px), 600px);
   margin: 0;
 }
 
@@ -2087,21 +2103,126 @@
   margin: 0;
 }
 
+/* raf sahneyle aynı hizada başlar ve biter; düğme sahnenin alt kenarına oturur */
 .create-room__rail {
-  position: sticky;
-  top: 16px;
   grid-area: rail;
-  display: grid;
-  gap: 22px;
-  margin-top: 36px;
-  padding: 22px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: var(--sign-room);
+  padding: 20px;
   border-radius: 20px;
   background: var(--grain), var(--surface);
   box-shadow: var(--card-edge);
 }
 
+.create-room__rail .create-room__cta {
+  margin-top: auto;
+}
+
+/* kısa dizüstü ekranı (1280×720): raf sahneden uzun kalıp temaları aşağı itmesin */
+@media (min-width: 901px) and (max-height: 760px) {
+  .create-room__rail {
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  /* ad ve açıklama aynı paragrafta akar */
+  .create-room__rail .create-room__theme-note {
+    display: block;
+    padding-bottom: 12px;
+  }
+
+  .create-room__rail .create-room__theme-name {
+    margin-right: 6px;
+    font-size: var(--pixel-s);
+  }
+
+  .create-room__fields .field {
+    margin-bottom: 12px;
+  }
+
+  .create-room__rail .create-room__cta {
+    padding-top: 14px;
+  }
+}
+
+/* masaüstünde özet rafın kendisi (tabela, tema notu, alanlar); yalnızca seçilen mola noktası yazılır */
+@media (min-width: 901px) {
+  .create-room__summary-name,
+  .create-room__summary-meta {
+    display: none;
+  }
+
+  .create-room__summary:not(:has(.create-room__spot)) {
+    display: none;
+  }
+}
+
+/* seçili temanın adı ve açıklaması: kartlar açıklamasız olduğunda tema burada anlatılır */
+.create-room__theme-note {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.create-room__theme-name {
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-l);
+  font-weight: 500;
+  font-synthesis: none;
+  line-height: 1.1;
+}
+
+/* geniş form: 10 tema tek satırda, kart = görsel + ad; açıklama ekran okuyucuya kalır, görünen hali rafta */
+@container room-form (min-width: 1000px) {
+  .create-room-page .theme-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .create-room-page .theme-option__shot {
+    margin-bottom: 4px;
+  }
+
+  .create-room-page .theme-option__shot img {
+    aspect-ratio: 3 / 2;
+  }
+
+  .create-room-page .theme-option__name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .create-room-page .theme-option__desc {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* dar formda (container < 1000 px ≈ ekran < 1064 px) kartlar açıklamalı; rafta tekrar etmez.
+   Not tema kapsayıcısının dışında olduğu için ekran sorgusu. */
+@media (max-width: 1063.98px) {
+  .create-room-page .create-room__theme-note {
+    display: none;
+  }
+}
+
 .create-room__fields .field {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .create-room__fields .create-room__last {
@@ -2631,4 +2752,58 @@
   background: rgba(240, 138, 106, 0.12);
   box-shadow: inset 0 0 0 1px rgba(240, 138, 106, 0.4);
   color: #f6b9a3;
+}
+
+/* ---------- Atölye dengesi (masaüstü): düzenleyici sol sütunla (önizleme + kombinler) aynı yükseklikte
+   biter; uzun sekme kartın içinde kayar. Sekmeler üstte, "Varsayılana dön" altta sabit kalır; sayfa
+   önizlemenin altında 900 px'lik boşluk bırakmaz. contain: size kartın kendi içerik yüksekliğini satıra
+   katmaz, satırı sol sütun belirler; kart o yüksekliğe uzar. */
+@media (min-width: 901px) {
+  .avatar-page {
+    align-items: stretch;
+  }
+
+  .avatar-page .create-preview {
+    align-self: start;
+  }
+
+  /* sol sütun ekranın altına kadar: önizleme büyür, düzenleyicinin görünen alanı da onunla uzar
+     (1440×900'de 570, 1080'de 720) */
+  .avatar-page__preview {
+    height: clamp(446px, calc(100svh - 330px), 720px);
+  }
+
+  .avatar-page__editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 0;
+    contain: size;
+  }
+
+  .avatar-page__editor .avatar-tabs {
+    position: static;
+    flex: none;
+    margin-bottom: 0;
+  }
+
+  .avatar-page__editor .avatar-page__panel {
+    /* ekran okuyucu etiketleri (mutlak konumlu) kayan alanın içinde kalsın, sayfayı uzatmasın */
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 -24px;
+    padding: 4px 24px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: var(--line-strong) transparent;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .avatar-page__editor .avatar-page__actions {
+    flex: none;
+    margin: 0 -24px;
+    padding: 10px 24px 14px;
+  }
 }

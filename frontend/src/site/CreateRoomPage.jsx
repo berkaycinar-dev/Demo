@@ -69,8 +69,9 @@ function CapacityStepper({ value, max, onChange }) {
 }
 
 // Oda oluşturma: seçilen odanın canlı 3D sahnesi sayfanın kahramanı; oda adı sahnenin üstüne asılı kapı
-// tabelasına yazılır. Tema kartları sahnenin altında, kapasite / erişim / oluştur düğmesi sağdaki yapışkan
-// rafta. Telefonda sırayla sahne, temalar, ayarlar; düğme ekranın altına yapışık.
+// tabelasına yazılır. Kapasite / erişim / oluştur düğmesi sahnenin yanındaki rafta; tema kartları ikisinin
+// altında tam genişlik tek satır, sahne yüksekliği ekrana göre: 10 tema ilk ekranda görünür.
+// Telefonda sırayla sahne, temalar, ayarlar; düğme ekranın altına yapışık.
 // Lobi'nin alt sayfası; var olan odalara katılmak Lobi'de.
 export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
   const [name, setName] = useState('')
@@ -194,6 +195,11 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
 
         {/* masaüstünde yapışkan raf; telefonda display: contents ile ayarlar akışta, eylem alta yapışır */}
         <div className="create-room__rail">
+          {/* geniş ekranda kartlar tek satır ve açıklamasız; seçili temanın açıklaması rafın başında */}
+          <p className="create-room__theme-note">
+            <span className="create-room__theme-name">{label}</span>
+            <span>{THEMES[theme].description}</span>
+          </p>
           <div className="create-room__fields">
             <fieldset className="field">
               <legend className="field__label" id="capacity-label">
@@ -226,10 +232,10 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             </button>
             <p className="create-room__summary">
               <span className="create-room__summary-name">{roomName}</span>
-              <span>
+              <span className="create-room__summary-meta">
                 {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
-                {spot && <> · Seçilen nokta: {spot.label}</>}
               </span>
+              {spot && <span className="create-room__spot">Seçilen nokta: {spot.label}</span>}
             </p>
             <div className="create-room__error" role="alert">
               {failure && (
