@@ -424,6 +424,15 @@ export default function AvatarPage({ avatar, onChange }) {
     setZone(t.zone)
     setHatShown(false)
   }
+  const onTabKey = (e) => {
+    const i = TABS.findIndex((t) => t.id === tab)
+    const last = TABS.length - 1
+    const to = { ArrowRight: i === last ? 0 : i + 1, ArrowLeft: i === 0 ? last : i - 1, Home: 0, End: last }[e.key]
+    if (to === undefined || e.altKey || e.ctrlKey || e.metaKey) return
+    e.preventDefault()
+    openTab(TABS[to])
+    document.getElementById(`avatar-tab-${TABS[to].id}`)?.focus()
+  }
   // saçı örten başlık ya da kafa üstü kulaklık: saç sekmesinde önizlemede gizlenir
   const hasHeadwear = avatar.hat !== 'none' || OVER_HEAD.includes(avatar.headphones)
   const hideHeadwear = tab === 'hair' && hasHeadwear && !hatShown
@@ -531,9 +540,20 @@ export default function AvatarPage({ avatar, onChange }) {
         </section>
 
         <div className="site-card create-form avatar-page__editor">
-          <div className="avatar-tabs" role="tablist" aria-label="Kategori">
+          {/* ARIA sekme deseni: ←/→ komşu sekmeye (uçlarda döner), Home/End ilk/son sekmeye geçer ve seçer;
+              roving tabindex ile Tab sırasında yalnızca seçili sekme durur */}
+          <div className="avatar-tabs" role="tablist" aria-label="Kategori" onKeyDown={onTabKey}>
             {TABS.map((t) => (
-              <button key={t.id} type="button" role="tab" id={`avatar-tab-${t.id}`} aria-selected={tab === t.id} aria-controls="avatar-panel" onClick={() => openTab(t)}>
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                id={`avatar-tab-${t.id}`}
+                aria-selected={tab === t.id}
+                aria-controls="avatar-panel"
+                tabIndex={tab === t.id ? 0 : -1}
+                onClick={() => openTab(t)}
+              >
                 <Icon name={t.icon} />
                 <span>{t.label}</span>
               </button>
