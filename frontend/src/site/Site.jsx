@@ -159,7 +159,7 @@ export default function Site() {
           <LobbyPage rooms={rooms} joined={joined} onEnter={enter} onForget={(id) => setJoined(forgetJoin(user, id))} onCreate={() => go('olustur')} />
         )}
         {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} isDark={isDark} />}
-        {page === 'avatar' && <AvatarPage avatar={avatar} onChange={changeAvatar} />}
+        {page === 'avatar' && <AvatarPage avatar={avatar} onChange={changeAvatar} onEnterRoom={() => go('odam')} />}
         {page === 'hesap' && (
           <AccountPage
             user={user}

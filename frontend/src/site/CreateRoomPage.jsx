@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
-import { ACCESS_LABELS } from './access'
 import Icon from './AvatarIcons'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
@@ -11,6 +10,15 @@ const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
 const FORM_ID = 'create-room-form'
 const NAME_MAX = 60
+// Kimler girebilir: düğme etiketi ve seçilince altında çıkan açıklama
+const ACCESS_OPTIONS = [
+  { id: 'public', label: 'Herkese açık', hint: 'Oda lobide listelenir, herkes girebilir.' },
+  { id: 'invite', label: 'Davetle', hint: 'Bir davet kodu üretilir; yalnızca kodu bilenler girebilir.' },
+]
+// Tabela piksel yazıyla çizilir; emoji renkli sistem emojisi olarak çıkıp levhayı bozar. Yazılan emoji
+// (birleştiriciler, ten tonu ve bayrak harfleriyle) alınmaz, altta not çıkar.
+const EMOJI_PARTS = /\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣/gu
+const EMOJI_NOTE = 'Tabelaya emoji yazılamaz; harf, rakam ve noktalama kullan.'
 // Oda kartı görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir.
 // koyu modda akşam ışığında çizilmiş varyant (<tema>-evening.webp): krem gündüz duvarları koyu
 // zeminde parlak kutu gibi durmaz, kart canlı sahneyle aynı ışıkta görünür
@@ -81,10 +89,13 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
   const [spot, setSpot] = useState(null)
   // oluşturma başarısızsa { reason: 'full' | 'blocked' | 'failed', room }
   const [failure, setFailure] = useState(null)
+  // son yazışta emoji ayıklandıysa tabela altındaki not bunu söyler; emojisiz ilk yazışta kalkar
+  const [emojiDropped, setEmojiDropped] = useState(false)
   const { label, Room, max } = THEMES[theme]
   const fallbackName = `${label} odası`
   const roomName = name.trim() || fallbackName
-  const status = nameStatus(name, NAME_MAX, `Boş bırakırsan adı “${fallbackName}” olur.`)
+  const baseStatus = nameStatus(name, NAME_MAX, `Boş bırakırsan adı “${fallbackName}” olur.`)
+  const status = emojiDropped && baseStatus.tone !== 'over' ? { ...baseStatus, tone: 'warn', message: EMOJI_NOTE } : baseStatus
   const nameRef = useRef(null)
   const heroRef = useRef(null)
   // telefonda mini önizlemeye dokununca canlı sahneye çıkar (azaltılmış harekette anında)
@@ -141,7 +152,14 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
                   rows={1}
                   value={name}
                   data-long={textLength(name) > 22 || undefined}
-                  onChange={(e) => setName(e.target.value.replace(/\s*[\r\n]+\s*/g, ' '))}
+                  onChange={(e) => {
+                    const typed = e.target.value.replace(/\s*[\r\n]+\s*/g, ' ')
+                    const clean = typed.replace(EMOJI_PARTS, '')
+                    const dropped = clean !== typed
+                    setEmojiDropped(dropped)
+                    // emojinin iki yanındaki boşluklar tek boşluğa iner
+                    setName(dropped ? clean.replace(/ {2,}/g, ' ') : clean)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -160,7 +178,7 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
           <div className="room-frame create-room__stage">
             {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
             <div key={`${theme}-${capacity}`} className="create-preview__scene">
-              <Room capacity={capacity} onSpotClick={setSpot} toolbar="compact" />
+              <Room capacity={capacity} onSpotClick={setSpot} toolbar="compact" hint="Zemindeki halkalar mola noktaları · Sürükle: döndür" />
             </div>
           </div>
         </section>
@@ -211,15 +229,18 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
               <CapacityStepper value={capacity} max={max} onChange={changeCapacity} />
             </fieldset>
 
-            <fieldset className="field create-room__last">
+            <fieldset className="field create-room__last" aria-describedby="access-hint">
               <legend className="field__label">Kimler girebilir</legend>
               <div className="choice-row">
-                {Object.entries(ACCESS_LABELS).map(([key, text]) => (
-                  <button key={key} type="button" aria-pressed={access === key} onClick={() => setAccess(key)}>
-                    {text}
+                {ACCESS_OPTIONS.map((o) => (
+                  <button key={o.id} type="button" aria-pressed={access === o.id} onClick={() => setAccess(o.id)}>
+                    {o.label}
                   </button>
                 ))}
               </div>
+              <p id="access-hint" className="field__note create-room__access-hint">
+                {ACCESS_OPTIONS.find((o) => o.id === access).hint}
+              </p>
             </fieldset>
           </div>
 
@@ -236,9 +257,9 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             <p className="create-room__summary">
               <span className="create-room__summary-name">{roomName}</span>
               <span className="create-room__summary-meta">
-                {label} · {capacity} kişilik · {ACCESS_LABELS[access]}
+                {label} · {capacity} kişilik · {ACCESS_OPTIONS.find((o) => o.id === access).label}
               </span>
-              {spot && <span className="create-room__spot">Seçilen nokta: {spot.label}</span>}
+              {spot && <span className="create-room__spot">Seçilen mola noktası: {spot.label}</span>}
             </p>
             <div className="create-room__error" role="alert">
               {failure && (
