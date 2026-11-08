@@ -1,4 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import '../rooms/core/quietClock'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, Color, Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { BONE_INDEX, SCALE, buildAvatarParts } from './model'

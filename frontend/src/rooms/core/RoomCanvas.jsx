@@ -1,4 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import './quietClock'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { TimeOfDayContext } from './roomContext'
