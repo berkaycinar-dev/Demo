@@ -24,11 +24,15 @@ function read(key, fallback) {
   }
 }
 
+// Yazıldıysa null; yazılamadıysa neden: 'full' (kota doldu) ya da 'blocked' (depolama kapalı / erişilemez).
+// Çağıran yok sayarsa veri yalnızca bu oturumda kalır.
 function write(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    /* depolama kapalıysa yalnızca bu oturumda kalır */
+    return null
+  } catch (e) {
+    const full = e?.name === 'QuotaExceededError' || e?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e?.code === 22 || e?.code === 1014
+    return full ? 'full' : 'blocked'
   }
 }
 
@@ -37,8 +41,9 @@ export function loadRooms() {
   return [...read(ROOMS_KEY, []), ...SAMPLE_ROOMS]
 }
 
+/** Odayı kaydeder; yazılamazsa nedeni döner ('full' | 'blocked'), yazıldıysa null. */
 export function saveCreatedRoom(room) {
-  write(ROOMS_KEY, [room, ...read(ROOMS_KEY, []).filter((r) => r.id !== room.id)])
+  return write(ROOMS_KEY, [room, ...read(ROOMS_KEY, []).filter((r) => r.id !== room.id)])
 }
 
 export function loadJoined(user) {
