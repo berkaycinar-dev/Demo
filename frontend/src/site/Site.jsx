@@ -96,10 +96,18 @@ export default function Site() {
     setCurrentId(room.id)
     go('oda')
   }
-  const create = (room) => {
-    saveCreatedRoom(room)
-    setRooms((list) => [room, ...list])
-    enter(room)
+  // Oda kaydedilemezse girilmez; neden oluşturma sayfasına döner ('full' | 'blocked' | 'failed').
+  // keepForSession: kullanıcı yine de girmek isterse oda yalnızca bu oturumda (sekme kapanınca kaybolur).
+  const create = (room, { keepForSession = false } = {}) => {
+    try {
+      const failed = keepForSession ? null : saveCreatedRoom(room)
+      if (failed) return failed
+      setRooms((list) => [room, ...list.filter((r) => r.id !== room.id)])
+      enter(room)
+      return null
+    } catch {
+      return 'failed'
+    }
   }
   const changeAvatar = (next) => {
     setAvatar(next)
@@ -150,11 +158,14 @@ export default function Site() {
         {page === 'lobi' && (
           <LobbyPage rooms={rooms} joined={joined} onEnter={enter} onForget={(id) => setJoined(forgetJoin(user, id))} onCreate={() => go('olustur')} />
         )}
-        {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} />}
-        {page === 'avatar' && <AvatarPage avatar={avatar} onChange={changeAvatar} />}
+        {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} isDark={isDark} />}
+        {page === 'avatar' && <AvatarPage avatar={avatar} onChange={changeAvatar} onEnterRoom={() => go('odam')} />}
         {page === 'hesap' && (
           <AccountPage
             user={user}
+            isDark={isDark}
+            onToggleMode={toggleMode}
+            onLogout={signOut}
             onUserChange={(u) => {
               setUser(u)
               setJoined(loadJoined(u))

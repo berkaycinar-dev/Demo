@@ -54,7 +54,7 @@
 .site button:focus-visible,
 .site input:focus-visible,
 .site a:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -192,7 +192,8 @@
 
 .site-btn--primary:hover {
   background: var(--primary-fill);
-  filter: brightness(1.08);
+  /* koyulaşır: açılırsa krem yazının karşıtlığı 4.5:1'in altına düşer */
+  filter: brightness(0.94);
 }
 
 .site-btn--small {
@@ -285,7 +286,7 @@
 
 /* tema kartları: odanın statik izometrik görseli kartın ana öğesi; seçili kart görselin çerçevesiyle
    belli olur (görseller: scripts/render-room-thumbs.mjs). Form genişse 5 sütun (5×2), darsa 2. */
-.create-room__form {
+.create-room__themes {
   container: room-form / inline-size;
 }
 
@@ -368,12 +369,13 @@
   color: var(--primary);
 }
 
-.theme-option:focus-visible {
-  outline: none;
+/* halka düğmede değil görselde; saydam çizgi Windows yüksek karşıtlık modunda yine görünür */
+.site .theme-option:focus-visible {
+  outline: 2px solid transparent;
 }
 
 .theme-option:focus-visible .theme-option__shot {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -408,7 +410,7 @@
   right: 12px;
 }
 
-.field .door-sign__plate input {
+.field .door-sign__plate textarea {
   min-height: 52px;
   padding: 0;
   border: 0;
@@ -422,17 +424,18 @@
   text-align: center;
 }
 
-.field .door-sign__plate input::placeholder {
+.field .door-sign__plate textarea::placeholder {
   color: var(--sign-ink-2);
   opacity: 1;
 }
 
-.field .door-sign__plate input:focus-visible {
-  outline: none;
+/* halka alanda değil levhanın dışında (koyu cevizde kaybolmasın); saydam çizgi yüksek karşıtlık için */
+.field .door-sign__plate textarea:focus-visible {
+  outline: 2px solid transparent;
 }
 
 .door-sign__plate:focus-within {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -448,7 +451,9 @@
 }
 
 .stepper__btn {
+  display: inline-grid;
   flex: none;
+  place-items: center;
   width: 48px;
   height: 48px;
   border: 1px solid var(--line-strong);
@@ -459,6 +464,11 @@
   font: 600 24px/1 var(--font-display);
   cursor: pointer;
   transition: background-color 150ms ease, transform 120ms ease-out;
+}
+
+/* kalın çizgi: blok düğmenin ağırlığına uyar; sahnedeki büyüteçli yakınlaştırmadan ayrı okunur */
+.stepper__btn .icon {
+  stroke-width: 2.75;
 }
 
 .stepper__btn:hover:not(:disabled) {
@@ -503,7 +513,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 1px;
-  color: var(--line-strong);
+  color: var(--glyph-off);
 }
 
 .stepper__person {
@@ -515,47 +525,9 @@
   color: var(--primary);
 }
 
-/* oda oluştur yerleşimi: form geniş, önizleme + özet + düğme yapışkan sütunda */
-.create--room {
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-}
-
-.create-room__last {
-  margin-bottom: 0;
-}
-
-.create-room__aside {
-  position: sticky;
-  top: 16px;
-}
-
-/* sahne, altındaki özet ve düğmeyle birlikte ilk ekrana sığar (başlık ~210 px, eylem ~150 px) */
-.create-room__aside .create-room__stage {
-  height: clamp(260px, calc(100svh - 380px), 460px);
-}
-
-.create-room__cta {
-  display: grid;
-  gap: 12px;
-}
-
-.create-room__summary {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-}
-
-.create-room__summary strong {
-  overflow: hidden;
-  font-family: var(--font-display);
-  font-size: 18px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.create-room__summary span {
-  color: var(--muted);
-  font-size: 14px;
+/* dolu = koltuk sayıya dahil, boş çizgi = dahil değil (renk tek başına ayırmaz) */
+.stepper__person--on .icon {
+  fill: currentColor;
 }
 
 /* çipler: seçili olan dolgulu */
@@ -648,7 +620,7 @@
 }
 
 :root[data-mode='dark'] .room-canvas__hint {
-  color: color-mix(in srgb, var(--scene-hint) 80%, transparent);
+  color: var(--text-2);
 }
 
 /* odadakiler listesi; nokta biçimleri avatar etiketleriyle aynı */
@@ -703,6 +675,7 @@
 .avatar-page__preview {
   position: relative;
   height: min(520px, 62svh);
+  container-type: inline-size;
 }
 
 /* önizleme üstünde yüzen kontrol barları: saydam bulanık zemin 3D sahnenin üstünde okunur kalır */
@@ -722,9 +695,39 @@
   color: var(--text-2);
 }
 
-.hud--top {
+/* köşe yığınları: üst üste HUD çubukları. Sol: poz + çalışma türü, sağ: geçmiş + başlık gizle */
+.hud-stack {
+  position: absolute;
   top: 10px;
+  z-index: 1;
+  display: grid;
+  gap: 6px;
+}
+
+.hud-stack .hud {
+  position: static;
+}
+
+.hud-stack--start {
+  left: 10px;
+  justify-items: start;
+}
+
+.hud-stack--end {
   right: 10px;
+  justify-items: end;
+}
+
+/* çalışma türü: oturmayan pozda gizlenir ama yeri korunur; görünürlük solmadan sonra kapanır */
+.hud--sub {
+  transition: opacity 160ms ease, transform 200ms var(--ease-out, ease-out), visibility 0s linear 0s;
+}
+
+.hud--sub[data-off] {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease, visibility 0s linear 120ms;
 }
 
 .hud--bottom {
@@ -752,12 +755,140 @@
 }
 
 .hud__icon {
+  position: relative;
   width: 34px;
+}
+
+/* simge düğmesinin adı: fareli cihazda üstüne gelince ya da klavye odağında altta ipucu balonu */
+.hud__label {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--text);
+  box-shadow: 0 6px 14px -8px rgba(40, 26, 12, 0.5);
+  color: var(--surface);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity 120ms ease, transform 160ms var(--ease-out, ease-out);
+}
+
+.hud__key {
+  color: color-mix(in srgb, var(--surface) 72%, var(--text));
+  font: inherit;
+  font-weight: 500;
+}
+
+.hud__icon:hover .hud__label,
+.hud__icon:focus-visible .hud__label {
+  opacity: 1;
+  transform: none;
+  transition-delay: 250ms;
+}
+
+.hud__icon:focus-visible .hud__label {
+  transition-delay: 0ms;
+}
+
+/* balon sonraki HUD çubuğunun altında kalmasın */
+.hud-stack .hud:has(.hud__icon:hover, .hud__icon:focus-visible) {
+  position: relative;
+  z-index: 2;
+}
+
+/* dokunmatik (üstüne gelme yok): etiket simgenin altında hep görünür, düğme 44 px'e yakın büyür */
+@media (hover: none) {
+  .hud .hud__icon,
+  .hud .hud__pose {
+    flex-direction: column;
+    gap: 2px;
+    width: auto;
+    min-width: 48px;
+    height: auto;
+    min-height: 44px;
+    padding: 5px 6px 4px;
+    border-radius: 14px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .hud__label {
+    position: static;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+    color: inherit;
+    font-size: 11.5px;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hud__key {
+    display: none;
+  }
+
+  .hud:has(.hud__icon) {
+    border-radius: 17px;
+  }
 }
 
 .hud__text {
   padding: 0 12px 0 10px;
   font-weight: 600;
+}
+
+/* poz ve çalışma türü seçeneği: ikon + etiket */
+.hud__opt {
+  padding: 0 12px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hud__opt .icon {
+  flex: none;
+  color: var(--muted);
+}
+
+.hud__opt[aria-pressed='true'] .icon {
+  color: currentColor;
+}
+
+/* dar önizleme (telefon): etiket ikonun altına iner, dört poz ve geçmiş çubuğu tek sırada kalır */
+@container (max-width: 480px) {
+  .hud .hud__opt {
+    flex-direction: column;
+    gap: 2px;
+    height: auto;
+    min-width: 52px;
+    padding: 5px 4px 4px;
+    border-radius: 14px;
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .hud-stack .hud:has(.hud__opt) {
+    border-radius: 17px;
+  }
+}
+
+/* çok dar önizleme: "Tıkla: selam" ipucu düşer, Sıfırla sığar */
+@container (max-width: 360px) {
+  .hud__tip + .hud__tip {
+    display: none;
+  }
+
 }
 
 .hud button:hover:not(:disabled) {
@@ -830,12 +961,6 @@
   font-weight: 600;
 }
 
-.avatar-page__poses {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 /* o anki seçimde geçersiz alan (bu saç modelinde kahkül yok): ad ve düğmeler soluk, not okunur */
 .field--off .segmented,
 .field--off .option-grid {
@@ -850,66 +975,156 @@
   color: var(--text-2);
 }
 
-/* kombin slotları */
+/* kombinler şeridi: başlık + kayıt onayı tek satırda, altında üç eşit slot. Slotun gövdesi giyer,
+   köşedeki ikon kaydeder. */
 .wardrobe {
+  margin-top: 16px;
+}
+
+.wardrobe__head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.site .wardrobe__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-label, 14px);
+  line-height: 1.3;
+}
+
+.wardrobe__status {
+  min-height: 1.3em;
+  color: var(--success);
+  font-size: var(--type-caption, 12px);
+  font-weight: 600;
 }
 
 .wardrobe__slots {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  container-type: inline-size;
 }
 
 .wardrobe__slot {
-  display: grid;
-  gap: 4px;
-  min-width: 96px;
-  padding: 8px 12px;
+  position: relative;
   border: 2px solid transparent;
   border-radius: var(--radius-block);
   background: var(--surface-2);
   box-shadow: var(--voxel-face);
-  color: var(--text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
 }
 
-.wardrobe__slot[aria-pressed='true'] {
+.wardrobe__slot[data-worn] {
   border-color: var(--primary);
   background: var(--primary-soft);
 }
 
-.wardrobe__chips {
+.wardrobe__slot[data-empty] {
+  border: 2px dashed var(--line-strong);
+  background: transparent;
+  box-shadow: none;
+}
+
+.wardrobe__wear {
   display: flex;
-  gap: 3px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 40px 8px 8px;
+  border: 0;
+  border-radius: calc(var(--radius-block) - 2px);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.wardrobe__chips i {
-  width: 12px;
-  height: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 50%;
+.wardrobe__wear:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
 }
 
-.wardrobe__worn {
-  color: var(--success);
-  font-size: 12px;
+.wardrobe__wear:disabled {
+  cursor: default;
 }
 
-.wardrobe__status {
+.portrait,
+.wardrobe__ghost {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+}
+
+.portrait {
+  background: var(--scene-base, var(--surface-sunken));
+}
+
+.wardrobe__ghost {
+  display: grid;
+  place-items: center;
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+
+.wardrobe__name {
+  display: grid;
+  min-width: 0;
   font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
 }
 
-.avatar-page__sub {
-  animation: avatarRise 220ms var(--ease-out);
+.wardrobe__name small {
+  color: var(--muted);
+  font-size: var(--type-caption, 12px);
+  font-weight: 500;
+}
+
+.wardrobe__slot[data-worn] .wardrobe__name small {
+  color: var(--chip-on-fg, var(--primary));
+}
+
+.wardrobe__save {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.wardrobe__save:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.wardrobe__save[data-done] {
+  color: var(--success);
+}
+
+/* dar slot (telefon): portre üstte, ad altında; kaydet köşede kalır */
+@container (max-width: 400px) {
+  .wardrobe .wardrobe__wear {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px;
+  }
 }
 
 /* düzenleyici: sekme çubuğu panelin üstüne yapışır, uzun sekmede kaydırırken kategori görünür kalır */
@@ -974,6 +1189,12 @@
 
 .avatar-tabs button[aria-selected='true']::after {
   transform: scaleX(1);
+}
+
+/* odak halkası sekmenin içinde ve yuvarlak: yapışkan çubuğun ve kartın kenarında kırpılmaz */
+.avatar-tabs button:focus-visible {
+  border-radius: 12px;
+  outline-offset: -4px;
 }
 
 /* dar ekranda sekme ikonu etiketin üstünde: dört sekme tek satıra sığar */
@@ -1101,6 +1322,68 @@
   color: var(--muted);
   font-size: var(--type-caption);
   font-weight: 400;
+}
+
+/* katlı renk satırı: ad, seçili renk ve "Değiştir"; yuvarlaklar düğmeyle açılır */
+.avatar-page .field--folded {
+  margin-bottom: 12px;
+}
+
+.color-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--type-caption);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.color-toggle:hover {
+  border-color: var(--muted);
+  background: var(--surface-2);
+}
+
+.color-toggle[aria-expanded='true'] {
+  background: var(--surface-2);
+}
+
+.avatar-page .field__label:has(.color-toggle) .field__note {
+  flex-basis: 100%;
+  order: 1;
+}
+
+.color-toggle__chip {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+/* seçili seçeneğin ayrıntısı (başlık rengi): seçili düğmenin satırının hemen altında tam satır.
+   dense akış, seçili düğmeden sonraki seçenekleri o satırın boş hücrelerine geri doldurur. */
+.option-grid--detail {
+  grid-auto-flow: row dense;
+}
+
+.option-detail {
+  grid-column: 1 / -1;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-block);
+  background: var(--surface-2);
+  animation: avatarRise 200ms var(--ease-out);
+}
+
+.avatar-page .option-detail .field {
+  margin-bottom: 0;
 }
 
 /* seçenek ızgarası: eşit sütunlar, kısa etiket tek satır, uzun etiket iki satıra kırılır */
@@ -1231,7 +1514,7 @@
 
 /* "yok" seçeneği: çapraz çizgili beyaz */
 .swatch--none {
-  background: linear-gradient(135deg, var(--surface) 45%, #c44 45%, #c44 55%, var(--surface) 55%);
+  background: linear-gradient(135deg, var(--surface-sunken) 45%, var(--none-mark) 45%, var(--none-mark) 55%, var(--surface-sunken) 55%);
 }
 
 .swatch[aria-pressed='true'] {
@@ -1241,8 +1524,45 @@
 
 .avatar-page__actions {
   margin-top: 4px;
-  padding-top: 18px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
+}
+
+/* sessiz metin bağlantısı: ikincil, geri alınabilir eylem */
+.quiet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 150ms ease, text-decoration-color 150ms ease;
+}
+
+.quiet-link:hover {
+  color: var(--text);
+  text-decoration-color: currentColor;
+}
+
+/* zar: karışma boyunca ikon yuvarlanır (önizlemedeki karakterle aynı süre, yavaşlayarak) */
+.hud__dice[data-rolling] .icon {
+  animation: diceRoll 680ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@keyframes diceRoll {
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, sekme içeriği
@@ -1254,6 +1574,8 @@
 .avatar-page .tile,
 .avatar-page .segmented button,
 .avatar-page .wardrobe__slot,
+.avatar-page .wardrobe__wear,
+.avatar-page .wardrobe__save,
 .avatar-page .hud button {
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease,
     opacity 150ms ease, transform 120ms var(--ease-out);
@@ -1261,7 +1583,8 @@
 
 .avatar-page .tile:active:not(:disabled),
 .avatar-page .segmented button:active:not(:disabled),
-.avatar-page .wardrobe__slot:active,
+.avatar-page .wardrobe__slot:has(.wardrobe__wear:active:not(:disabled)),
+.avatar-page .wardrobe__save:active,
 .avatar-page .hud button:active:not(:disabled) {
   transform: scale(0.96);
 }
@@ -1279,7 +1602,7 @@
 }
 
 .avatar-page .wardrobe__status > span,
-.avatar-page .wardrobe__worn {
+.avatar-page .wardrobe__save[data-done] .icon {
   animation: avatarFade 200ms ease-out;
 }
 
@@ -1341,6 +1664,9 @@
 }
 
 .site-footer__nav button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   padding: 0;
   border: none;
   background: none;
@@ -1377,47 +1703,6 @@
   .create-preview__room {
     height: 380px;
   }
-
-  .create-room__aside {
-    display: contents;
-  }
-
-  .create-room__aside .create-room__stage {
-    order: -1;
-    height: 340px;
-    margin-bottom: 0;
-  }
-
-  .create-room__cta {
-    position: sticky;
-    bottom: 0;
-    z-index: 3;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    margin-bottom: calc(8px + env(safe-area-inset-bottom));
-    padding: 10px 10px 10px 16px;
-    border-radius: calc(var(--radius-block) + 6px);
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
-    box-shadow: var(--card-edge);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-  }
-
-  .create-room__cta .site-btn--wide {
-    width: auto;
-  }
-
-  /* ad zaten tabelada; telefonda yalnızca tek satır özet */
-  .create-room__summary strong {
-    display: none;
-  }
-
-  .create-room__summary span {
-    overflow: hidden;
-    font-size: 13px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
 }
 
 @media (max-width: 560px) {
@@ -1445,15 +1730,21 @@
   /* atölye: yer değiştirme ve ölçek yok; renk geçişleri ve solma kalır */
   .avatar-page .tile:active,
   .avatar-page .segmented button:active,
-  .avatar-page .wardrobe__slot:active,
+  .avatar-page .wardrobe__slot:has(.wardrobe__wear:active),
+  .avatar-page .wardrobe__save:active,
   .avatar-page .hud button:active,
   .avatar-page .swatch:active {
     transform: none;
   }
 
   .avatar-page__panel,
-  .avatar-page__sub {
+  .option-detail {
     animation-name: avatarFade;
+  }
+
+  .hud--sub,
+  .hud--sub[data-off] {
+    transform: none;
   }
 
   .avatar-tabs button::after {
@@ -1468,5 +1759,1288 @@
   .theme-option__shot img,
   .stepper__btn {
     transition: none;
+  }
+}
+
+/* ---------- telefon ve dar tablet (≤900 px, eşik AvatarPage COMPACT ile aynı) ---------- */
+
+/* poz ve kombinler alt sayfası (yerel <dialog>, yalnızca dar ekranda açılır) */
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100svh - max(var(--pv-h, 38svh), 240px) - 24px);
+  margin: 0 auto;
+  padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
+  overflow: auto;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -14px 32px -18px rgba(40, 26, 12, 0.5);
+  color: var(--text);
+}
+
+.sheet::backdrop {
+  background: rgba(30, 20, 10, 0.18);
+}
+
+.sheet[open] {
+  animation: sheetUp 280ms var(--ease-out);
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.sheet__note {
+  margin: 0 0 12px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.site .sheet__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--type-section, 20px);
+  line-height: 1.3;
+}
+
+.sheet__close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.sheet__close:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* tam genişlik segment: eşit sütunlar, ikon etiketin üstünde */
+.segmented--fill {
+  display: grid;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  width: 100%;
+}
+
+.segmented--fill button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 54px;
+  padding: 4px;
+  font-size: 13px;
+  line-height: 1.15;
+}
+
+/* çalışma türü: oturmayan pozda yeri korunur */
+.sheet__sub {
+  margin-top: 8px;
+  transition: opacity 160ms ease, visibility 0s linear 0s;
+}
+
+.sheet__sub[data-off] {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 120ms ease, visibility 0s linear 120ms;
+}
+
+.sheet .wardrobe {
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  /* atölye: önizleme yapışkan ve kompakt; sekmeler hemen altına yapışır, her seçim sahnede görünür */
+  .avatar-page {
+    --pv-h: 38svh;
+    --pv-top: calc(max(var(--pv-h), 240px) + 16px);
+    gap: 0;
+  }
+
+  .avatar-page .create-preview {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    padding: 8px 0;
+    background: var(--page-base);
+  }
+
+  .avatar-page__preview {
+    height: max(var(--pv-h), 240px);
+  }
+
+  .avatar-page__editor {
+    padding: 0 16px 16px;
+  }
+  .avatar-page .avatar-tabs {
+    top: var(--pv-top);
+    margin: 0 -16px 4px;
+    border-radius: 0;
+  }
+
+  /* dokunma hedefleri ≥ 44 px */
+  .hud button {
+    height: 44px;
+  }
+
+  .hud__icon {
+    width: 44px;
+  }
+
+  .hud--bottom {
+    padding-left: 10px;
+    font-size: 12px;
+  }
+
+  .segmented button {
+    min-height: 44px;
+  }
+
+  .swatch-row {
+    grid-template-columns: repeat(var(--cols), 44px);
+    gap: 8px;
+  }
+
+  .color-toggle {
+    min-height: 44px;
+    padding: 0 16px 0 10px;
+  }
+
+  .wardrobe__save {
+    top: 2px;
+    right: 2px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .wardrobe__wear {
+    padding-right: 46px;
+  }
+
+  .avatar-page .avatar-page__preview {
+    margin-bottom: 0;
+  }
+
+  .choice-row button {
+    min-height: 44px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-bottom: 4px;
+  }
+}
+
+/* dar seçenek paneli (telefon): 44 px yuvarlaklar en çok 6 sütunlu dengeli satırlarda */
+@container options (max-width: 400px) {
+  .swatch-row {
+    --cols: var(--fit, var(--half));
+  }
+}
+
+/* telefonda üst menü tek satır: logo yalnızca işaret, dört sayfa, hesap avatarı. Koyu mod ve çıkış
+   hesap sayfasında (Görünüm ve oturum). */
+@media (max-width: 560px) {
+  .site-header:has(.site-nav:not(.site-nav--sections)) {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 6px 12px;
+  }
+
+  .site-header:has(.site-nav:not(.site-nav--sections)) .site-brand__text,
+  .site-header__mode,
+  .site-header .header-link {
+    display: none;
+  }
+
+  .site-header .site-nav:not(.site-nav--sections) {
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .site-nav:not(.site-nav--sections) button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 14px;
+  }
+
+  .site-header .site-header__tools {
+    gap: 4px;
+  }
+
+  .site-header .site-brand {
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .site-header .user-chip {
+    padding: 3px;
+  }
+
+  .site-header .user-chip__avatar {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 374px) {
+  .site-nav:not(.site-nav--sections) button {
+    padding: 0 6px;
+    font-size: 13.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open] {
+    animation: avatarFade 160ms ease-out;
+  }
+}
+
+/* ---------- seçim dili: tek biçim ----------
+   Seçili denetim: dolgu --chip-on-bg, yazı --chip-on-fg, 2 px --sel-ring halkası (koyu modda --primary).
+   Görsel seçenekler (tema kartı, renk yuvarlağı) yalnızca halkayı alır. Seçilince yazı ağırlığı
+   değişmez (genişlik oynamasın); renkli zeminde ikincil yazı --text-2. */
+.tile[aria-pressed='true'],
+.choice-row button[aria-pressed='true'],
+.choice-row button[aria-selected='true'] {
+  border-color: var(--sel-ring);
+  box-shadow: inset 0 0 0 1px var(--sel-ring), var(--voxel-face);
+  font-weight: inherit;
+}
+
+.segmented button[aria-pressed='true'],
+.hud button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--sel-ring), var(--voxel-face);
+  font-weight: inherit;
+}
+
+/* poz denetimleri (HUD ve telefon alt sayfası): seçili yalnızca dolgu + ince kenar. Böylece klavye
+   odağının dışta boşluklu 2 px halkası seçili kenarla aynı tonda üst üste binmez, ayrı okunur. */
+.hud button[aria-pressed='true'],
+.sheet .segmented button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--chip-on-edge);
+}
+
+.hud button:focus-visible,
+.sheet .segmented button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.hud__opt[aria-pressed='true'] {
+  font-weight: 600;
+}
+
+.wardrobe__slot[data-worn] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+}
+
+.wardrobe__slot[data-worn] .wardrobe__wear {
+  color: var(--chip-on-fg);
+}
+
+.wardrobe__slot[data-worn] .wardrobe__name small,
+.wardrobe__slot[data-worn] .wardrobe__save {
+  color: var(--text-2);
+}
+
+:is([aria-pressed='true'], [aria-selected='true'], [data-worn]) :is(small, .field__note, .site-muted) {
+  color: var(--text-2);
+}
+
+.theme-option__shot {
+  box-shadow: inset 0 0 0 1px var(--line-strong), var(--voxel-face);
+}
+
+.theme-option:hover .theme-option__shot {
+  box-shadow: inset 0 0 0 1px var(--muted), var(--voxel-face);
+}
+
+.theme-option[aria-pressed='true'] .theme-option__shot {
+  box-shadow: inset 0 0 0 2px var(--sel-ring), var(--voxel-face);
+}
+
+.theme-option[aria-pressed='true'] .theme-option__name {
+  color: var(--text);
+}
+
+.swatch[aria-pressed='true'] {
+  border-color: var(--surface);
+  box-shadow: 0 0 0 2px var(--sel-ring);
+}
+
+/* o anki seçimde geçersiz alan: yalnızca denetim solar; ad ve not okunur kalır, tarayıcının gri
+   "disabled" yazısı ikinci kez soldurmaz */
+.field--off .field__label {
+  opacity: 1;
+  color: var(--text-2);
+}
+
+.field--off button:disabled {
+  color: var(--text-2);
+}
+
+/* ==========================================================================
+   Avatar atölyesi + Oda oluştur: piksel başlık yazısı ve kâğıt dokusu
+   Terakota vurgu ve seçim rolleri sitenin geneliyle aynı (theme.css); burada yalnızca doku eklenir.
+   Kontrollerin köşe, kenar ve boşlukları sitenin geri kalanıyla aynı; voxel hissi yalnızca
+   tipografiden gelir (Pixelify Sans, OFL 1.1, fonts/pixelify-sans/OFL.txt).
+   ========================================================================== */
+
+/* Pixelify Sans: değişken font (wght 400-700), yalnızca 500 kullanılır; latin + latin-ext. */
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/pixelify-sans/pixelify-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Pixelify Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/pixelify-sans/pixelify-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* yükleme sürerken yedek: Arial, Pixelify ölçülerine eşlenmiş (genişlik ×1.15, üst 0.92 / alt 0.28 em);
+   font gelince satır yüksekliği ve satır kırılması kaymaz */
+@font-face {
+  font-family: 'Pixelify Fallback';
+  src: local('Arial'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 115%;
+  ascent-override: 80%;
+  descent-override: 24.4%;
+  line-gap-override: 0%;
+}
+
+/* İki font, iki görev. Piksel (Pixelify Sans): bir şeyi adlandıran ya da bir değeri okutan kısa yazı;
+   sayfa ve bölüm başlıkları, alt sayfa başlığı, tabela, sayaç, rozet, seçili değer. Inter: okunan ve
+   tıklanan her şey; gövde, açıklama, not, form etiketi (tabeladaki "Oda adı" dahil), karakter sayacı gibi
+   yardım metni, seçenek ve düğme yazısı.
+   Piksel ızgarası: bir font pikseli 92/1000 em. Yalnızca 11 / 22 / 33 px'te bu tam 1 / 2 / 3 ekran
+   pikseline oturur ve kenarlar keskin kalır; ara boyut (16, 28…) kenarları bulanıklaştırır, kullanılmaz. */
+.avatar-workshop,
+.create-room-page {
+  --font-pixel: 'Pixelify Sans', 'Pixelify Fallback', var(--font-display);
+  --pixel-xl: 33px; /* sayfa başlığı, kapı tabelası, kapasite sayacı */
+  --pixel-l: 22px; /* bölüm ve alt sayfa başlığı, tema adı, seçili değer */
+  --pixel-s: 11px; /* küçük rozet: mini önizlemedeki kişi sayısı */
+}
+
+.avatar-page,
+.create-room-page {
+  /* kâğıt lifi: panellerin yüzeyine çok hafif doku */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .25 0 0 0 0 .14 0 0 0 .075 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-mode='dark'] :is(.avatar-page, .create-room-page) {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .92 0 0 0 0 .82 0 0 0 .04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- piksel rol. Tek ağırlık (500), sahte kalınlık yok. Harf aralığı 0: eklenen kesirli aralık
+   harfleri piksel ızgarasından kaydırır. Telefonda da aynı boyutlar (ızgara dışı ara boyut yok). */
+.site :is(.avatar-workshop, .create-room-page) h1,
+.site .avatar-page :is(.opt-section__title, .wardrobe__title, .sheet__title),
+.create-room-page .door-sign__plate textarea,
+.create-room-page .stepper__count,
+.create-room-page .create-room__theme-name,
+.create-room-page .create-room__mini-count,
+.avatar-page .field__value {
+  font-family: var(--font-pixel);
+  font-weight: 500;
+  font-synthesis: none;
+  letter-spacing: 0;
+}
+
+.site :is(.avatar-workshop, .create-room-page) h1 {
+  font-size: var(--pixel-xl);
+  line-height: 1.1;
+}
+
+/* bölüm başlığı (Saç, Kaş), Kombinler ve telefondaki "Poz ve kombinler" alt sayfası aynı rol */
+.site .avatar-page :is(.opt-section__title, .wardrobe__title, .sheet__title) {
+  font-size: var(--pixel-l);
+  line-height: 1.1;
+}
+
+/* seçili değer ("Kahverengi"): etiketin yanında okunan değer; 22 px piksel, etiketten 12 px açık,
+   ikincil renkte (bölüm başlığıyla karışmaz). Etiketle aynı taban çizgisi, dar ekranda alt satıra geçer. */
+.avatar-page .field__label:has(.field__value) {
+  column-gap: 12px;
+}
+
+.avatar-page .field__value {
+  color: var(--text-2);
+  font-size: var(--pixel-l);
+  line-height: 1;
+}
+
+/* kapasite sayacı: piksel rakamlar zaten eşit genişlikte; "kişilik" okunur fontta kalır */
+.create-room-page .stepper__count {
+  font-size: var(--pixel-xl);
+  line-height: 1;
+}
+
+.create-room-page .stepper__count span {
+  font-family: var(--font-body);
+}
+
+
+/* ---------- kâğıt yüzeyli paneller (köşeler ve kenarlar değişmez) */
+.avatar-page__editor,
+.avatar-page .avatar-tabs {
+  background: var(--grain), var(--surface);
+}
+
+/* ---------- Oda oluştur: sahne kahraman, ad kapı tabelası, ayarlar yapışkan rafta ---------- */
+/* başlık sıkı: geri bağlantı ile h1 arası ve formun üstü kısa, sahneye ve temalara yer kalsın */
+.create-room-page .page-head {
+  margin-bottom: 4px;
+}
+
+.create-room-page .page-head .back-link {
+  margin-bottom: 0;
+}
+
+.create-room-page .page-head h1 {
+  margin-bottom: 0;
+}
+
+/* Sahne + raf üst satırda, temalar altta tam genişlik. Sahne yüksekliği ekrandan kalan yer kadar:
+   başlık (~176) + tabela payı + tema satırı (~170) çıkınca 1440×900'de 528, en az 320, en çok 600. */
+.create-room {
+  --sign-room: 26px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-areas:
+    'hero rail'
+    'themes themes';
+  gap: 20px 24px;
+  align-items: start;
+}
+
+.create-room__hero {
+  position: relative;
+  grid-area: hero;
+  padding-top: var(--sign-room);
+}
+
+.create-room__sign.field {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  width: min(460px, calc(100% - 48px));
+  margin: 0;
+  transform: translateX(-50%) rotate(-0.6deg);
+}
+
+.door-sign__tag {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  z-index: 1;
+  padding: 1px 10px 2px;
+  border-radius: 4px;
+  background: var(--material-paper);
+  box-shadow: 0 1px 2px rgba(40, 26, 12, 0.3);
+  color: var(--sign-wood);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  transform: translateX(-50%) rotate(1.2deg);
+  pointer-events: none;
+}
+
+.create-room__sign .door-sign__plate {
+  padding: 6px 36px 4px;
+}
+
+/* tabela yazısı: 33 px piksel (3 px ızgara); yer tutucu ile yazılan ad aynı yükseklikte. Tabela -0.6°
+   eğik asılı; yazı ters döndürülüp yatay eksene oturur, yoksa eğik çizilen piksel kenarlar bulanıklaşır. */
+.field.create-room__sign .door-sign__plate textarea {
+  transform: rotate(0.6deg);
+  min-height: 58px;
+  font-size: var(--pixel-xl);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.create-room__stage.room-frame {
+  height: clamp(320px, calc(100svh - 372px), 600px);
+  margin: 0;
+}
+
+.create-room__themes.field {
+  grid-area: themes;
+  margin: 0;
+}
+
+/* raf sahneyle aynı hizada başlar ve biter; düğme sahnenin alt kenarına oturur */
+.create-room__rail {
+  grid-area: rail;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: var(--sign-room);
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--grain), var(--surface);
+  box-shadow: var(--card-edge);
+}
+
+.create-room__rail .create-room__cta {
+  margin-top: auto;
+}
+
+/* kısa dizüstü ekranı (1280×720): raf sahneden uzun kalıp temaları aşağı itmesin */
+@media (min-width: 901px) and (max-height: 760px) {
+  .create-room__rail {
+    gap: 8px;
+    padding: 14px 18px;
+  }
+
+  /* ad ve açıklama aynı paragrafta akar */
+  .create-room__rail .create-room__theme-note {
+    display: block;
+    padding-bottom: 10px;
+  }
+
+  .create-room__rail .create-room__theme-name {
+    margin-right: 6px;
+  }
+
+  .create-room__fields .field {
+    margin-bottom: 10px;
+  }
+
+  .create-room__access-hint {
+    margin-top: 6px;
+  }
+
+  .create-room__rail .create-room__cta {
+    padding-top: 12px;
+  }
+}
+
+/* masaüstünde özet rafın kendisi (tabela, tema notu, alanlar); yalnızca seçilen mola noktası yazılır */
+@media (min-width: 901px) {
+  .create-room__summary-name,
+  .create-room__summary-meta {
+    display: none;
+  }
+
+  .create-room__summary:not(:has(.create-room__spot)) {
+    display: none;
+  }
+}
+
+/* seçili temanın adı ve açıklaması: kartlar açıklamasız olduğunda tema burada anlatılır */
+.create-room__theme-note {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.create-room__theme-name {
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-l);
+  font-weight: 500;
+  font-synthesis: none;
+  line-height: 1.1;
+}
+
+/* geniş form: 10 tema tek satırda, kart = görsel + ad; açıklama ekran okuyucuya kalır, görünen hali rafta */
+@container room-form (min-width: 1000px) {
+  .create-room-page .theme-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .create-room-page .theme-option__shot {
+    margin-bottom: 4px;
+  }
+
+  .create-room-page .theme-option__shot img {
+    aspect-ratio: 3 / 2;
+  }
+
+  .create-room-page .theme-option__name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .create-room-page .theme-option__desc {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* dar formda (container < 1000 px ≈ ekran < 1064 px) kartlar açıklamalı; rafta tekrar etmez.
+   Not tema kapsayıcısının dışında olduğu için ekran sorgusu. */
+@media (max-width: 1063.98px) {
+  .create-room-page .create-room__theme-note {
+    display: none;
+  }
+}
+
+.create-room__fields .field {
+  margin-bottom: 16px;
+}
+
+.create-room__fields .create-room__last {
+  margin-bottom: 0;
+}
+
+.create-room__cta {
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.create-room__mini {
+  display: none;
+}
+
+.create-room__summary-name {
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.create-room__summary {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* tema kartı: seçili = 2 px terracotta halka (diğer kontrollerle aynı) + köşede onay rozeti */
+.create-room-page .theme-option__shot {
+  position: relative;
+}
+
+.create-room-page .theme-option[aria-pressed='true'] .theme-option__name {
+  color: var(--text);
+}
+
+.theme-option__check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sel-ring);
+  box-shadow: 0 0 0 2px var(--surface);
+  color: var(--on-ring);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 160ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-option__check .icon {
+  stroke-width: 3;
+}
+
+.theme-option[aria-pressed='true'] .theme-option__check {
+  opacity: 1;
+  transform: none;
+}
+
+@media (max-width: 900px) {
+  .create-room {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: none;
+    gap: 24px;
+  }
+
+  .create-room > *,
+  .create-room__themes.field {
+    grid-area: auto;
+  }
+
+  .create-room__hero {
+    display: grid;
+    padding-top: 12px;
+    /* mini önizlemeden sahneye çıkınca tabela etiketi üst kenara yapışmasın */
+    scroll-margin-top: 16px;
+  }
+
+  /* telefonda tabela sahnenin üst kenarına asılı, sahneyi örtmez */
+  .create-room__sign.field {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: auto;
+    margin: 0 10px -14px;
+    transform: rotate(-0.6deg);
+  }
+
+  .field.create-room__sign .door-sign__plate textarea {
+    min-height: 50px;
+    font-size: var(--pixel-l);
+  }
+
+  .create-room__stage.room-frame {
+    height: 340px;
+  }
+
+  .create-room__rail {
+    display: contents;
+  }
+
+  .create-room__fields {
+    padding: 18px;
+    border-radius: 20px;
+    background: var(--grain), var(--surface);
+    box-shadow: var(--card-edge);
+  }
+
+  .create-room__cta {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    margin-bottom: calc(8px + env(safe-area-inset-bottom));
+    padding: 10px 10px 10px 16px;
+    border-top: 0;
+    border-radius: calc(var(--radius-block) + 6px);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    box-shadow: var(--card-edge);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+
+  /* üst sıra: mini önizleme + özet; altta tam genişlik düğme. Boş hata kutusu yer kaplamaz. */
+  .create-room__cta {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 10px;
+  }
+
+  .create-room__cta > .create-room__error,
+  .create-room__cta > .site-btn {
+    grid-column: 1 / -1;
+  }
+
+  .create-room__cta .create-room__error {
+    margin: 0;
+  }
+
+  .create-room__cta .site-btn--wide {
+    width: 100%;
+  }
+
+  .create-room__mini {
+    position: relative;
+    display: block;
+    width: 64px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 10px;
+    background: var(--surface-sunken);
+    box-shadow: inset 0 0 0 1px var(--line);
+    cursor: pointer;
+    animation: miniSwap 320ms var(--ease-out);
+  }
+
+  .create-room__mini-img img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .create-room__mini-count {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 5px 1px 3px;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+  }
+
+  .create-room__summary {
+    display: grid;
+    gap: 1px;
+    align-self: center;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .create-room__summary-name {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 650;
+  }
+}
+
+/* seçim değişince mini önizleme hafifçe büyüyerek yeniden belirir: değişiklik gözden kaçmaz */
+@keyframes miniSwap {
+  from {
+    opacity: 0.35;
+    transform: scale(0.88);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-room__mini {
+    animation: none;
+  }
+}
+
+/* dar sahnede ipucu alttaki araç çubuğuyla çakışır: sol üste çıkar (halkaların ne olduğu telefonda da okunur) */
+@media (max-width: 600px) {
+  .create-room__stage .room-canvas__hint {
+    top: 8px;
+    bottom: auto;
+    left: 8px;
+    max-width: calc(100% - 16px);
+  }
+}
+
+/* erişim seçiminin açıklaması: düğmelerin hemen altında, seçime göre değişir */
+.create-room__access-hint {
+  margin: 8px 0 0;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+/* atölye başlığı: solda başlık ve açıklama, sağda odaya giriş; dar ekranda düğme alta iner */
+.avatar-workshop__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+}
+
+.avatar-workshop__head > div {
+  min-width: 0;
+}
+
+.avatar-workshop__enter {
+  flex: none;
+}
+
+/* kombinlerin ne işe yaradığı: başlığın altında tek satır */
+.wardrobe__hint {
+  margin: -4px 0 8px;
+  color: var(--muted);
+  font-size: var(--type-caption, 12px);
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-option__check {
+    transition: opacity 160ms ease;
+    transform: none;
+  }
+}
+
+/* ---------- Kombinler: üstüne yazma bildirimi, geri al, hata; kaydet ikonu masaüstünde 40 px ---------- */
+.wardrobe__status {
+  margin-left: auto;
+}
+
+.wardrobe__status[data-kind='overwrote'],
+.wardrobe__status[data-kind='restored'] {
+  color: var(--text-2);
+}
+
+.wardrobe__undo.link-btn {
+  min-height: 32px;
+  margin: -8px -6px -8px 0;
+  padding: 0 6px;
+  font-size: var(--type-caption, 12px);
+  font-weight: 700;
+}
+
+.wardrobe__error {
+  margin: 0 0 8px;
+}
+
+.wardrobe__error:empty {
+  margin: 0;
+}
+
+.wardrobe__save {
+  top: 50%;
+  right: 4px;
+  width: 40px;
+  height: 40px;
+  margin-top: -20px;
+}
+
+.wardrobe__wear {
+  gap: 8px;
+  padding-right: 46px;
+}
+
+.wardrobe__name {
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .wardrobe__save {
+    top: 2px;
+    right: 2px;
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+  }
+
+  .wardrobe__undo.link-btn {
+    min-height: 44px;
+    margin-block: -14px;
+  }
+}
+
+/* dar slot: portre üstte; kaydet ikonu köşede kalır */
+@container (max-width: 400px) {
+  .wardrobe .wardrobe__save {
+    top: 2px;
+    right: 2px;
+    margin-top: 0;
+  }
+}
+
+/* ---------- Ad alanları: not + karakter sayacı (oda adı, görünen ad) ---------- */
+.name-hint {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 1.4em;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.name-hint__msg:empty {
+  visibility: hidden;
+}
+
+.name-hint__count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.name-hint[data-tone='near'],
+.name-hint[data-tone='warn'] {
+  color: var(--text-2);
+}
+
+.name-hint[data-tone='near'] .name-hint__count,
+.name-hint[data-tone='warn'] .name-hint__msg {
+  font-weight: 700;
+}
+
+.name-hint[data-tone='over'] {
+  color: #b4432f;
+  font-weight: 600;
+}
+
+:root[data-mode='dark'] .name-hint[data-tone='over'] {
+  color: #f08a6a;
+}
+
+.field input[aria-invalid='true'] {
+  border-color: #b4432f;
+  box-shadow: inset 0 0 0 1px #b4432f;
+}
+
+:root[data-mode='dark'] .field input[aria-invalid='true'] {
+  border-color: #f08a6a;
+  box-shadow: inset 0 0 0 1px #f08a6a;
+}
+
+/* kapı tabelası: çok satırlı ad; satır sığmazsa alt satıra geçer, levha uzar, ad hiç kaymaz */
+.door-sign__label {
+  display: block;
+}
+
+.field .door-sign__plate textarea {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  resize: none;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.field.create-room__sign .door-sign__plate textarea {
+  min-height: 0;
+  padding: 12px 0 9px;
+  line-height: 1.12;
+}
+
+.field.create-room__sign .door-sign__plate textarea[data-long] {
+  padding: 8px 0 6px;
+  font-size: var(--pixel-l);
+}
+
+.create-room__sign .door-sign__plate:has(textarea[aria-invalid='true']) {
+  outline: 2px solid #f08a6a;
+  outline-offset: 3px;
+}
+
+/* tabelanın altındaki not: sahnenin üstünde kâğıt etiket, okunur kalsın */
+.create-room__name-hint.name-hint {
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px auto 0;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--material-paper);
+  box-shadow: 0 1px 2px rgba(40, 26, 12, 0.3);
+  color: #4a3a2c;
+}
+
+.create-room__name-hint.name-hint[data-tone='near'],
+.create-room__name-hint.name-hint[data-tone='warn'] {
+  color: #2e2219;
+}
+
+.create-room__name-hint.name-hint[data-tone='over'] {
+  color: #9a3422;
+}
+
+.create-room__name-hint .name-hint__msg:empty {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .field.create-room__sign .door-sign__plate textarea {
+    padding: 10px 0 8px;
+  }
+
+
+  .create-room__name-hint.name-hint {
+    margin-bottom: 18px;
+  }
+}
+
+/* ---------- Görseller: yüklenirken iskelet, yüklenemezse yer tutucu (tema kartı, seçenek görseli) ---------- */
+.tile__thumb {
+  position: relative;
+  overflow: hidden;
+}
+
+.tile__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.theme-option__img {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+}
+
+.tile__thumb img,
+.theme-option__img img {
+  transition: opacity 200ms ease-out;
+}
+
+.tile__thumb[data-state='loading'] img,
+.theme-option__img[data-state='loading'] img {
+  opacity: 0;
+}
+
+/* iskelet: yüzeyden biraz koyu, üstünden yavaş bir ışık geçer */
+.tile__thumb[data-state='loading']::after,
+.theme-option__img[data-state='loading']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--surface) 70%, transparent) 50%, transparent 70%) var(--surface-sunken);
+  background-size: 250% 100%;
+  animation: thumbShimmer 1.4s ease-in-out infinite;
+}
+
+.theme-option__img[data-state='loading']::after {
+  inset: 10%;
+  border-radius: var(--radius-block);
+}
+
+.tile__thumb[data-state='error'],
+.theme-option__img[data-state='error'] {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.theme-option__img[data-state='error'] {
+  background: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--line) 55%, transparent) 9px 10px);
+}
+
+@keyframes thumbShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile__thumb[data-state='loading']::after,
+  .theme-option__img[data-state='loading']::after {
+    animation: none;
+  }
+}
+
+/* ---------- Oda oluşturulamadı: oluştur düğmesinin hemen üstünde, ne olduğu ve çıkış yolu ---------- */
+.create-room__error:empty {
+  display: none;
+}
+
+.create-room__error {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-block);
+  background: rgba(180, 67, 47, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(180, 67, 47, 0.35);
+  color: #8a2f1f;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.create-room__error p {
+  margin: 0;
+}
+
+.create-room__error .link-btn {
+  min-height: 40px;
+  margin-top: 4px;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+:root[data-mode='dark'] .create-room__error {
+  background: rgba(240, 138, 106, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(240, 138, 106, 0.4);
+  color: #f6b9a3;
+}
+
+/* ---------- Atölye dengesi (masaüstü): düzenleyici sol sütunla (önizleme + kombinler) aynı yükseklikte
+   biter; uzun sekme kartın içinde kayar. Sekmeler üstte, "Varsayılana dön" altta sabit kalır; sayfa
+   önizlemenin altında 900 px'lik boşluk bırakmaz. contain: size kartın kendi içerik yüksekliğini satıra
+   katmaz, satırı sol sütun belirler; kart o yüksekliğe uzar. */
+@media (min-width: 901px) {
+  .avatar-page {
+    align-items: stretch;
+  }
+
+  .avatar-page .create-preview {
+    align-self: start;
+  }
+
+  /* sol sütun ekranın altına kadar: önizleme büyür, düzenleyicinin görünen alanı da onunla uzar
+     (1440×900'de 570, 1080'de 720) */
+  .avatar-page__preview {
+    height: clamp(446px, calc(100svh - 330px), 720px);
+  }
+
+  .avatar-page__editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 0;
+    contain: size;
+  }
+
+  .avatar-page__editor .avatar-tabs {
+    position: static;
+    flex: none;
+    margin-bottom: 0;
+  }
+
+  .avatar-page__editor .avatar-page__panel {
+    /* ekran okuyucu etiketleri (mutlak konumlu) kayan alanın içinde kalsın, sayfayı uzatmasın */
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0 -24px;
+    padding: 4px 24px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-color: var(--line-strong) transparent;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .avatar-page__editor .avatar-page__actions {
+    flex: none;
+    margin: 0 -24px;
+    padding: 10px 24px 14px;
   }
 }

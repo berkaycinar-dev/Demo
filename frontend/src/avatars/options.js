@@ -323,13 +323,18 @@ function migrate(input) {
   return out
 }
 
+// Görünen ad en çok 24 harf; harf, kullanıcının gördüğü karakterdir (emoji ve birleşik karakterler bölünmez).
+const NAME_MAX = 24
+const graphemes = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('tr', { granularity: 'grapheme' }) : null
+const clipName = (s) => (graphemes ? [...graphemes.segment(s)].map((g) => g.segment) : [...s]).slice(0, NAME_MAX).join('')
+
 // Bilinmeyen alanları varsayılana çeker (eski kayıtlar, elle değiştirilmiş localStorage) ve
 // birbirini dışlayan seçimleri düzeltir.
 export function sanitizeAvatar(input) {
   const out = { ...DEFAULT_AVATAR }
   if (!input || typeof input !== 'object') return out
   const src = migrate(input)
-  if (typeof src.name === 'string' && src.name.trim()) out.name = src.name.trim().slice(0, 24)
+  if (typeof src.name === 'string' && src.name.trim()) out.name = clipName(src.name.trim())
   for (const [key, allowed] of Object.entries(FIELDS)) if (allowed.includes(src[key])) out[key] = src[key]
   if (typeof src.bangs === 'boolean') out.bangs = src.bangs
   return resolveConflicts(out)
@@ -380,7 +385,7 @@ export function randomAvatar(rnd, name) {
   const male = body === 'male'
   // fantastik başlıklar seyrek
   const r = rnd()
-  const hat = r < 0.2 ? pickId(HATS.filter((h) => h.group === 'Şapka' && h.id !== 'none')) : r < 0.26 ? pickId(HATS.filter((h) => h.group === 'Fantastik')) : 'none'
+  const hat = r < 0.2 ? pickId(HATS.filter((h) => h.group === 'Günlük' && h.id !== 'none')) : r < 0.26 ? pickId(HATS.filter((h) => h.group === 'Fantastik')) : 'none'
   const o = rnd()
   // saç çoğunlukla bedende yaygın modellerden; tek parça ve ev terlikleri seyrek
   const hairPool = male ? MALE_COMMON_HAIR : FEMALE_COMMON_HAIR

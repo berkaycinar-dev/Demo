@@ -1,9 +1,46 @@
-/* Odakhane tasarım token'ları: sıcak malzeme nötrleri (kâğıt, kil, ahşap) + turkuaz vurgular; koyu mod
+/* Odakhane tasarım token'ları: sıcak malzeme nötrleri (kâğıt, kil, ahşap) + terakota vurgu; koyu mod
    ayrı (sıcak kömür ve ahşap, akşam sahnesi).
    Koyu mod <html data-mode="dark"> ile açılır; bkz. useColorMode.js. */
 
+/* Inter (OFL 1.1, fonts/inter/OFL.txt): kendi sunucumuzdan, değişken ağırlık yalnızca 400-700 (sitede
+   kullanılan aralık). Türkçe çekirdek tek dosyada: temel Latin + Latin-1 + ğ Ğ ı İ ş Ş + tipografik
+   noktalama; Türkçe metin yalnızca bu 29 KB'ı indirir. Diğer Latin genişletilmiş harfler (ā, ł, ő…)
+   ancak sayfada geçerse ikinci dosyayı indirir. Kapsam dışı yazılar (Kiril, emoji) sistem fontuna düşer. */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fonts/inter/inter-tr.woff2') format('woff2');
+  unicode-range: U+0020-007E, U+00A0-00FF, U+011E-011F, U+0130-0131, U+0152-0153, U+015E-015F, U+2009-200A,
+    U+2013-2014, U+2018-201A, U+201C-201E, U+2022, U+2026, U+2032-2033, U+2039-203A, U+2044, U+20AC, U+20BA,
+    U+2122, U+2190-2193, U+2212;
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./fonts/inter/inter-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-011D, U+0120-012F, U+0132-0151, U+0154-015D, U+0160-02BA, U+02BD-02C5, U+02C7-02CC,
+    U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20B9, U+20BB-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* yükleme sürerken yedek: Arial, Inter ölçülerine eşlenmiş (boyut ×1.0712, üst 0.9044 / alt 0.2252 em);
+   Inter gelince satır yüksekliği ve satır kırılması kaymaz */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial'), local('Helvetica'), local('Liberation Sans');
+  size-adjust: 107.12%;
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+}
+
 :root {
-  --font-body: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-body: Inter, 'Inter Fallback', system-ui, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   /* sayılar (sayaç, istatistik, sıralama): düz sıfır, eşit genişlikte rakamlar */
@@ -45,19 +82,33 @@
   --sign-edge: #3e2d20;
   --sign-ink: #f7eedd;
   --sign-ink-2: #d9c7ad;
-  /* ana vurgu: açık turkuaz düğmeler (koyu yazıyla okunaklı), yazı vurguları koyu turkuaz */
-  --primary: #126c7e;
-  --primary-hover: #0f5d6d;
-  --primary-fill: var(--button-sheen), #46bfd6;
-  --primary-glow: inset 0 0 0 1px #2fa6be, 0 2px 6px -2px rgba(20, 120, 145, 0.35);
-  --on-primary: #072b35;
-  --primary-soft: #e3f4f8;
-  --chip-on-bg: var(--primary-fill);
-  --chip-on-fg: #072b35;
-  --chip-on-edge: #1f8aa0;
+  /* ana vurgu: terakota, odalardaki tuğla / kil tonu. Düğme dolgusu (#a24526, krem yazı; parlamanın açık üst
+     ucunda bile ≥ 4.5:1) açık ve
+     koyu modda aynı; yazı vurgusu, odak halkası ve logo her modda zemine göre ayarlanır. */
+  --primary: #9c4122;
+  --primary-hover: #85361c;
+  --primary-fill: var(--button-sheen), #a24526;
+  --primary-glow: inset 0 0 0 1px #8a3a1d, 0 2px 6px -2px rgba(140, 60, 30, 0.4);
+  --on-primary: #fff8f1;
+  --primary-soft: #f8e7dd;
+  /* seçim dili: kil tonu dolgu + 2 px terakota halka; --on-ring halka renginin üstündeki işaret */
+  --chip-on-bg: #f5ddd0;
+  --chip-on-fg: #3d1a0c;
+  --chip-on-edge: #b5502d;
+  --sel-ring: #b5502d;
+  --on-ring: #fff8f1;
+  /* seçili olmayan küçük işaret (kapasite kişileri): batık zemine karşı ≥ 3:1 */
+  --glyph-off: #857a6d;
+  /* klavye odağı: sitenin her yerinde tek halka rengi */
+  --focus-ring: #9c4122;
+  /* kullanıcı avatarı (üst menü): düğmeyle aynı malzeme */
+  --avatar-bg: #aa4a2a;
+  --avatar-fg: #fff8f1;
+  /* "yok" renk seçeneğinin çaprazı */
+  --none-mark: #c44;
   --badge: #a0700e;
   --badge-soft: #f6eedb;
-  --timer: #1f93ab;
+  --timer: #b5502d;
   --info: #1f93ab;
   --info-soft: #e3f4f8;
   --break: #245f58;
@@ -69,7 +120,7 @@
   --header-muted: #675e54;
   --header-active: var(--material-paper);
   --header-border: #e6ded2;
-  --header-accent: #167486;
+  --header-accent: #9c4122;
 }
 
 /* sayfa sınırının ötesine kaydırınca görünen zemin de temaya uyar */
@@ -90,7 +141,7 @@
   --surface-sunken: var(--material-clay);
   --card-edge: inset 0 0 0 1px #47403a, 0 12px 28px -18px rgba(0, 0, 0, 0.6);
   --line: #47403a;
-  --line-strong: #625950;
+  --line-strong: #6a707a;
   --text: #efe9e1;
   --text-2: #d4ccc1;
   --muted: #b3a99c;
@@ -101,18 +152,23 @@
   --scene-hint: #e8ddd0;
   --sign-wood: #4a382a;
   --sign-edge: #2c2119;
-  --primary: #9db8d6;
-  --primary-hover: #b6cbe3;
-  /* düğmeler: göz almayan lacivert */
-  --primary-fill: var(--button-sheen), #24426b;
-  --primary-glow: inset 0 0 0 1px #34557f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
-  --on-primary: #e8eef7;
-  --primary-soft: #2e3a44;
-  --chip-on-fg: #e8eef7;
-  --chip-on-edge: #8fb0d6;
+  /* terakota: düğme dolgusu açık modla aynı; yazı vurgusu ve halkalar koyu zeminde açık kil tonu */
+  --primary: #eb9a78;
+  --primary-hover: #f2b195;
+  --primary-glow: inset 0 0 0 1px #c4643f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+  --primary-soft: #3f2b23;
+  --chip-on-bg: #4b2d22;
+  --chip-on-fg: #f9e9df;
+  --chip-on-edge: #e08a66;
+  /* koyu zeminde seçili öğe açık terakota halkayla ayrılır (yüzeye karşı ≥ 3:1) */
+  --sel-ring: #e08a66;
+  --on-ring: #2a1209;
+  --glyph-off: #857b70;
+  --focus-ring: #eb9a78;
+  --none-mark: #b86b60;
   --badge: #e2bd6a;
   --badge-soft: #433c2c;
-  --timer: #9db8d6;
+  --timer: #e08a66;
   --info: #9db8d6;
   --info-soft: #2e3a44;
   --break: #9ad9ce;
@@ -124,5 +180,5 @@
   --header-muted: #b3a99c;
   --header-active: var(--material-wood);
   --header-border: #403a34;
-  --header-accent: #9db8d6;
+  --header-accent: #eb9a78;
 }

@@ -34,10 +34,12 @@ export function loadPresets() {
   }
 }
 
+// Yazılabildiyse true; depolama kapalı ya da doluysa false (kombinler yalnızca bu oturumda kalır).
 export function savePresets(presets) {
   try {
     window.localStorage.setItem(PRESETS_KEY, JSON.stringify(presets.map((p) => (p ? { ...p, name: undefined } : null))))
+    return true
   } catch {
-    // depolama kapalıysa kombinler yalnızca bu oturumda kalır
+    return false
   }
 }

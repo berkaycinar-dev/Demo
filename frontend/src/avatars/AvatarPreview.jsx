@@ -1,4 +1,5 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import '../rooms/core/quietClock'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { BoxGeometry, Color, Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { BONE_INDEX, SCALE, buildAvatarParts } from './model'
@@ -41,6 +42,8 @@ const SEATED = {
 const STANDING = {
   full: { elev: 24, span: [2.3, 1.9] },
   face: { anchor: 'head', elev: 10, span: [0.9, 0.72] },
+  // saç seçeneği görseli (scripts/render-avatar-thumbs.mjs): kısa kesimler tepeden ayrışır
+  crown: { anchor: 'head', elev: 30, span: [0.9, 0.72] },
   hat: { anchor: 'hat', elev: 12, span: [1, 0.8] },
   chest: { anchor: 'chest', elev: 12, span: [0.9, 0.72] },
   wrist: { anchor: 'wrist', elev: 14, span: [0.8, 0.64] },
@@ -194,6 +197,22 @@ function settle(group, reaction, seated, invalidate) {
   invalidate()
 }
 
+// Zar karışması (Figure, shuffle = { start, ms }): görünümler hızla değişirken her değişimde kısa bir
+// çöküp-açılma ("pop"); ayaktaysa karakter karışma boyunca bir tur döner (yavaşlayarak durur). Oturanda
+// dönüş yok (masaya girmesin). Bitince güçlü yerleşme tepkisi (settle) oynar.
+const POP_MS = 90
+const POP_AMP = 0.07
+function shuffleStep(group, shuffle, swapAt, seated) {
+  const now = performance.now()
+  const q = Math.min(1, (now - swapAt) / POP_MS)
+  const f = -POP_AMP * Math.sin(Math.PI * q) * (seated ? 0.5 : 1)
+  const sy = 1 + f
+  group.scale.set(1 - f * 0.5, sy, 1 - f * 0.5)
+  group.position.y = (seated ? SEAT_Y : 0) * (1 - sy)
+  const p = Math.min(1, (now - shuffle.start) / shuffle.ms)
+  group.rotation.y = seated ? 0 : Math.PI * 2 * (1 - (1 - p) ** 3)
+}
+
 function Ticker({ animated }) {
   const invalidate = useThree((s) => s.invalidate)
   useEffect(() => {
@@ -222,7 +241,7 @@ const SHOE_CENTER = new Vector3(0, -0.2 * SCALE, 0.02 * SCALE)
 // Saç seçerken saçı örten başlık ve kafa üstü kulaklık (bant + kulak kapları) önizlemede çizilmez.
 const bareHead = (avatar) => ({ ...avatar, hat: 'none', headphones: OVER_HEAD.includes(avatar.headphones) ? 'none' : avatar.headphones })
 
-function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHeadwear }) {
+function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHeadwear, shuffle }) {
   // hideHeadwear: yalnızca önizlemede başlıksız ve kafa üstü kulaklıksız çizer (kayıtlı avatar değişmez,
   // tepki tetiklenmez)
   const parts = useMemo(() => buildAvatarParts(hideHeadwear ? bareHead(avatar) : avatar), [avatar, hideHeadwear])
@@ -240,6 +259,22 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
   const bodyRef = useRef(null)
   const reaction = useRef(null)
   const prevLook = useRef(null)
+  // zar karışması: son görünüm değişiminin zamanı (pop bundan sayılır)
+  const swapAt = useRef(0)
+  const shuffling = animated && !!shuffle
+  const wasShuffling = useRef(false)
+  useEffect(() => {
+    if (shuffling) {
+      wasShuffling.current = true
+      return
+    }
+    if (!wasShuffling.current) return
+    // karışma bitti: dönüş sıfırlanır, güçlü yerleşme oynar
+    wasShuffling.current = false
+    if (bodyRef.current) bodyRef.current.rotation.y = 0
+    reaction.current = { start: performance.now(), strong: true }
+    invalidate()
+  }, [shuffling, invalidate])
   // Jest (poses.js GESTURES): gözlük ya da başlık takılınca eliyle düzeltir; karaktere tıklanınca
   // kameraya dönüp el sallar.
   const gesture = useRef(null)
@@ -254,6 +289,12 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
     const prev = prevLook.current
     prevLook.current = look
     if (!prev || !animated) return
+    if (shuffling) {
+      swapAt.current = performance.now()
+      reaction.current = null
+      invalidate()
+      return
+    }
     const changed = Object.keys(look).filter((k) => JSON.stringify(look[k]) !== JSON.stringify(prev[k]))
     if (!changed.length) return
     reaction.current = { start: performance.now(), strong: changed.length > 2 }
@@ -333,7 +374,10 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
     a.feet.y += 0.06
     writeParts(meshRef.current, 0, parts, bones, pose.show)
     meshRef.current.instanceMatrix.needsUpdate = true
-    settle(bodyRef.current, reaction, mode === 'focus' || mode === 'away', invalidate)
+    if (shuffling && bodyRef.current) {
+      shuffleStep(bodyRef.current, shuffle, swapAt.current, mode === 'focus' || mode === 'away')
+      invalidate()
+    } else settle(bodyRef.current, reaction, mode === 'focus' || mode === 'away', invalidate)
 
     const head = headTop(bones, new Vector3(), parts.crown)
     // başlık odağı: baş ortası ile tepe (şapka dahil) arası
@@ -379,11 +423,11 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
  * kitabı okur, not alır) | 'type' (dizüstü bilgisayar). focus: kamera odağı 'full' (tam boy) | 'face'
  * | 'hat' | 'chest' (boyun) | 'wrist' (sol bilek) | 'upper' (gövde) | 'legs' | 'feet'; açı ve yakınlık
  * poza göre (VIEWS). hideHeadwear: başlığı ve kafa üstü kulaklığı yalnızca önizlemede gizler (saç seçerken
- * saç görünsün).
+ * saç görünsün). shuffle: { start, ms } zar karışması sürerken (avatar bu sürede hızla değişir), yoksa null.
  */
 // hint: false ise ipucu satırı çizilmez (atölye kendi kontrol barını gösterir). resetKey her değiştiğinde
 // görünüm döndürmesi sıfırlanır (çift tıkla aynı).
-export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHeadwear = false, hint = true, resetKey = 0, reducedMotion, className = '' }) {
+export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHeadwear = false, hint = true, resetKey = 0, shuffle = null, reducedMotion, className = '' }) {
   const animated = !(reducedMotion ?? prefersReducedMotion())
   const view = useRef({ yaw: 0 })
   const anchors = useRef({
@@ -451,7 +495,7 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <CameraRig view={view} mode={mode} focus={focus} anchorsRef={anchors} animated={animated} />
         <hemisphereLight color="#fff6e8" groundColor="#8a7a68" intensity={2.2} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} color="#fff1d8" />
-        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHeadwear={hideHeadwear} />
+        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHeadwear={hideHeadwear} shuffle={shuffle} />
         <Ticker animated={animated} />
       </Canvas>
       {hint && <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>}
