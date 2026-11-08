@@ -33,6 +33,7 @@ import {
 } from '../avatars/options'
 import Icon from './AvatarIcons'
 import AvatarPortrait from './AvatarPortrait'
+import CharacterMenu from './CharacterMenu'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
 import { loadPresets, savePresets } from './avatarStore'
@@ -399,6 +400,21 @@ function PoseSheet({ open, onClose, mode, setMode, activity, setActivity, childr
   )
 }
 
+// Düzenleyici düzeni: sekmeler (asıl) ya da karakter menüsü (DENEME, CharacterMenu). Seçim bu tarayıcıda
+// hatırlanır. Deneme beğenilmezse: bu blok, başlıktaki "Düzen" anahtarı ve layout === 'menu' dalı silinir.
+const LAYOUTS = [
+  { id: 'tabs', label: 'Sekmeler' },
+  { id: 'menu', label: 'Menü' },
+]
+const LAYOUT_KEY = 'odakhane:avatar-layout'
+const loadLayout = () => {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'tabs' ? 'tabs' : 'menu'
+  } catch {
+    return 'menu'
+  }
+}
+
 // Ekran genişliği eşiği (CSS'teki @media ile aynı); değişince yeniden çizer.
 const COMPACT = '(max-width: 900px)'
 function useCompact() {
@@ -420,6 +436,20 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [activity, setActivity] = useState('read')
   const [tab, setTab] = useState('body')
   const [zone, setZone] = useState('full')
+  const [layout, setLayoutState] = useState(loadLayout)
+  const setLayout = (id) => {
+    setLayoutState(id)
+    setZone(id === 'tabs' ? TABS.find((t) => t.id === tab).zone : 'full')
+    setMenuHair(false)
+    setHatShown(false)
+    try {
+      localStorage.setItem(LAYOUT_KEY, id)
+    } catch {
+      /* depolama kapalı: seçim bu oturumda kalır */
+    }
+  }
+  // menü düzeninde etkin satır saç satırıysa (sekmedeki "Saç ve yüz" gibi) başlık önizlemede gizlenir
+  const [menuHair, setMenuHair] = useState(false)
   // saç sekmesinde başlık önizlemede gizlenir (saç görünsün); kullanıcı düğmeyle geri açabilir
   const [hatShown, setHatShown] = useState(false)
   // telefonda poz ve kombinler alt sayfada
@@ -519,7 +549,8 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   }
   // saçı örten başlık ya da kafa üstü kulaklık: saç sekmesinde önizlemede gizlenir
   const hasHeadwear = avatar.hat !== 'none' || OVER_HEAD.includes(avatar.headphones)
-  const hideHeadwear = tab === 'hair' && hasHeadwear && !hatShown
+  const hairFocus = layout === 'menu' ? menuHair : tab === 'hair'
+  const hideHeadwear = hairFocus && hasHeadwear && !hatShown
   const seated = SEATED.includes(mode)
   const male = avatar.body !== 'female'
   const earsCovered = EAR_COVERING.includes(avatar.hairStyle)
@@ -539,6 +570,35 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const accUsers = accessoryColorUsers(avatar)
   const metalUsers = metalUsersOf(avatar)
 
+  const nameField = (
+    <>
+    {/* sınırı aşan ad kesilmez ve kaydedilmez: alanda kalır, hata görünür; boş ad alandan çıkınca varsayılana döner */}
+    <div className="field">
+      <label className="field__label" htmlFor="avatar-name">
+        Görünen ad
+      </label>
+      <input
+        id="avatar-name"
+        value={nameDraft ?? avatar.name}
+        aria-invalid={nameState.tone === 'over' || undefined}
+        aria-describedby="avatar-name-hint"
+        autoComplete="nickname"
+        spellCheck={false}
+        onChange={(e) => {
+          const v = e.target.value
+          if (textLength(v) > NAME_MAX) return setNameDraft(v)
+          setNameDraft(null)
+          commit({ ...avatar, name: v }, 'name')
+        }}
+        onBlur={() => {
+          if (nameDraft === null && !avatar.name.trim()) commit({ ...avatar, name: DEFAULT_AVATAR.name }, 'name')
+        }}
+      />
+      <NameHint id="avatar-name-hint" status={nameState} max={NAME_MAX} />
+    </div>
+    </>
+  )
+
   return (
     <div className="avatar-workshop">
       <div className="avatar-workshop__head">
@@ -546,11 +606,20 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           <h1>Avatar atölyesi</h1>
           <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
         </div>
-        {onEnterRoom && (
-          <button type="button" className="site-btn avatar-workshop__enter" onClick={onEnterRoom}>
-            Bu hâliyle odama gir
-          </button>
-        )}
+        <div className="avatar-workshop__tools">
+          <div className="segmented" role="group" aria-label="Düzen">
+            {LAYOUTS.map((l) => (
+              <button key={l.id} type="button" aria-pressed={layout === l.id} onClick={() => setLayout(l.id)}>
+                {l.label}
+              </button>
+            ))}
+          </div>
+          {onEnterRoom && (
+            <button type="button" className="site-btn avatar-workshop__enter" onClick={onEnterRoom}>
+              Bu hâliyle odama gir
+            </button>
+          )}
+        </div>
       </div>
       <div className="create avatar-page">
         <section className="create-preview" aria-label="Önizleme" ref={previewRef}>
@@ -609,7 +678,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
                   </span>
                 </button>
               </div>
-              {tab === 'hair' && hasHeadwear && (
+              {hairFocus && hasHeadwear && (
                 <div className="hud">
                   <button
                     type="button"
@@ -651,7 +720,30 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           )}
         </section>
 
-        <div className="site-card create-form avatar-page__editor">
+        <div className={layout === 'menu' ? 'site-card create-form avatar-page__editor avatar-page__editor--menu' : 'site-card create-form avatar-page__editor'}>
+          {layout === 'menu' ? (
+            <CharacterMenu
+              avatar={avatar}
+              set={set}
+              notes={{
+                brow: browNote,
+                topReplaced: replaced,
+                bottomReplaced: outfit === 'none' ? null : replacedNote,
+                phone: phoneNote,
+                ear: earNote,
+                acc: accUsers.length ? listOf(accUsers) : null,
+                metal: metalUsers.length ? listOf(metalUsers) : null,
+              }}
+              kit={{ Choices, Swatches, OptionThumb, thumbOf }}
+              onRow={({ zone: z, hair: h }) => {
+                setZone(z)
+                if (h !== menuHair) setHatShown(false)
+                setMenuHair(h)
+              }}
+              lead={<div className="cmenu__lead">{nameField}</div>}
+            />
+          ) : (
+          <>
           {/* ARIA sekme deseni: ←/→ komşu sekmeye (uçlarda döner), Home/End ilk/son sekmeye geçer ve seçer;
               roving tabindex ile Tab sırasında yalnızca seçili sekme durur */}
           <div className="avatar-tabs" role="tablist" aria-label="Kategori" onKeyDown={onTabKey}>
@@ -676,30 +768,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           <div key={tab} id="avatar-panel" role="tabpanel" aria-labelledby={`avatar-tab-${tab}`} className="avatar-page__panel">
           {tab === 'body' && (
             <Section>
-              {/* sınırı aşan ad kesilmez ve kaydedilmez: alanda kalır, hata görünür; boş ad alandan çıkınca varsayılana döner */}
-              <div className="field">
-                <label className="field__label" htmlFor="avatar-name">
-                  Görünen ad
-                </label>
-                <input
-                  id="avatar-name"
-                  value={nameDraft ?? avatar.name}
-                  aria-invalid={nameState.tone === 'over' || undefined}
-                  aria-describedby="avatar-name-hint"
-                  autoComplete="nickname"
-                  spellCheck={false}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    if (textLength(v) > NAME_MAX) return setNameDraft(v)
-                    setNameDraft(null)
-                    commit({ ...avatar, name: v }, 'name')
-                  }}
-                  onBlur={() => {
-                    if (nameDraft === null && !avatar.name.trim()) commit({ ...avatar, name: DEFAULT_AVATAR.name }, 'name')
-                  }}
-                />
-                <NameHint id="avatar-name-hint" status={nameState} max={NAME_MAX} />
-              </div>
+              {nameField}
               <Choices label="Beden" variant="segment" options={BODIES} value={avatar.body} onChange={set('body')} />
               <Swatches label="Ten rengi" collapsible options={SKIN_TONES} value={avatar.skin} onChange={set('skin')} />
               <Swatches label="Göz rengi" collapsible options={EYE_COLORS} value={avatar.eyes} onChange={set('eyes')} />
@@ -811,6 +880,8 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
             </>
           )}
           </div>
+          </>
+          )}
 
           {/* sessiz sıfırlama: geri al ile döner; rastgele önizlemedeki zarda */}
           <div className="avatar-page__actions">
