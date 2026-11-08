@@ -165,6 +165,17 @@ function Lighting({ bounds, preset, lamps }) {
  * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
  *              ({ width: 'calc(100% - 400px)' } gibi). Verilmezse sahne kutunun tamamını kullanır.
  */
+// Kompakt araç çubuğunda yakınlaştırma büyüteçle gösterilir: aynı sayfadaki kapasite seçicinin
+// −/+ düğmeleriyle karışmasın (sitenin ikon dili: 24 px ızgara, 2 px çizgi, yuvarlak uçlar).
+function ZoomGlyph({ sign }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d={sign === 'in' ? 'M15.5 15.5 21 21M7.5 10.5h6M10.5 7.5v6' : 'M15.5 15.5 21 21M7.5 10.5h6'} />
+    </svg>
+  )
+}
+
 // Katlanır gün zamanı seçici (toolbar="compact"): düğme o anki seçimi gösterir, menü yukarı açılır;
 // seçim, dışarı tıklama ya da Esc kapatır.
 function TimeMenu({ mode, onChange }) {
@@ -328,10 +339,10 @@ export default function RoomCanvas({
         <div className="room-canvas__ui room-canvas__toolbar room-canvas__toolbar--compact" role="toolbar" aria-label="Sahne kontrolleri">
           <div className="room-canvas__group">
             <button type="button" aria-label="Yakınlaştır" onClick={() => zoomBy(ZOOM_STEP)}>
-              +
+              <ZoomGlyph sign="in" />
             </button>
             <button type="button" aria-label="Uzaklaştır" onClick={() => zoomBy(1 / ZOOM_STEP)}>
-              −
+              <ZoomGlyph sign="out" />
             </button>
             <button type="button" onClick={resetView}>
               Sıfırla
