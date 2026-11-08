@@ -1324,6 +1324,68 @@
   font-weight: 400;
 }
 
+/* katlı renk satırı: ad, seçili renk ve "Değiştir"; yuvarlaklar düğmeyle açılır */
+.avatar-page .field--folded {
+  margin-bottom: 12px;
+}
+
+.color-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--type-caption);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.color-toggle:hover {
+  border-color: var(--muted);
+  background: var(--surface-2);
+}
+
+.color-toggle[aria-expanded='true'] {
+  background: var(--surface-2);
+}
+
+.avatar-page .field__label:has(.color-toggle) .field__note {
+  flex-basis: 100%;
+  order: 1;
+}
+
+.color-toggle__chip {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+/* seçili seçeneğin ayrıntısı (başlık rengi): seçili düğmenin satırının hemen altında tam satır.
+   dense akış, seçili düğmeden sonraki seçenekleri o satırın boş hücrelerine geri doldurur. */
+.option-grid--detail {
+  grid-auto-flow: row dense;
+}
+
+.option-detail {
+  grid-column: 1 / -1;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-block);
+  background: var(--surface-2);
+  animation: avatarRise 200ms var(--ease-out);
+}
+
+.avatar-page .option-detail .field {
+  margin-bottom: 0;
+}
+
 /* seçenek ızgarası: eşit sütunlar, kısa etiket tek satır, uzun etiket iki satıra kırılır */
 .option-grid {
   display: grid;
@@ -1675,7 +1737,8 @@
     transform: none;
   }
 
-  .avatar-page__panel {
+  .avatar-page__panel,
+  .option-detail {
     animation-name: avatarFade;
   }
 
@@ -1857,6 +1920,11 @@
   .swatch-row {
     grid-template-columns: repeat(var(--cols), 44px);
     gap: 8px;
+  }
+
+  .color-toggle {
+    min-height: 44px;
+    padding: 0 16px 0 10px;
   }
 
   .wardrobe__save {
