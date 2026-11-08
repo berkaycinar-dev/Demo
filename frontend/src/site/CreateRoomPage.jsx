@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { ACCESS_LABELS } from './access'
 import Icon from './AvatarIcons'
+import NameHint from './NameHint'
+import { nameStatus, textLength } from './nameRules'
 import { normalizeCode } from './roomStore'
 
 const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
 const FORM_ID = 'create-room-form'
+const NAME_MAX = 60
 // Oda kartı görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir.
 const thumbOf = (theme) => `${import.meta.env.BASE_URL}room-thumbs/${theme}.webp`
 
@@ -56,10 +59,24 @@ export default function CreateRoomPage({ onCreate, onBack }) {
   const [access, setAccess] = useState('public')
   const [spot, setSpot] = useState(null)
   const { label, Room, max } = THEMES[theme]
-  const roomName = name.trim() || `${label} odası`
+  const fallbackName = `${label} odası`
+  const roomName = name.trim() || fallbackName
+  const status = nameStatus(name, NAME_MAX, `Boş bırakırsan adı “${fallbackName}” olur.`)
+  const nameRef = useRef(null)
+  // tabela yazısı satıra sığmazsa alt satıra geçer; levha yazıyla birlikte uzar (baş hiç kaybolmaz)
+  useLayoutEffect(() => {
+    const el = nameRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [name])
 
   const submit = (e) => {
     e.preventDefault()
+    if (status.tone === 'over') {
+      nameRef.current?.focus()
+      return
+    }
     onCreate({ id: `room-${Date.now()}`, name: roomName, theme, capacity, access, code: access === 'invite' ? inviteCode(roomName) : undefined })
   }
   const changeCapacity = (n) => {
@@ -77,13 +94,33 @@ export default function CreateRoomPage({ onCreate, onBack }) {
       </div>
       <form id={FORM_ID} className="create-room" onSubmit={submit}>
         <section className="create-room__hero" aria-label="Oda önizlemesi">
-          {/* oda adı: sahnenin üstüne asılı kapı tabelası */}
-          <label className="field door-sign create-room__sign">
-            <span className="door-sign__tag">Oda adı</span>
-            <span className="door-sign__plate">
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={`${label} odası`} maxLength={60} />
-            </span>
-          </label>
+          {/* oda adı: sahnenin üstüne asılı kapı tabelası. Çok satırlı alan: uzun ad levhada alt satıra geçer;
+              Enter satır açmaz, formu gönderir. Sınır sessizce kesmez; altındaki not ve sayaç uyarır. */}
+          <div className="field door-sign create-room__sign">
+            <label className="door-sign__label">
+              <span className="door-sign__tag">Oda adı</span>
+              <span className="door-sign__plate">
+                <textarea
+                  ref={nameRef}
+                  rows={1}
+                  value={name}
+                  data-long={textLength(name) > 22 || undefined}
+                  onChange={(e) => setName(e.target.value.replace(/\s*[\r\n]+\s*/g, ' '))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      e.currentTarget.form?.requestSubmit()
+                    }
+                  }}
+                  placeholder={fallbackName}
+                  aria-invalid={status.tone === 'over' || undefined}
+                  aria-describedby="room-name-hint"
+                  spellCheck={false}
+                />
+              </span>
+            </label>
+            <NameHint id="room-name-hint" status={status} max={NAME_MAX} className="create-room__name-hint" />
+          </div>
           <div className="room-frame create-room__stage">
             {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
             <div key={`${theme}-${capacity}`} className="create-preview__scene">

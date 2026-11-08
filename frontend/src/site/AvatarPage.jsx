@@ -33,6 +33,8 @@ import {
 } from '../avatars/options'
 import Icon from './AvatarIcons'
 import AvatarPortrait from './AvatarPortrait'
+import NameHint from './NameHint'
+import { nameStatus, textLength } from './nameRules'
 import { loadPresets, savePresets } from './avatarStore'
 
 // icon: AvatarIcons adı; poz ve çalışma türü önizlemenin üstündeki HUD'da ikon + etiketle seçilir
@@ -63,6 +65,8 @@ const ON_OFF = [
 // Rengi seçilemeyen başlıklar (kendi malzemesi var ya da metal rengini kullanır).
 const FIXED_COLOR_HATS = ['none', 'crown', 'viking', 'flowers']
 const HISTORY_LIMIT = 50
+// görünen ad sınırı (harf sayısı); sanitizeAvatar da aynı sınırı kullanır
+const NAME_MAX = 24
 // Zar: önizleme bu aralıklarla (ms, giderek yavaşlar) rastgele görünümlerden geçer; sonuncusu kalır.
 const ROLL_STEPS = [55, 60, 70, 85, 105, 135, 170]
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -394,6 +398,9 @@ export default function AvatarPage({ avatar, onChange }) {
   const [resetKey, setResetKey] = useState(0)
   // last: son değişen alan; art arda yazılan ad tek adımda geri alınır
   const [history, setHistory] = useState({ past: [], future: [], last: null })
+  // sınırı aşan görünen ad: kaydedilmez, kısaltılana dek alanda bu taslak durur
+  const [nameDraft, setNameDraft] = useState(null)
+  const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan adın “${DEFAULT_AVATAR.name}” olur.`)
 
   const commit = (next, key = null) => {
     if (JSON.stringify(next) === JSON.stringify(avatar)) return
@@ -599,10 +606,30 @@ export default function AvatarPage({ avatar, onChange }) {
           <div key={tab} id="avatar-panel" role="tabpanel" aria-labelledby={`avatar-tab-${tab}`} className="avatar-page__panel">
           {tab === 'body' && (
             <Section>
-              <label className="field">
-                <span className="field__label">Görünen ad</span>
-                <input value={avatar.name} maxLength={24} onChange={(e) => commit({ ...avatar, name: e.target.value }, 'name')} />
-              </label>
+              {/* sınırı aşan ad kesilmez ve kaydedilmez: alanda kalır, hata görünür; boş ad alandan çıkınca varsayılana döner */}
+              <div className="field">
+                <label className="field__label" htmlFor="avatar-name">
+                  Görünen ad
+                </label>
+                <input
+                  id="avatar-name"
+                  value={nameDraft ?? avatar.name}
+                  aria-invalid={nameState.tone === 'over' || undefined}
+                  aria-describedby="avatar-name-hint"
+                  autoComplete="nickname"
+                  spellCheck={false}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (textLength(v) > NAME_MAX) return setNameDraft(v)
+                    setNameDraft(null)
+                    commit({ ...avatar, name: v }, 'name')
+                  }}
+                  onBlur={() => {
+                    if (nameDraft === null && !avatar.name.trim()) commit({ ...avatar, name: DEFAULT_AVATAR.name }, 'name')
+                  }}
+                />
+                <NameHint id="avatar-name-hint" status={nameState} max={NAME_MAX} />
+              </div>
               <Choices label="Beden" variant="segment" options={BODIES} value={avatar.body} onChange={set('body')} />
               <Swatches label="Ten rengi" options={SKIN_TONES} value={avatar.skin} onChange={set('skin')} />
               <Swatches label="Göz rengi" options={EYE_COLORS} value={avatar.eyes} onChange={set('eyes')} />
