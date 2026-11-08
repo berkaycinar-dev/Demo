@@ -283,7 +283,9 @@ export function entryDoor(f) {
 
 // Dart köşesi; orijin panonun altı. Açık kapaklı dolapta halkalı dart tahtası ve saplanmış üç
 // dart, kapakların içinde tebeşir skor tahtaları, zeminde pirinç atış çizgisi.
-export function dartboard(f) {
+export function dartboard(root) {
+  // tıklanınca dart tahtası sarsılır
+  const f = root.interactive('machine')
   const cy = 1.73
   f.box(-0.42, cy - 0.43, -0.02, 0.84, 0.86, 0.08, C.woodDark)
   for (const s of [-1, 1]) {
@@ -311,9 +313,11 @@ export function dartboard(f) {
 // Müzik kutusu; orijin ortası. Basamaklı kemerli gövde, plak penceresi, seçim paneli, krom
 // ızgara, üstte çerçeveli plak afişi. Kemer boyunca ışık tüpleri (sönük taban + fx'te yürüyen
 // renkli ışık).
-export function jukebox(f, fx) {
+export function jukebox(root, fx) {
   const W = 0.8
   const D = 0.55
+  // tıklanınca müzik kutusu sarsılır, önünden notalar yükselir
+  const f = root.interactive('machine', 0, 0, 0, 0, { puff: { at: [0, 1.3, D + 0.06], kind: 'notes' } })
   f.box(-W / 2, 0, 0.02, W, 0.1, D - 0.02, C.woodDark)
   f.box(-W / 2, 0.1, 0.02, W, 1.05, D - 0.04, C.jukebox)
   f.box(-W / 2 + 0.05, 1.15, 0.02, W - 0.1, 0.12, D - 0.06, C.jukebox)
@@ -375,7 +379,7 @@ export function backBar(f, length, rnd, fx) {
   f.box(-L / 2 - 0.02, 0.92, 0, L + 0.04, 0.04, D + 0.03, C.counterTop)
 
   // espresso makinesi ve bardaklar
-  const m = f.frame(-L / 2 + 0.32, 0.96, 0.08)
+  const m = f.interactive('machine', -L / 2 + 0.32, 0.96, 0.08, 0, { puff: { at: [0, 0.1, 0.36], kind: 'steam' } })
   m.box(-0.22, 0, 0, 0.44, 0.3, 0.3, C.steel)
   m.box(-0.22, 0.3, 0, 0.44, 0.03, 0.3, C.steelDark)
   for (const x of [-0.11, 0.11]) {
@@ -386,25 +390,26 @@ export function backBar(f, length, rnd, fx) {
   const glasses = Math.floor((L - 0.85) / 0.1)
   for (let i = 0; i < glasses; i++) f.box(-L / 2 + 0.66 + i * 0.1, 0.96, 0.2, 0.07, 0.11, 0.07, C.fridge, GLASS)
 
-  // ayna, raflar ve şişeler
-  f.box(-L / 2 + 0.06, 1.2, 0, L - 0.12, 1.16, 0.01, C.mirror, GLASS)
-  for (const x of [-L / 2, L / 2 - 0.06]) f.box(x, 1.14, 0, 0.06, 1.28, 0.04, C.woodDark)
-  f.box(-L / 2, 1.14, 0, L, 0.06, 0.04, C.woodDark)
-  f.box(-L / 2, 2.36, 0, L, 0.06, 0.04, C.woodDark)
+  // ayna, raflar ve şişeler; raf ışıkları ve tezgâha düşen ışık tek lamba: tıklanınca söner / yanar
+  const shelf = f.interactive('lamp')
+  shelf.box(-L / 2 + 0.06, 1.2, 0, L - 0.12, 1.16, 0.01, C.mirror, GLASS)
+  for (const x of [-L / 2, L / 2 - 0.06]) shelf.box(x, 1.14, 0, 0.06, 1.28, 0.04, C.woodDark)
+  shelf.box(-L / 2, 1.14, 0, L, 0.06, 0.04, C.woodDark)
+  shelf.box(-L / 2, 2.36, 0, L, 0.06, 0.04, C.woodDark)
   for (const y of [1.4, 1.73, 2.06]) {
-    f.box(-L / 2 + 0.06, y - 0.03, 0.01, L - 0.12, 0.03, 0.19, C.woodDark)
-    f.box(-L / 2 + 0.1, y - 0.034, 0.12, L - 0.2, 0.004, 0.03, C.shelfLed, BULB)
+    shelf.box(-L / 2 + 0.06, y - 0.03, 0.01, L - 0.12, 0.03, 0.19, C.woodDark)
+    shelf.box(-L / 2 + 0.1, y - 0.034, 0.12, L - 0.2, 0.004, 0.03, C.shelfLed, BULB)
     const n = Math.floor((L - 0.2) / 0.11)
     for (let k = 0; k < n; k++) {
       const x = -L / 2 + 0.1 + k * 0.11 + 0.02
       const h = 0.14 + rnd() * 0.09
       const color = pick(rnd, C.bottle)
-      f.box(x, y, 0.06, 0.065, h, 0.065, color)
-      f.box(x + 0.02, y + h, 0.08, 0.025, 0.06, 0.025, color)
-      if (k % 2 === 0) f.box(x + 0.008, y + h * 0.3, 0.125, 0.05, h * 0.35, 0.002, pick(rnd, C.label))
+      shelf.box(x, y, 0.06, 0.065, h, 0.065, color)
+      shelf.box(x + 0.02, y + h, 0.08, 0.025, 0.06, 0.025, color)
+      if (k % 2 === 0) shelf.box(x + 0.008, y + h * 0.3, 0.125, 0.05, h * 0.35, 0.002, pick(rnd, C.label))
     }
   }
-  f.glow(-L / 2, 0.963, 0, L, D)
+  shelf.glow(-L / 2, 0.963, 0, L, D)
 
   // neon tabela: 4x5 piksel harfler
   const GLYPHS = {
@@ -522,7 +527,7 @@ export function barCounter(f, { length, stools }, room, fx) {
   for (let i = 0; i < stools; i++) {
     const s = f.frame((i - (stools - 1) / 2) * pitch, 0, STOOL_Z, Math.PI)
     barStool(s)
-    room.seats.push({ position: s.point(0, STOOL_HEIGHT, 0).toArray(), yaw: s.facing() })
+    room.seats.push({ position: s.point(0, STOOL_HEIGHT, 0).toArray(), yaw: s.facing(), desk: 'notebook', kind: 'stool' })
     studyItems(s.frame(0, COUNTER_HEIGHT, STOOL_Z - D - 0.23), room.seats.length - 1, fx)
   }
 }
@@ -543,14 +548,16 @@ export function booth(f, room, fx, light) {
     f.box(0.04, 0.5, s > 0 ? 0.87 : -0.93, 1.2, 0.55, 0.06, C.leatherLight)
     f.box(0, 1.15, back - 0.01, 1.28, 0.04, 0.14, C.woodDark)
     const seat = f.frame(0.62, 0, s * 0.68, s > 0 ? Math.PI : 0)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'bench' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.32), room.seats.length - 1, fx)
   }
-  f.box(0.12, TABLE_HEIGHT, -0.07, 0.14, 0.02, 0.14, C.brass)
-  f.box(0.18, TABLE_HEIGHT + 0.02, -0.01, 0.02, 0.26, 0.02, C.brass)
-  f.box(0.1, TABLE_HEIGHT + 0.28, -0.14, 0.18, 0.08, 0.28, C.shade)
-  f.box(0.12, TABLE_HEIGHT + 0.275, -0.12, 0.14, 0.006, 0.24, '#ffffff', BULB)
-  f.glow(0.06, TABLE_HEIGHT + 0.003, -0.36, 1.12, 0.72)
+  // masa lambası ve ışık havuzu tek eşya: tıklanınca söner / yanar
+  const lamp = f.interactive('lamp')
+  lamp.box(0.12, TABLE_HEIGHT, -0.07, 0.14, 0.02, 0.14, C.brass)
+  lamp.box(0.18, TABLE_HEIGHT + 0.02, -0.01, 0.02, 0.26, 0.02, C.brass)
+  lamp.box(0.1, TABLE_HEIGHT + 0.28, -0.14, 0.18, 0.08, 0.28, C.shade)
+  lamp.box(0.12, TABLE_HEIGHT + 0.275, -0.12, 0.14, 0.006, 0.24, '#ffffff', BULB)
+  lamp.glow(0.06, TABLE_HEIGHT + 0.003, -0.36, 1.12, 0.72)
   if (light) room.lights.push(f.point(0.5, 1.5, 0).toArray())
 }
 
@@ -586,11 +593,28 @@ export function roundTable(f, room, fx) {
   for (const s of [-1, 1]) {
     const seat = f.frame(s * 0.68, 0, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2)
     cafeChair(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'chair' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.23), room.seats.length - 1, fx)
   }
   ceilingFan(f, fx)
   room.lights.push(f.point(0, 2.3, 0).toArray())
+}
+
+// Ayakta içilen yüksek masa; orijin ortası. Haç ayak, demir direk, ayak dayama halkası, yuvarlak
+// tabla; üstünde iki kupa ve bir altlık.
+export function highTable(f) {
+  const H = 1.05
+  f.box(-0.28, 0, -0.04, 0.56, 0.04, 0.08, C.iron)
+  f.box(-0.04, 0, -0.28, 0.08, 0.04, 0.56, C.iron)
+  f.box(-0.035, 0.04, -0.035, 0.07, H - 0.08, 0.07, C.iron)
+  for (const [x, z, w, d] of [[-0.2, -0.015, 0.4, 0.03], [-0.015, -0.2, 0.03, 0.4]]) f.box(x, 0.3, z, w, 0.025, d, C.brassDark)
+  diskXZ(f, H - 0.04, 0.34, 0.085, 0.04, C.woodRed)
+  f.box(-0.05, H, 0.04, 0.12, 0.004, 0.12, C.paper)
+  for (const [x, z, drink] of [[-0.14, -0.08, C.drink.cola], [0.1, -0.12, C.drink.lemon]]) {
+    f.box(x - 0.035, H, z - 0.035, 0.07, 0.12, 0.07, C.frosted)
+    f.box(x - 0.03, H + 0.12, z - 0.03, 0.06, 0.003, 0.06, drink)
+    f.box(x + 0.035, H + 0.03, z - 0.01, 0.025, 0.06, 0.02, C.frosted)
+  }
 }
 
 // Tavan vantilatörü; orijin altındaki zemin. Çubuk, pirinç motor, ışık kâsesi ve yavaş dönen
@@ -644,7 +668,8 @@ export function poolTable(f) {
 }
 
 // Saksıda büyük kauçuk bitkisi; orijin ortası.
-export function bigPlant(f) {
+export function bigPlant(root) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.47 })
   f.box(-0.2, 0, -0.2, 0.4, 0.42, 0.4, C.pot)
   f.box(-0.22, 0.42, -0.22, 0.44, 0.05, 0.44, C.pot)
   f.box(-0.18, 0.47, -0.18, 0.36, 0.005, 0.36, C.soil)

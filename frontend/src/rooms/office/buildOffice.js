@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   FLOOR_BOTTOM,
   WALL,
@@ -29,10 +30,14 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 
 // Zemine konan eşyalar. spot: önünde mola halkası açılır.
 const PROPS = {
-  sofa: { draw: sofa, spot: { id: 'lounge', label: 'Lounge', distance: 1.0 } },
+  sofa: { draw: sofa, spot: { id: 'lounge', label: 'Lounge', distance: 1.0, stations: [[-0.43, 0.48, 0.16], [0.43, 0.48, 0.16]] } },
   coffeeTable: { draw: coffeeTable },
   beanBag: { draw: beanBag },
-  pingPong: { draw: pingPong, spot: { id: 'pingpong', label: 'Masa tenisi', distance: 1.15 } },
+  pingPong: {
+    draw: pingPong,
+    // iki oyuncu masanın iki ucunda
+    spot: { id: 'pingpong', label: 'Masa tenisi', distance: 1.15, stations: [[-1.5, 0, 0, Math.PI / 2, 'stand'], [1.5, 0, 0, -Math.PI / 2, 'stand']] },
+  },
   snakePlant: { draw: snakePlant },
   credenza: { draw: (f, rnd, item) => credenza(f, rnd, item.length) },
   waterCooler: { draw: waterCooler, spot: { id: 'water', label: 'Su sebili', distance: 0.7 } },
@@ -69,9 +74,10 @@ export function buildOffice(layout) {
   const { root, layers } = createVoxelBuilder()
   const room = { seats: [], spots: [], lights: [], blinkers: [], steams: [] }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   floor(root, width, depth, rnd)
@@ -89,7 +95,7 @@ export function buildOffice(layout) {
     decor.draw(f, rnd, item, room)
     if (decor.spot) {
       const u = decor.spot.center ? item.length / 2 : 0
-      addSpot(decor.spot.id, decor.spot.label, root.point(item.at + u, 0, decor.spot.distance))
+      addSpot(decor.spot.id, decor.spot.label, root.point(item.at + u, 0, decor.spot.distance), null, Math.PI)
     }
   }
 
@@ -99,7 +105,7 @@ export function buildOffice(layout) {
     const prop = PROPS[item.type]
     const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
     prop.draw(f, rnd, item)
-    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   for (const { id, label, x, z } of layout.spots ?? []) addSpot(id, label, { x, z })

@@ -1,0 +1,5 @@
+# Local configuration and secrets, including files in subdirectories.
+.env
+.env.*
+!.env.example
+*.local

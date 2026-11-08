@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   C,
   FLOOR_BOTTOM,
@@ -34,8 +35,9 @@ const toYaw = (facing) => (typeof facing === 'number' ? (facing * Math.PI) / 180
 const PROPS = {
   firewood: { draw: firewood },
   plant: { draw: firPlant },
-  armchair: { draw: (f, rnd, item) => armchair(f, item.color) },
-  sofa: { draw: sofa, spot: { id: 'sofa', label: 'Kanepe', distance: 0.95 } },
+  // seat: oturma noktası (yerel); şöminenin yakınındaysa mola yeri olarak şömineye bağlanır
+  armchair: { draw: (f, rnd, item) => armchair(f, item.color), seat: [0, 0.52, 0.12] },
+  sofa: { draw: sofa, spot: { id: 'sofa', label: 'Kanepe', distance: 0.95, stations: [[-0.43, 0.52, 0.16], [0.43, 0.52, 0.16]] } },
   cocoa: { draw: (f, rnd, item, room) => cocoaCorner(f, room), spot: { id: 'cocoa', label: 'Kakao köşesi', distance: 0.95 } },
   skis: { draw: skis },
   guitar: { draw: guitar },
@@ -67,9 +69,10 @@ export function buildCabin(layout) {
   const { root, layers } = createVoxelBuilder()
   const room = { seats: [], spots: [], lights: [], fires: [], steams: [], snow: [] }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
   const openings = (wall, toU) =>
     (layout.windows ?? [])
@@ -90,24 +93,34 @@ export function buildCabin(layout) {
   if (layout.fireplace) {
     const f = root.frame(layout.fireplace.x, 0, 0)
     fireplace(f, rnd, room)
-    addSpot('fireplace', 'Şömine başı', f.point(0, 0, 1.55))
+    addSpot('fireplace', 'Şömine başı', f.point(0, 0, 1.55), null, f.facing() + Math.PI)
   }
 
   for (const { at, length } of layout.windowSeats ?? []) {
     const f = root.frame(0, 0, at + length / 2, Math.PI / 2)
     windowSeat(f, length)
-    addSpot('window', 'Pencere kenarı', f.point(length / 2, 0, 1.05))
+    // minderde iki oturma yeri, odaya dönük
+    const seats = stations([0.22, 0.78].map((k) => [length * k, 0.52, 0.32]), f)
+    addSpot('window', 'Pencere kenarı', f.point(length / 2, 0, 1.05), seats, f.facing() + Math.PI)
   }
 
   for (const table of layout.tables ?? []) {
     farmTable(root.frame(table.x - table.length / 2, 0, table.z - table.depth / 2), table, rnd, room)
   }
 
+  const chairs = []
   for (const item of layout.props ?? []) {
     const prop = PROPS[item.type]
     const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
     prop.draw(f, rnd, item, room)
-    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, f, item), f.facing() + Math.PI)
+    if (prop.seat) chairs.push(...stations([prop.seat], f))
+  }
+  // şöminenin önündeki koltuklar: molada oturulur
+  const hearth = room.spots.find((s) => s.id === 'fireplace')
+  if (hearth) {
+    const near = chairs.filter((c) => Math.hypot(c.position[0] - hearth.position[0], c.position[2] - hearth.position[2]) < 2.2)
+    if (near.length) hearth.stations = near
   }
 
   for (const item of layout.decor ?? []) {

@@ -1,28 +1,27 @@
 import UnderwaterScene from './UnderwaterScene'
 
-// 7 kişi · 9.5x7.5 · 3+3+1 araştırma masası; denizanası tankı, gözlem kamerası, tüp kafesi, cam önü bank, numune rafı, dalış havuzu.
+// 7 kişi · 9.5x7.5 · 1 lomboz masası, 6 kişilik yuvarlak sonar masası; basınç kapısı, dalış giysisi, kahve köşesi, numune rafı, yosun bahçesi, lomboz altı kanepe, batiskaflı dalış havuzu, denizanası tankı, tüp kafesi.
 const LAYOUT = {
   width: 9.5,
   depth: 7.5,
   seed: 9107,
-  table: { x: 4.5, z: 3.5, back: 3, front: 3, ends: 1 },
-  wall: [
-    { type: 'hatch', at: 0.87 },
-    { type: 'suit', at: 2.3 },
-    { type: 'sonar', at: 3.89, length: 2 },
-    { type: 'galley', at: 5.64 },
-    { type: 'specimens', at: 6.88, length: 1 },
+  back: [
+    { type: 'port', at: 0.9, desk: true },
+    { type: 'port', at: 2.65 },
+    { type: 'suit', at: 4.05 },
+    { type: 'galley', at: 5.28 },
+    { type: 'specimens', at: 6.7, length: 1 },
     { type: 'kelp', at: 8.45, length: 1.6 },
   ],
-  props: [
-    { type: 'jellies', x: 8.85, z: 2.5, facing: '-x' },
-    { type: 'camera', x: 0.8, z: 3.4, facing: '-x' },
-    { type: 'bench', x: 0.44, z: 5, facing: '+x', length: 2 },
-    { type: 'tanks', x: 8.9, z: 6.6 },
-    { type: 'moonpool', x: 5, z: 6.3, facing: '-x' },
+  left: [
+    { type: 'hatch', z: 1.55 },
+    { type: 'sofa', z: 3.7, length: 1.8 },
   ],
-  spots: [
-    { id: 'window', label: 'Akvaryum camı', x: 0.85, z: 6.65 },
+  table: { x: 5.6, z: 3.95, seats: 6 },
+  props: [
+    { type: 'jellies', x: 8.85, z: 2.6, facing: '-x' },
+    { type: 'moonpool', x: 1.25, z: 6.25, facing: '+x' },
+    { type: 'tanks', x: 9, z: 5.2 },
   ],
 }
 

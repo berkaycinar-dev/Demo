@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   FLOOR_BOTTOM,
   WALL,
@@ -36,7 +37,7 @@ const PROPS = {
   floorLamp: { draw: (f) => floorLamp(f) },
   sideTable: { draw: (f, rnd) => sideTable(f, rnd) },
   tea: { draw: (f, rnd, room) => teaCorner(f, room), spot: { id: 'tea', label: 'Çay köşesi', distance: 0.95 } },
-  armchair: { draw: (f) => armchair(f), spot: { id: 'reading', label: 'Okuma koltuğu', distance: 1 } },
+  armchair: { draw: (f) => armchair(f), spot: { id: 'reading', label: 'Okuma koltuğu', distance: 1, stations: [[0, 0.5, 0.13]] } },
   catalog: { draw: (f) => cardCatalog(f), spot: { id: 'catalog', label: 'Kart kataloğu', distance: 0.9 } },
   vitrine: { draw: (f) => vitrine(f), spot: { id: 'vitrine', label: 'El yazması vitrini', distance: 0.95 } },
 }
@@ -64,9 +65,10 @@ export function buildLibrary(layout) {
   const { root, layers } = createVoxelBuilder()
   const room = { seats: [], spots: [], lights: [], steams: [], clocks: [] }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   floor(root, width, depth, rnd)
@@ -86,7 +88,9 @@ export function buildLibrary(layout) {
   for (const { at, length } of layout.benches ?? []) {
     const f = root.frame(0, 0, at + length / 2, Math.PI / 2)
     windowBench(f, length)
-    addSpot('window', 'Pencere kenarı', f.point(length / 2, 0, 1.05))
+    // minderde iki oturma yeri (yastık sol uçta), odaya dönük
+    const seats = stations([0.25, 0.77].map((k) => [length * k, 0.53, 0.32]), f)
+    addSpot('window', 'Pencere kenarı', f.point(length / 2, 0, 1.05), seats, f.facing() + Math.PI)
   }
 
   for (const table of layout.tables ?? []) {
@@ -97,7 +101,7 @@ export function buildLibrary(layout) {
     const prop = PROPS[type]
     const f = root.frame(x, 0, z, FACING[facing])
     prop.draw(f, rnd, room)
-    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, f), f.facing() + Math.PI)
   }
 
   for (const { type, wall, at, y } of layout.decor ?? []) {

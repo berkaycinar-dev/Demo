@@ -1,4 +1,5 @@
 import { createVoxelBuilder, seededRandom } from '../core/voxel'
+import { stations } from '../core/stations'
 import {
   C,
   FLOOR_BOTTOM,
@@ -49,12 +50,17 @@ const SEATS = {
 
 // Zemine konan eşyalar. spot: önünde mola halkası açılır.
 const PROPS = {
-  picnic: { draw: picnicTable, spot: { id: 'picnic', label: 'Piknik masası', distance: 1.2 } },
+  picnic: {
+    draw: picnicTable,
+    // masanın iki yanındaki sabit oturaklar
+    spot: { id: 'picnic', label: 'Piknik masası', distance: 1.2, stations: [[-0.3, 0.475, 0.555, Math.PI], [0.3, 0.475, -0.565, 0]] },
+  },
   woodpile: { draw: woodpile },
   cooler: { draw: (f) => cooler(f) },
   backpack: { draw: backpack },
   canoe: { draw: (f) => canoe(f) },
-  hammock: { draw: hammock, spot: { id: 'hammock', label: 'Hamak', distance: 0.85 } },
+  // hamakta yatan: baş yastıkta (-x), ayaklar +x
+  hammock: { draw: hammock, spot: { id: 'hammock', label: 'Hamak', distance: 0.85, stations: [[0.1, 0.67, 0, Math.PI / 2, 'lie']] } },
   signpost: { draw: (f) => signpost(f) },
   bush: { draw: bush },
   rock: { draw: rock },
@@ -64,8 +70,8 @@ const PROPS = {
 }
 
 const TENTS = {
-  ridge: { draw: ridgeTent, distance: 1.7 },
-  dome: { draw: domeTent, distance: 1.25 },
+  ridge: { draw: ridgeTent, distance: 1.7, door: 1.2, height: 1.15 },
+  dome: { draw: domeTent, distance: 1.25, door: 0.95, height: 1.0 },
 }
 
 /**
@@ -87,11 +93,12 @@ export function buildCamp(layout) {
   const { width, depth, seed = 1, fire } = layout
   const rnd = seededRandom(seed)
   const { root, layers } = createVoxelBuilder()
-  const room = { seats: [], spots: [], lights: [], fires: [], twinkles: [] }
+  const room = { seats: [], spots: [], lights: [], fires: [], twinkles: [], beds: [] }
 
-  const addSpot = (id, label, point) => {
+  // face: ayaktakilerin döneceği yön (yaw; eşyaya doğru), verilmezse en yakın engele dönülür
+  const addSpot = (id, label, point, places, face) => {
     const taken = room.spots.filter((s) => s.id.startsWith(id)).length
-    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z] })
+    room.spots.push({ id: taken ? `${id}-${taken + 1}` : id, label, position: [point.x, 0, point.z], ...(places && { stations: places }), ...(face != null && { face }) })
   }
 
   ground(root, width, depth, rnd, fire ? [[fire.x, fire.z, fire.radius + 0.75]] : [])
@@ -108,7 +115,7 @@ export function buildCamp(layout) {
       const seat = SEATS[type]
       seat.draw(f, rnd)
       for (const dx of seat.offsets) {
-        room.seats.push({ position: f.point(dx, SEAT_HEIGHT, 0).toArray(), yaw: f.facing() })
+        room.seats.push({ position: f.point(dx, SEAT_HEIGHT, 0).toArray(), yaw: f.facing(), kind: type })
       }
     }
   }
@@ -116,7 +123,9 @@ export function buildCamp(layout) {
   for (const tent of layout.tents ?? []) {
     const f = root.frame(tent.x, 0, tent.z, toYaw(tent.facing ?? '+z'))
     TENTS[tent.type].draw(f, C.tents[tent.color])
-    if (tent.spot) addSpot('tent', 'Çadır', f.point(0, 0, TENTS[tent.type].distance))
+    // uzaktakiler çadıra girip uyur: giriş, iç ve tepe noktası
+    room.beds.push({ door: f.point(0, 0, TENTS[tent.type].door).toArray(), inside: f.point(0, 0, 0).toArray(), top: f.point(0, TENTS[tent.type].height, 0).toArray() })
+    if (tent.spot) addSpot('tent', 'Çadır', f.point(0, 0, TENTS[tent.type].distance), null, f.facing() + Math.PI)
   }
 
   for (const { x, z, facing } of layout.lanterns ?? []) lanternPole(root.frame(x, 0, z, toYaw(facing ?? '+z')), room)
@@ -130,7 +139,7 @@ export function buildCamp(layout) {
     const prop = PROPS[item.type]
     const f = root.frame(item.x, 0, item.z, toYaw(item.facing ?? '+z'))
     prop.draw(f, rnd, item)
-    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance))
+    if (prop.spot) addSpot(prop.spot.id, prop.spot.label, f.point(0, 0, prop.spot.distance), stations(prop.spot.stations, f, item), f.facing() + Math.PI)
   }
 
   for (const { id, label, x, z } of layout.spots ?? []) addSpot(id, label, { x, z })
@@ -142,6 +151,7 @@ export function buildCamp(layout) {
     lights: room.lights.slice(0, MAX_LAMP_LIGHTS),
     fires: room.fires,
     twinkles: room.twinkles,
+    beds: room.beds,
     fireflies: fireflies(width, depth, rnd),
     bounds: { min: [-SHORE, FLOOR_BOTTOM, -FOREST], max: [width, SKY_TOP, depth] },
   }

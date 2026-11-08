@@ -289,11 +289,13 @@ function treeWindow(f, a, b, index, rnd, fx) {
   // pervazda eğrelti
   const pu = index % 2 === 0 ? b - 0.17 : a + 0.05
   const py = SILL + 0.012
-  f.box(pu, py, 0.0, 0.12, 0.1, 0.1, C.pot)
-  f.box(pu + 0.01, py + 0.1, 0.01, 0.1, 0.005, 0.08, C.soil)
-  f.box(pu - 0.03, py + 0.1, 0.02, 0.09, 0.03, 0.06, C.leaf[0], { rot: [0, 0, 0.5] })
-  f.box(pu + 0.06, py + 0.1, 0.015, 0.09, 0.03, 0.06, C.leaf[1], { rot: [0, 0, -0.5] })
-  f.box(pu + 0.03, py + 0.1, 0.03, 0.06, 0.13, 0.04, C.leaf[3])
+  // saksının ortası çerçevenin orijini; yapraklar saksı ağzından sallanır
+  const fern = f.interactive('plant', pu + 0.06, py, 0.05, 0, { bend: 0.1 })
+  fern.box(-0.06, 0, -0.05, 0.12, 0.1, 0.1, C.pot)
+  fern.box(-0.05, 0.1, -0.04, 0.1, 0.005, 0.08, C.soil)
+  fern.box(-0.09, 0.1, -0.03, 0.09, 0.03, 0.06, C.leaf[0], { rot: [0, 0, 0.5] })
+  fern.box(0, 0.1, -0.035, 0.09, 0.03, 0.06, C.leaf[1], { rot: [0, 0, -0.5] })
+  fern.box(-0.03, 0.1, -0.02, 0.06, 0.13, 0.04, C.leaf[3])
 
   // Orman: katmanlar önden arkaya 1 mm aralıklı; aynı düzleme düşen farklı renkli yüzler
   // kamera dönünce titrer.
@@ -510,15 +512,16 @@ export function cocoaCorner(f, fx) {
   for (let i = 0; i < 3; i++) f.box(0.08 + i * 0.13, 0.46, 0.08, 0.1, 0.09, 0.1, [C.mug, C.enamel, C.mug][i])
   f.box(-W / 2 - 0.02, H - 0.04, -0.01, W + 0.04, 0.04, D + 0.04, C.desk)
 
-  // ocak ve çaydanlık
-  f.box(-0.4, H, 0.1, 0.26, 0.05, 0.24, C.iron)
-  f.box(-0.37, H + 0.05, 0.13, 0.2, 0.012, 0.18, '#242220')
-  f.box(-0.355, H + 0.062, 0.14, 0.17, 0.12, 0.15, C.copper)
-  f.box(-0.335, H + 0.182, 0.16, 0.13, 0.03, 0.11, C.copper)
-  f.box(-0.29, H + 0.212, 0.2, 0.04, 0.02, 0.03, C.iron)
-  stick(f, [-0.19, H + 0.12, 0.215], [-0.12, H + 0.18, 0.215], 0.025, C.copper)
-  for (const x of [-0.33, -0.21]) f.box(x, H + 0.21, 0.205, 0.015, 0.06, 0.01, C.iron)
-  f.box(-0.33, H + 0.26, 0.205, 0.135, 0.015, 0.01, C.iron)
+  // ocak ve çaydanlık (tıklanınca çaydanlık sarsılır, buhar püskürür)
+  const k = f.interactive('machine', 0, 0, 0, 0, { puff: { at: [-0.11, H + 0.2, 0.215], kind: 'steam' } })
+  k.box(-0.4, H, 0.1, 0.26, 0.05, 0.24, C.iron)
+  k.box(-0.37, H + 0.05, 0.13, 0.2, 0.012, 0.18, '#242220')
+  k.box(-0.355, H + 0.062, 0.14, 0.17, 0.12, 0.15, C.copper)
+  k.box(-0.335, H + 0.182, 0.16, 0.13, 0.03, 0.11, C.copper)
+  k.box(-0.29, H + 0.212, 0.2, 0.04, 0.02, 0.03, C.iron)
+  stick(k, [-0.19, H + 0.12, 0.215], [-0.12, H + 0.18, 0.215], 0.025, C.copper)
+  for (const x of [-0.33, -0.21]) k.box(x, H + 0.21, 0.205, 0.015, 0.06, 0.01, C.iron)
+  k.box(-0.33, H + 0.26, 0.205, 0.135, 0.015, 0.01, C.iron)
   fx.steams.push(f.point(-0.11, H + 0.2, 0.215).toArray())
 
   // kurabiye ve bal kavanozları
@@ -551,7 +554,7 @@ export function cocoaCorner(f, fx) {
 // Hamak; orijin sol direğin dibi, yerel +x gövdeye doğru. length: direkten gövde yüzeyine,
 // back: arka duvara uzaklık.
 // Direk duvara bir payandayla bağlı; sağ ip gövdeye sarılı. Çizgili bez, yastık ve açık kitap
-// hamakla birlikte yavaşça salınır (fx.lit).
+// hamakla birlikte yavaşça salınır (fx.lit). Dönüş: { lie, swing } yatma noktası (yerel) ve salınım.
 export function hammock(f, length, back, fx) {
   f.box(-0.07, 0, -0.07, 0.14, 2.42, 0.14, C.log)
   f.box(-0.09, 2.42, -0.09, 0.18, 0.04, 0.18, C.logDark)
@@ -599,7 +602,11 @@ export function hammock(f, length, back, fx) {
   on(0.58, 0.2, 0.012, 0.26, 0.13, C.paper)
   on(0.58, 0.22, 0.006, 0.54, 0, C.cover[0])
   on(0.82, 0.28, 0.04, 0.6, 0, C.cushion[0])
-  fx.lit.swingers.push({ items, pivot: f.point(0, 1.4, 0).toArray(), axis: axisOf(f, 1, 0, 0), amp: 0.07, period: 3.6, phase: 0 })
+  const swing = { pivot: f.point(0, 1.4, 0).toArray(), axis: axisOf(f, 1, 0, 0), amp: 0.07, period: 3.6, phase: 0 }
+  fx.lit.swingers.push({ items, ...swing })
+  // yatan avatar: kalça bezin ortasında, baş yastıkta (x0 ucu); hamakla birlikte salınır
+  const s = 0.55
+  return { lie: [x0 + s * (x1 - x0), sag(s), 0, Math.PI / 2, 'lie'], swing }
 }
 
 // ---------------------------------------------------------------- ağaç
@@ -706,7 +713,9 @@ export function trunk(f, rnd, fx, room, { back, reach }) {
 
 // Fener; orijin tabanın ortası. Demir taban, köşe çubukları, şapka ve kulp; içinde titrek alevli
 // mum (fx.room).
-export function lantern(f, fx) {
+export function lantern(root, fx) {
+  // tıklanınca fener sarsılır (mum alevi fx'te, yerinde kalır)
+  const f = root.interactive('machine')
   f.box(-0.07, 0, -0.07, 0.14, 0.025, 0.14, C.iron)
   for (const [x, z] of [[-0.07, -0.07], [0.055, -0.07], [-0.07, 0.055], [0.055, 0.055]]) f.box(x, 0.025, z, 0.015, 0.17, 0.015, C.iron)
   f.box(-0.08, 0.195, -0.08, 0.16, 0.03, 0.16, C.iron)
@@ -773,7 +782,7 @@ export function windowDesk(f, room, fx, light) {
 
   const seat = f.frame(0, 0, DESK_STOOL, Math.PI)
   stumpStool(seat)
-  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+  room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'stump' })
   studyItems(seat.frame(0, TABLE_HEIGHT, DESK_STOOL - DESK_DEPTH), room.seats.length - 1, fx)
 }
 
@@ -797,8 +806,50 @@ export function stumpTable(f, room, fx, light) {
   for (const s of [-1, 1]) {
     const seat = f.frame(s * 0.66, 0, 0, s > 0 ? -Math.PI / 2 : Math.PI / 2)
     stumpStool(seat)
-    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'stump' })
     studyItems(seat.frame(0, TABLE_HEIGHT, 0.23), room.seats.length - 1, fx)
+  }
+}
+
+// Kütük bank; orijin duvar dibinde bankın ortası, bank yerel z boyunca uzanır, oturan +x'e bakar.
+// İki kütük ayak, üstte yarım kütük oturak (kabuk altta, kesik yüzler uçlarda).
+export const LOG_BENCH_SEAT = 0.42
+export function logBench(f, length) {
+  const L = length
+  for (const z of [-L / 2 + 0.22, L / 2 - 0.22]) cylinder(f.frame(0.3, 0, z), 0, LOG_BENCH_SEAT - 0.12, 0.13, 8, C.bark, 0.06)
+  f.box(0.06, LOG_BENCH_SEAT - 0.13, -L / 2, 0.48, 0.07, L, C.barkDark)
+  f.box(0.08, LOG_BENCH_SEAT - 0.06, -L / 2, 0.44, 0.06, L, C.log)
+  for (const z of [-L / 2 - 0.004, L / 2 - 0.006]) f.box(0.09, LOG_BENCH_SEAT - 0.12, z, 0.42, 0.11, 0.01, C.cut)
+}
+
+// Büyük yuvarlak kütük masa; orijin ortası. Kökleri yere yayılan kalın gövde, yıllık halkalı
+// geniş kesit tabla, dört yanda (köşegenlerde) kütük tabure, tepede asılı fener. light: feneri
+// nokta ışık olarak ekle.
+export function roundTable(f, room, fx, light) {
+  const R = 0.72
+  const SEAT = R + 0.23
+  cylinder(f, 0, 0.66, 0.3, 10, C.bark, 0.08)
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * TAU + 0.3
+    stick(f, [Math.sin(a) * 0.22, 0.18, Math.cos(a) * 0.22], [Math.sin(a) * 0.55, -0.02, Math.cos(a) * 0.55], 0.1, C.bark[k % 3])
+  }
+  diskXZ(f, 0.66, R + 0.03, 0.09, 0.06, C.barkDark)
+  diskXZ(f, 0.72, R, 0.09, 0.03, C.cut)
+  diskXZ(f, TABLE_HEIGHT, 0.4, 0.08, 0.002, C.cutDark)
+  diskXZ(f, TABLE_HEIGHT + 0.002, 0.36, 0.072, 0.002, C.cut)
+  f.glow(-R, TABLE_HEIGHT + 0.003, -R, 2 * R, 2 * R)
+
+  f.box(-0.004, 2.12, -0.004, 0.008, WALL_HEIGHT - 2.12, 0.008, C.iron)
+  const lamp = f.frame(0, 1.84, 0)
+  lantern(lamp, fx)
+  if (light) room.lights.push(lamp.point(0, 0.05, 0).toArray())
+
+  for (let k = 0; k < 4; k++) {
+    const a = Math.PI / 4 + (k * Math.PI) / 2
+    const seat = f.frame(Math.sin(a) * SEAT, 0, Math.cos(a) * SEAT, a + Math.PI)
+    stumpStool(seat)
+    room.seats.push({ position: seat.point(0, SEAT_HEIGHT, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'stump' })
+    studyItems(seat.frame(0, TABLE_HEIGHT, SEAT - R), room.seats.length - 1, fx)
   }
 }
 
@@ -833,7 +884,7 @@ export function cushionNook(f, room, fx) {
     const i = room.seats.length
     seat.box(-0.3, 0, -0.28, 0.6, 0.15, 0.56, C.cushion[i % C.cushion.length])
     seat.box(-0.27, 0.15, -0.25, 0.54, 0.035, 0.5, C.cushionTop[i % C.cushionTop.length])
-    room.seats.push({ position: seat.point(0, CUSHION_HEIGHT - 0.02, 0).toArray(), yaw: seat.facing() })
+    room.seats.push({ position: seat.point(0, CUSHION_HEIGHT - 0.02, 0).toArray(), yaw: seat.facing(), desk: 'notebook', kind: 'cushion' })
     studyItems(seat.frame(0, LOW_TABLE - 0.02, 0.42), i, fx)
   }
 
@@ -846,7 +897,9 @@ export function cushionNook(f, room, fx) {
 
 // Teleskop; orijin üçayağın ortası, dünya eksenine hizalı. Pirinç tüp +x yönünde gökyüzüne
 // bakar, göz merceği -x tarafında.
-export function telescope(f) {
+export function telescope(root) {
+  // tıklanınca teleskop sarsılır
+  const f = root.interactive('machine')
   for (let k = 0; k < 3; k++) {
     const a = (k / 3) * TAU + Math.PI / 6
     stick(f, [0, 1.0, 0], [Math.cos(a) * 0.34, 0, Math.sin(a) * 0.34], 0.035, C.log)

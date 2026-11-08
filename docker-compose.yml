@@ -1,0 +1,37 @@
+# D0.1: local dependencies only. Run from the repository root.
+name: odakhane-local
+
+services:
+  postgres:
+    # Keep PostgreSQL 16 compatibility with C's backend-skeleton branch.
+    image: postgres:16.15-bookworm
+    environment:
+      POSTGRES_DB: ${DB_NAME:-demo}
+      POSTGRES_USER: ${DB_USER:-demo}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Copy .env.example to .env and set DB_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.12-bookworm
+    # Ephemeral local state: no RDB snapshots or AOF, intentionally no volume.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  postgres-data:

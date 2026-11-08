@@ -5,7 +5,7 @@ ve Otomatik / Gündüz / Akşam / Gece düğmeleri bileşenin içindedir. Sayfay
 
 Temalar: `library` (Kütüphane), `cabin` (Dağ Evi, şömineli), `office` (Yazılım Ofisi, plaza),
 `teagarden` (Çay Bahçesi, deniz manzaralı), `camp` (Kamp, göl kenarı), `space` (Uzay İstasyonu),
-`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda).
+`underwater` (Sualtı Araştırma Üssü), `bar` (Bar, yağmurlu sokağa bakan), `treehouse` (Ağaç Ev, ormanda), `cyber` (Siber Loft, neon megakent), `alchemist` (Simyacı Odası, taş kule).
 Her temada 1-10 kişilik oda var.
 
 ```jsx
@@ -18,6 +18,8 @@ import { SpaceRoom } from './rooms/space'
 import { UnderwaterRoom } from './rooms/underwater'
 import { BarRoom } from './rooms/bar'
 import { TreehouseRoom } from './rooms/treehouse'
+import { CyberRoom } from './rooms/cyber'
+import { AlchemistRoom } from './rooms/alchemist'
 
 // kapasiteye göre seçim (1-10)
 <div style={{ height: 600 }}>
@@ -34,21 +36,40 @@ Bileşen ebeveyninin boyutunu doldurur; ebeveyne yükseklik verin.
 
 | Prop | Açıklama |
 | --- | --- |
-| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom`: 1-10, uygun oda bileşenini seçer |
+| `capacity` | Yalnızca `LibraryRoom` / `CabinRoom` / `OfficeRoom` / `TeaGardenRoom` / `CampRoom` / `SpaceRoom` / `UnderwaterRoom` / `BarRoom` / `TreehouseRoom` / `CyberRoom` / `AlchemistRoom`: 1-10, uygun oda bileşenini seçer |
 | `reducedMotion` | Tüm temalar: animasyonu durdurur (varsayılan: işletim sistemi tercihi) |
 | `defaultTimeOfDay` | `'auto'` (varsayılan, gerçek saati takip eder), `'day'`, `'evening'`, `'night'` |
 | `onSpotClick(spot)` | Zemindeki mola halkasına tıklanınca: `{ id, label, position }` |
 | `children` | Sahneye eklenecek 3D içerik (avatarlar) |
 | `className`, `style` | Dış kapsayıcıya gider |
 
-Avatar bileşenleri sahnenin içinde `useRoom()` ile koltukları (`seats`: `{ id, position, yaw }`)
-ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını verir.
+Avatar bileşenleri sahnenin içinde `useRoom()` ile koltukları ve mola noktalarını okur; `useTimeOfDay()` o anki
+ışık ayarını verir.
+
+- Koltuk (`seats`): `{ id, position, yaw, desk?, kind? }`. `desk` önündeki masadaki ana eşya, `kind` koltuk türü.
+- Mola noktası (`spots`): `{ id, label, position, stations?, face? }`. `stations` eşyanın oturma, yatma, binme ya da
+  durma noktalarıdır. Eşya tanımında, eşyanın çizildiği çerçevede yerel koordinatla verilir (`spot.stations`,
+  `core/stations.js`). `face` ayaktakilerin döneceği yön (eşyaya doğru).
+- Kapı önlerinde mola noktası yok.
+- Kamp ayrıca çadırları verir (`beds`: giriş, iç, tepe); uzaktakiler çadıra girip uyur.
+
+Yeni bir eşyaya mola noktası eklerken kişinin orada ne yapacağı `src/avatars/activities.js`'e yazılır.
+Hazır avatar sistemi `src/avatars/` içinde (`AvatarCrowd` odanın çocuğu olarak verilir; bkz. `src/avatars/README.md`).
+Yürünebilir alan odanın voxel katmanlarından çıkarılır; yeni bir tema ya da düzen eklenince `.claude/room-tools/check_nav.mjs`
+ile her koltuğun kalkış noktası ve mola yerlerinin erişilebilirliği denetlenmeli.
 
 ## Yapı
 
 - `core/` tema bağımsız: `RoomCanvas` (kabuk), `VoxelMeshes` (instanced çizim), `SpotRings`, gün zamanı ayarları,
   `AnimationTicker` (temanın tüm efektlerine ortak kare zamanlayıcısı), `SteamEffect` (semaver, çaydanlık, kahve
-  makinesi buharı; tüm temalar paylaşır)
+  makinesi buharı; tüm temalar paylaşır). `Interactives` tıklanabilir eşyalar: parça içinde `f.interactive(kind, x, y, z, yaw, opts)` ile
+  açılan çerçeveye çizilen kutular o eşyaya ait olur. `lamp` açılıp kapanır (ampul ve ışık havuzu),
+  `screen` bir an söner ve kırpışarak açılır, `plant` sallanır (`bend`: saksı sabit; `each`: sıradaki
+  her fide / asılı ot yerinde), `machine` boyuna göre sarsılır (alçak eşya ayrıca zıplar) ve `puff`
+  ile buhar, kabarcık, iksir ya da nota çıkarır. Kural: her temanın 1-10 kişilik her yerleşiminde en
+  az üç tıklanabilir eşya bulunur (PRODUCT.md, Development Rules). `RoomCanvas`'ın `lamps` dizisi `[x, y, z]` ya da `{ position, color }` alır;
+  renk verilmezse gün zamanı ayarındaki `lampColor` kullanılır. Builder'daki `glow(x, y, z, w, d, color)` ışık havuzunu
+  bu renkle boyar (renk `lampColor` ile çarpılır).
 - `library/parts.js` kütüphane mobilyaları (kutulardan), `buildLibrary.js` yerleşimi sahneye çevirir
 - `library/LibraryRoom1..10.jsx` her kapasitenin kendi yerleşimi (`LAYOUT`). Düzen her odada aynı: arka duvar
   boydan kitaplık (8+ kişide ortada büst nişi), sol-arkada küre, sağ-arkada saksı ve kart kataloğu, sol duvarda
@@ -73,25 +94,46 @@ ve mola noktalarını (`spots`) okur; `useTimeOfDay()` o anki ışık ayarını 
   aynı: sol duvar pencere, arka duvarda soldan sağa hava kilidi, giysi, kontrol paneli, ikmal otomatı, kargo rafı,
   hidroponik bahçe (eşit aralıkla), ortada görev masası, sağ kenarda spor köşesi; oda büyüdükçe koşu bandı,
   teleskop, bisiklet, pencere önü bank, kargo rafı ve zemin penceresi eklenir.
-- `underwater/` aynı yapı: `parts.js` (deniz manzaralı akvaryum camı, basınç kapısı, dalış giysisi, sonar paneli,
-  kahve köşesi, masa akvaryumlu araştırma masası, yosun bahçesi, denizanası tankı, dalış havuzu...), `buildUnderwater.js`,
-  `UnderwaterRoom1..10.jsx`. Düzen her odada aynı: sol duvar boydan boya akvaryum camı, arka duvarda soldan sağa basınç
-  kapısı, dalış giysisi, sonar paneli, kahve köşesi, numune rafı, yosun bahçesi (eşit aralıkla), ortada araştırma masası,
-  sağ-arkada denizanası tankı, sağ-önde tüp kafesi; oda büyüdükçe gözlem kamerası, cam önü bank, numune rafı ve dalış
-  havuzu eklenir. Camın arkasındaki deniz duvar kalınlığı içinde sığ bir dioramadır (kamera dönünce derinlik verir).
+- `underwater/` aynı yapı: `parts.js` (pirinç çerçeveli sekizgen lombozlar ve arkalarında deniz, basınç kapısı, dalış
+  giysisi, kahve köşesi, numune rafı, yosun bahçesi, lomboz masası, yuvarlak sonar masası, lomboz altı kanepe, denizanası
+  tankı, batiskaflı dalış havuzu, tüp kafesi...), `buildUnderwater.js`, `UnderwaterRoom1..10.jsx`. Derin deniz habitatı;
+  uzay istasyonundan farklı düzen: arka duvarda soldan sağa lombozlar (altında tek kişilik lomboz masası ya da önünde mola
+  halkası), dalış giysisi, kahve köşesi, numune rafı (7+), yosun bahçesi (eşit aralıkla); ortada yuvarlak sonar masası,
+  koltuklar çevresinde (2-6 kişi, ilki kameraya dönük); sol duvarda basınç kapısı, lomboz (2-5) ya da lomboz altı kanepe
+  (6+), sol önde batiskaflı dalış havuzu (4+); sağda denizanası tankı, sağ önde tüp kafesi (5+). Koltuklar: lomboz masaları
+  (1, 7-10) + sonar masası. Her lombozun arkasındaki deniz duvar kalınlığı içinde sığ bir dioramadır (kamera dönünce
+  derinlik verir); açıklık dışına taşan balık ve yosunlar duvar gövdesinin içinde kalır.
 - `bar/` aynı yapı: `parts.js` (yağmurlu sokağa bakan sürgülü pencereler, giriş kapısı, dart, aynalı ve neon tabelalı
   arka bar, taburelerli tezgâh, deri sedirler, vantilatörlü yuvarlak masa, müzik kutusu, bilardo masası...), `buildBar.js`,
   `BarRoom1..10.jsx`. Düzen her odada aynı: arka duvarda soldan sağa giriş kapısı, dart (4+), arka bar ve önündeki tezgâh,
   müzik kutusu (eşit aralıkla); sol duvarda pencereler ve pencere altında sedirler (6+), ortada yuvarlak masa (4+), sağda
-  bilardo masası (8+), bilardo olmayan odalarda müzik kutusunun önünde büyük saksı. Koltuklar: tabureler + sedirler + masa.
+  bilardo masası (8+), bilardo olmayan odalarda müzik kutusunun önünde büyük saksı, orta-önde ayakta masa (7+, mola yeri).
+  Koltuklar: tabureler + sedirler + masa.
 - `treehouse/` aynı yapı: `parts.js` (tahta kaplama duvarlar, ormana bakan açık pencereler, zemindeki giriş kapağı ve
   merdiven, kasa kitaplık, kakao köşesi, hamak, odayı delip geçen ağaç gövdesi ve dalları, kütük masa ve tabureler, minder
   köşesi, teleskop...), `buildTreehouse.js`, `TreehouseRoom1..10.jsx`. Düzen her odada aynı: arka duvarda soldan sağa giriş
   kapağı, kitaplık (3+), kakao köşesi (5+), gövdeye bağlı hamak ve sağ arka köşede gövde (eşit aralıkla); sol duvarda
-  pencereler ve her birinin altında tabureli masa, ortada kilim üstünde kütük masalar (3+), sağda teleskop, sağ önde minder
-  köşesi (8+). Koltuklar: pencere masaları + kütük masalar (2'şer) + minder köşesi (2).
+  pencereler ve her birinin altında tabureli masa, ortada kilim üstünde kütük masa (3-5, 2 kişi) ya da büyük yuvarlak kütük
+  masa (6+, 4 kişi), sağda teleskop, sağ önde minder köşesi (8+), sol önde kütük bank (9+). Koltuklar: pencere masaları +
+  kütük masa + minder köşesi (2). Kitaplığın önü de mola yeri.
+- `cyber/` aynı yapı: `parts.js` (yerden tavana panoramik pencere ve gece kenti, zırhlı kayar kapı, sunucu kabinleri, veri
+  duvarı, veri akışı sütunları, drone yuvası, "ODAK" neonlu ramen otomatı, kapsül masa ve sandalyeler, hologram masası, yumurta
+  koltuklu lounge, VR istasyonu, bonsai teraryumu...), `buildCyber.js`, `CyberRoom1..10.jsx`. Düzen her odada aynı: sol duvar
+  panoramik pencere ve önünde kapsül masalar; arka duvarda soldan sağa kapı, sunucular (3+), veri duvarı (5+), drone yuvası ve
+  otomat (eşit aralıkla, geniş boşluklarda veri akışı sütunu); ortada hologram masası (3-5, 2 kişi) ya da uzun hologram adası
+  (6+, 4 kişi), sağda VR istasyonu, sağ önde lounge (8+), lounge olmayan orta odalarda bonsai teraryumu. Koltuklar: kapsül
+  masalar + hologram masası / adası + lounge (2). Sunucuların önü ve (yer varsa) sol-önde pencere kenarı mola yeri.
+  Neonlar `bulb` katmanında; tema `bulb` ve `lampColor`'ı beyaz tutar, lambalar ve ışık havuzları kendi rengini taşır.
+- `alchemist/` aynı yapı: `parts.js` (kaba taş duvar ve döşeme, meşe kirişler, sivri kemerli kurşun çerçeveli pencereler,
+  kemerli kapı, kitaplık, baykuşlu iksir dolabı, imbikli simya tezgâhı, duvar şamdanları, gotik sandalyeli okuma ve çalışma
+  masaları, ocak üstünde kazan, rün çemberli kristal küre, gök küresi, berjerli okuma köşesi...), `buildAlchemist.js`,
+  `AlchemistRoom1..10.jsx`. Düzen her odada aynı: sol duvarda pencereler ve altlarında okuma masaları; arka duvarda soldan
+  sağa kapı, kitaplık, iksir dolabı (3+), simya tezgâhı (7+) (eşit aralıkla, geniş boşluklarda şamdan); sağ arka köşede kazan,
+  sağda kristal küre, ortada halı üstünde çalışma masaları (3+), sağ önde okuma köşesi (8+), olmayan orta odalarda gök küresi.
+  Koltuklar: okuma masaları + çalışma masaları (2'şer) + okuma köşesi (2). Duvara asılan düz eşyalar, 1 cm taşan taşların
+  önünde kalsın diye en az 1.2 cm önde durur.
 - Tema kendi gün zamanı renklerini `RoomCanvas`'ın `presets` prop'u ile verir (bkz. `CabinScene.jsx`)
-- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar); görünürlüğü `nightLights` ayarından gelir
+- `night` katmanı yalnızca akşam/gece görünür (ofisteki şehir ışıkları, çay bahçesinde karşı kıyı ve ay, kampta yıldızlar, istasyonda zemin yönlendirme LED'leri ve gezegendeki şehir ışıkları, sualtı üssünde parlayan plankton, barda karşı binanın pencereleri ve sokak lambası, ağaç evde pencerelerdeki ay ve yıldızlar, Siber Loft'ta kulelerin ışıklı pencere şeritleri, simyacı odasında ay ve uzak kulenin penceresi); görünürlüğü `nightLights` ayarından gelir
 
 Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` + `XRoom1..N.jsx`.
 
@@ -125,10 +167,11 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
 - Uzay istasyonunda dönen hologram, pencerede süzülen uydu, ekrandaki tarama çizgisi ve yanıp sönen tuş /
   durum ışıkları / yıldızlar (`space/StationEffect.jsx`) tek zamanlayıcıyla saniyede 12 kare ister (~9 draw call/kare,
   efektin tamamı 2 instanced mesh). `reducedMotion` ile durur. En büyük oda ~1150 kutu, en fazla 3 nokta ışık.
-- Sualtı üssünde camın ardında geçen balık sürüleri ve kaplumbağa, salınan yosunlar, yükselen kabarcıklar ve denizanaları,
-  içeride denizanası tankı, masa akvaryumu, dönen sonar çizgisi ve havuzdaki parıltılar (`underwater/ReefEffect.jsx`) ile kahve
-  buharı tek zamanlayıcıyla saniyede 12 kare ister (~9 draw call/kare, efektin tamamı 2 instanced mesh; deniz tarafı suyun gün
-  zamanı rengini alır). `reducedMotion` ile durur. En büyük oda ~1320 kutu, en fazla 3 nokta ışık.
+- Sualtı üssünde lombozların ardında geçen balık sürüleri ve kaplumbağa, salınan yosunlar, yükselen kabarcıklar ve
+  denizanaları; içeride denizanası tankı, sonar masasında dönen tarama çizgisi, yanıp sönen hedefler ve masanın üstünde
+  daire çizen balina hologramı, batiskafın pervanesi ve havuzdaki parıltılar (`underwater/ReefEffect.jsx`) ile kahve buharı
+  tek zamanlayıcıyla saniyede 12 kare ister (~11-12 draw call/kare, efektin tamamı 2 instanced mesh; deniz tarafı suyun gün
+  zamanı rengini alır). `reducedMotion` ile durur. En büyük oda ~1290 kutu, en fazla 2 nokta ışık.
 - Barda pencerelerde yağan yağmur ve camdan süzülen damlalar, titreyen "BAR" neonu, müzik kutusunda yürüyen ışıklar, mum
   alevi, dönen tavan vantilatörü (`bar/BarEffect.jsx`) ve kahve fincanlarının buharı tek zamanlayıcıyla saniyede 12 kare
   ister (~10 draw call/kare, efektin tamamı 3 instanced mesh). `reducedMotion` ile durur. En büyük oda ~1170 kutu, en fazla
@@ -138,8 +181,21 @@ Yeni tema: `core/`'u kullanan yeni bir klasör, kendi `parts.js` + `buildX.js` +
   (`treehouse/TreehouseEffect.jsx`) ve kakao buharı tek zamanlayıcıyla saniyede 12 kare ister (~10 draw call/kare, efektin
   tamamı 4 instanced mesh; ateş böcekleri yalnızca akşam/gece çizilir). `reducedMotion` ile durur. En büyük oda ~1450 kutu,
   en fazla 3 nokta ışık.
+- Siber Loft'ta pencerede iki şeritte akan uçan araçlar, ikaz lambaları ve iki renkli reklam panoları, sunucu LED'leri, veri
+  duvarında çubuk grafik / radar taraması / kayan satırlar, veri akışı sütunları, holo ekranlar, dönen hologram küreler ve tarama
+  halkaları, titreyen "ODAK" neonu, süzülen drone (`cyber/CyberEffect.jsx`) ve kahve / erişte buharı tek zamanlayıcıyla saniyede
+  12 kare ister (~10 draw call/kare, efektin tamamı 3 instanced mesh). `reducedMotion` ile durur. En büyük oda ~850 kutu, en
+  fazla 3 renkli nokta ışık (eflatun, kehribar, camgöbeği).
+- Simyacı odasında mum ve ocak alevleri, kıvılcımlar, kazanda ve şişelerde kabarcıklar, kazandan yükselen yarı saydam yeşil
+  duman, imbikten damlayan iksir, sırayla yanan rünler, kristal kürenin nabız gibi atan çekirdeği ve çevresindeki ışıltılar,
+  süzülen kitaplar ve mumlar, başını çeviren baykuş, dönen gök küresi, pencerelerde bulutlar ve gece parıldayan yıldızlar
+  (`alchemist/AlchemyEffect.jsx`) ile çay buharı tek zamanlayıcıyla saniyede 12 kare ister (~12 draw call/kare, efektin tamamı
+  5 instanced mesh; yıldızlar yalnızca akşam/gece çizilir). `reducedMotion` ile durur. En büyük oda ~1670 kutu, en fazla 3
+  renkli nokta ışık (kazan yeşil, kristal mor, masa mumu).
 - three.js paketi büyük (~320 kB gzip); oda ekranını `React.lazy` ile ayrı yükleyin.
 
-Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`), kapasite ve gün zamanı seçilebilir.
+Önizleme: `npm run dev`, adres çubuğunda `?theme=office&c=4&t=night` ile tema (`library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`, `treehouse`, `cyber`, `alchemist`), kapasite ve gün zamanı seçilebilir.
+Simyacı odası şimdilik seçim listelerinde gizli (`themes.js`'te `hidden: true`, listeler `LISTED_THEMES`'i okur); dosyaları
+duruyor, `?theme=alchemist` ile açılır ve o temayla kurulmuş odalar çalışmaya devam eder.
 Parametresiz adres sitenin sade test arayüzünü açar (`src/site/`): Lobi, Odam, Oda oluştur (tema ve kapasite seçimi, canlı
-3D önizleme). Temaların listesi (ad, kısa açıklama, oda bileşeni, en büyük kapasite) `themes.js` içinde; iki taraf da onu okur.
+3D önizleme), Avatarım (avatar atölyesi). `&people=mix` odayı avatarlarla açar (bkz. `src/avatars/README.md`). Temaların listesi (ad, kısa açıklama, oda bileşeni, en büyük kapasite) `themes.js` içinde; iki taraf da onu okur.

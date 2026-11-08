@@ -18,4 +18,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // geliştirme scriptleri (ör. oda görseli üretimi) Node'da çalışır
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: { globals: globals.node },
+  },
 ])

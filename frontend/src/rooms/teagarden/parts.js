@@ -391,7 +391,8 @@ export function stringLights(root, from, to, rnd, room) {
 }
 
 // Sokak feneri direği; ampul zincirinin sağ ucu bağlanır. Orijin direk tabanı.
-export function lampPost(f) {
+export function lampPost(root) {
+  const f = root.interactive('lamp')
   f.box(-0.1, 0, -0.1, 0.2, 0.22, 0.2, C.iron)
   f.box(-0.04, 0.22, -0.04, 0.08, POST_HEIGHT - 0.22, 0.08, C.iron)
   f.box(-0.06, 1.1, -0.06, 0.12, 0.05, 0.12, C.iron)
@@ -407,7 +408,8 @@ export function lampPost(f) {
 }
 
 // Duvar feneri; orijin duvarda kolun yüksekliği. Zemine ışık havuzu düşer.
-export function lantern(f, height) {
+export function lantern(root, height) {
+  const f = root.interactive('lamp')
   f.box(-0.02, 0.04, 0, 0.04, 0.03, 0.24, C.iron)
   f.box(-0.03, -0.12, 0, 0.06, 0.16, 0.03, C.iron)
   const l = f.frame(0, 0, 0.22)
@@ -554,7 +556,9 @@ export function teaCounter(f, length, rnd, room) {
 }
 
 // Pirinç semaver; orijin taban ortası. Üstünde porselen demlik; buhar noktası room.steams'e.
-function samovar(f, room) {
+function samovar(root, room) {
+  // tıklanınca semaver sarsılır, demliğin üstünden buhar püskürür
+  const f = root.interactive('machine', 0, 0, 0, 0, { puff: { at: [0, 0.77, 0], kind: 'steam' } })
   oct(f, 0, 0.3, 0.035, C.brassDark)
   oct(f, 0.035, 0.13, 0.09, C.brass)
   oct(f, 0.125, 0.24, 0.04, C.brassDark)
@@ -673,7 +677,7 @@ export function teaTable(f, { sides = ['back'], cloth, extra }, rnd, room) {
     const [dx, dz, yaw] = SIDES[side]
     const c = f.frame(dx * CHAIR_DISTANCE, 0, dz * CHAIR_DISTANCE, yaw)
     chair(c, rnd)
-    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing() })
+    room.seats.push({ position: c.point(0, SEAT_HEIGHT, 0).toArray(), yaw: c.facing(), desk: 'tea', kind: 'chair' })
     teaGlass(f.frame(dx * 0.2, top, dz * 0.2, yaw).frame(0.06, 0, 0))
   }
 
@@ -853,17 +857,19 @@ export function planter(f, rnd, length = 2) {
   f.box(-length / 2, 0, -0.18, length, 0.38, 0.36, C.wood)
   f.box(-length / 2 - 0.02, 0.34, -0.2, length + 0.04, 0.05, 0.4, C.woodDark)
   f.box(-length / 2 + 0.03, 0.39, -0.15, length - 0.06, 0.01, 0.3, C.soil)
+  // çiçekler toprak yüzeyinden yerlerinde sallanır
+  const g = f.interactive('plant', 0, 0.39, 0, 0, { each: true })
   for (let u = -length / 2 + 0.1; u < length / 2 - 0.1; u += 0.22) {
     const kind = Math.floor(rnd() * 3)
-    f.box(u - 0.08, 0.39, -0.12 + rnd() * 0.06, 0.17, 0.12 + rnd() * 0.06, 0.17, pick(rnd, C.leaves))
+    g.box(u - 0.08, 0, -0.12 + rnd() * 0.06, 0.17, 0.12 + rnd() * 0.06, 0.17, pick(rnd, C.leaves))
     if (kind === 0) {
-      f.box(u - 0.05, 0.52, -0.08, 0.1, 0.07, 0.1, pick(rnd, C.flowers))
+      g.box(u - 0.05, 0.13, -0.08, 0.1, 0.07, 0.1, pick(rnd, C.flowers))
     } else if (kind === 1) {
-      for (const x of [-0.05, 0.0, 0.05]) f.box(u + x - 0.01, 0.5, -0.04 + x, 0.025, 0.14, 0.025, C.lavender)
+      for (const x of [-0.05, 0.0, 0.05]) g.box(u + x - 0.01, 0.11, -0.04 + x, 0.025, 0.14, 0.025, C.lavender)
     } else {
       for (const [x, z] of [[-0.04, -0.06], [0.04, 0.02]]) {
-        f.box(u + x - 0.025, 0.52, z, 0.05, 0.012, 0.05, C.daisy)
-        f.box(u + x - 0.01, 0.53, z + 0.015, 0.02, 0.006, 0.02, C.cartYellow)
+        g.box(u + x - 0.025, 0.13, z, 0.05, 0.012, 0.05, C.daisy)
+        g.box(u + x - 0.01, 0.14, z + 0.015, 0.02, 0.006, 0.02, C.cartYellow)
       }
     }
   }
@@ -913,9 +919,11 @@ export function planeTree(f, rnd) {
     const [x, z, w, d] = [[t, 0.2, s, 0.01], [t, -0.21, s, 0.01], [0.2, t, 0.01, s], [-0.21, t, 0.01, s]][side]
     f.box(x, y, z, w, s * 1.4, d, pick(rnd, C.bark))
   }
+  // dallar ve taç gövdenin tepesinden sallanır (gövde ve oturak kıpırdamaz)
+  const crown = f.interactive('plant', 0, 1.75, 0)
   for (let i = 0; i < 4; i++) {
     const yaw = (i / 4) * Math.PI * 2 + rnd() * 0.6
-    f.frame(0, 1.75, 0, yaw, 0.65).box(-0.06, 0, -0.06, 0.12, 0.85, 0.12, C.bark[0])
+    crown.frame(0, 0, 0, yaw, 0.65).box(-0.06, 0, -0.06, 0.12, 0.85, 0.12, C.bark[0])
   }
   // kubbe biçimli taç: dışa doğru alçalan küçük yaprak kümeleri, üstte açık yeşil
   for (let i = 0; i < 30; i++) {
@@ -924,7 +932,7 @@ export function planeTree(f, rnd) {
     const s = 0.32 + rnd() * 0.34
     const y = 2.05 + rnd() * 0.75 - r * 0.3
     const color = y > 2.45 ? pick(rnd, [C.leaves[1], C.leaves[3], C.leafLight]) : pick(rnd, C.leaves)
-    f.box(Math.sin(a) * r - s / 2, y, Math.cos(a) * r - s / 2, s, s * 0.7, s, color)
+    crown.box(Math.sin(a) * r - s / 2, y - 1.75, Math.cos(a) * r - s / 2, s, s * 0.7, s, color)
   }
   // ağaç altı oturağı
   const o = 0.68
@@ -936,7 +944,8 @@ export function planeTree(f, rnd) {
 }
 
 // Büyük toprak saksıda zeytin ağacı.
-export function oliveTree(f, rnd) {
+export function oliveTree(root, rnd) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.5 })
   f.box(-0.26, 0, -0.26, 0.52, 0.48, 0.52, C.pot)
   f.box(-0.28, 0.44, -0.28, 0.56, 0.06, 0.56, C.potDark)
   f.box(-0.23, 0.5, -0.23, 0.46, 0.01, 0.46, C.soil)
@@ -951,7 +960,8 @@ export function oliveTree(f, rnd) {
 }
 
 // Boyalı teneke saksıda sardunya.
-export function geraniumTin(f, rnd) {
+export function geraniumTin(root, rnd) {
+  const f = root.interactive('plant', 0, 0, 0, 0, { bend: 0.32 })
   f.box(-0.13, 0, -0.13, 0.26, 0.32, 0.26, pick(rnd, C.tins))
   f.box(-0.11, 0.32, -0.11, 0.22, 0.01, 0.22, C.soil)
   for (let i = 0; i < 4; i++) {

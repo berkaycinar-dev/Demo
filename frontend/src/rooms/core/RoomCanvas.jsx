@@ -1,5 +1,6 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import './quietClock'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { TimeOfDayContext } from './roomContext'
 import { TIME_LABELS, TIME_MODES, TIME_PRESETS, timeOfDayForHour } from './timeOfDay'
@@ -70,6 +71,9 @@ function CameraRig({ bounds, view }) {
       target.z + Math.cos(azimuth) * flat,
     )
     camera.lookAt(target)
+    // lookAt dünya matrisini dönüşten önce günceller; aynı karede kamerayla izdüşüm yapanlar (avatar
+    // etiketleri) eski dönüşü görmesin
+    camera.updateMatrixWorld()
     const nextZoom = fit * zoom
     if (camera.zoom !== nextZoom) {
       camera.zoom = nextZoom
@@ -133,11 +137,11 @@ function Lighting({ bounds, preset, lamps }) {
         shadow-normalBias={0.025}
         shadow-radius={3}
       />
-      {lamps.map((position, i) => (
+      {lamps.map((lamp, i) => (
         <pointLight
           key={i}
-          position={position}
-          color={preset.lampColor}
+          position={Array.isArray(lamp) ? lamp : lamp.position}
+          color={lamp.color ?? preset.lampColor}
           intensity={preset.lamp}
           distance={4.5}
           decay={2}
@@ -152,9 +156,95 @@ function Lighting({ bounds, preset, lamps }) {
  * gün zamanı düğmeleri. Tema içeriği (voxel mesh'ler, halkalar, avatarlar) children olarak gelir.
  *
  * bounds: { min: [x, y, z], max: [x, y, z] } oda kutusu (kadraj ve gölge kamerası için)
- * lamps: nokta ışık konumları [[x, y, z], ...] (performans için en fazla 4)
+ * lamps: nokta ışıklar [[x, y, z] | { position, color }, ...] (performans için en fazla 4); renk verilmezse
+ *        gün zamanı ayarındaki lampColor
  * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
+ * toolbar: 'full' (varsayılan; zoom + dört gün zamanı düğmesi) ya da 'compact' (zoom + katlanır gün zamanı
+ *          menüsü, sağ altta; oda oluşturma gibi asıl eylemin sahne dışında olduğu sayfalar için).
+ * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık).
+ * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
+ *              ({ width: 'calc(100% - 400px)' } gibi). Verilmezse sahne kutunun tamamını kullanır.
  */
+// Kompakt araç çubuğunda yakınlaştırma büyüteçle gösterilir: aynı sayfadaki kapasite seçicinin
+// −/+ düğmeleriyle karışmasın (sitenin ikon dili: 24 px ızgara, 2 px çizgi, yuvarlak uçlar).
+function ZoomGlyph({ sign }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d={sign === 'in' ? 'M15.5 15.5 21 21M7.5 10.5h6M10.5 7.5v6' : 'M15.5 15.5 21 21M7.5 10.5h6'} />
+    </svg>
+  )
+}
+
+// Katlanır gün zamanı seçici (toolbar="compact"): düğme o anki seçimi gösterir, menü yukarı açılır;
+// seçim, dışarı tıklama ya da Esc kapatır.
+function TimeMenu({ mode, onChange }) {
+  const [open, setOpen] = useState(false)
+  const root = useRef(null)
+  const trigger = useRef(null)
+  const menuId = useId()
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => !root.current?.contains(e.target) && setOpen(false)
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      trigger.current?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  return (
+    <div className="room-canvas__time" ref={root}>
+      {open && (
+        <div id={menuId} className="room-canvas__time-menu" role="group" aria-label="Gün zamanı">
+          {TIME_MODES.map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              onClick={() => {
+                onChange(m)
+                setOpen(false)
+                trigger.current?.focus()
+              }}
+            >
+              <svg className="room-canvas__time-check" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              {TIME_LABELS[m]}
+            </button>
+          ))}
+        </div>
+      )}
+      <button
+        ref={trigger}
+        type="button"
+        className="room-canvas__time-btn"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        aria-label={`Gün zamanı: ${TIME_LABELS[mode]}`}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+        </svg>
+        <span>{TIME_LABELS[mode]}</span>
+        <svg className="room-canvas__time-chev" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+          <path d="m6 15 6-6 6 6" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
 export default function RoomCanvas({
   bounds,
   lamps = [],
@@ -162,9 +252,13 @@ export default function RoomCanvas({
   defaultTimeOfDay = 'auto',
   className = '',
   style,
+  canvasStyle,
+  toolbar = 'full',
+  hint = 'Sürükle: döndür · Çift tık: sıfırla',
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
+  const compact = toolbar === 'compact'
   const hour = useCurrentHour()
   const timeOfDay = mode === 'auto' ? timeOfDayForHour(hour) : mode
   const preset = useMemo(
@@ -223,6 +317,7 @@ export default function RoomCanvas({
     >
       <Canvas
         orthographic
+        style={canvasStyle}
         frameloop="demand"
         shadows="percentage"
         flat
@@ -240,28 +335,45 @@ export default function RoomCanvas({
         <TimeOfDayContext.Provider value={preset}>{children}</TimeOfDayContext.Provider>
       </Canvas>
 
-      <div className="room-canvas__ui room-canvas__toolbar" role="toolbar" aria-label="Sahne kontrolleri">
-        <div className="room-canvas__group">
-          <button type="button" aria-label="Yakınlaştır" onClick={() => zoomBy(ZOOM_STEP)}>
-            +
-          </button>
-          <button type="button" aria-label="Uzaklaştır" onClick={() => zoomBy(1 / ZOOM_STEP)}>
-            −
-          </button>
-          <button type="button" onClick={resetView}>
-            Sıfırla
-          </button>
-        </div>
-        <div className="room-canvas__group" role="group" aria-label="Gün zamanı">
-          {TIME_MODES.map((m) => (
-            <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}>
-              {TIME_LABELS[m]}
+      {compact ? (
+        <div className="room-canvas__ui room-canvas__toolbar room-canvas__toolbar--compact" role="toolbar" aria-label="Sahne kontrolleri">
+          <div className="room-canvas__group">
+            <button type="button" aria-label="Yakınlaştır" onClick={() => zoomBy(ZOOM_STEP)}>
+              <ZoomGlyph sign="in" />
             </button>
-          ))}
+            <button type="button" aria-label="Uzaklaştır" onClick={() => zoomBy(1 / ZOOM_STEP)}>
+              <ZoomGlyph sign="out" />
+            </button>
+            <button type="button" onClick={resetView}>
+              Sıfırla
+            </button>
+          </div>
+          <TimeMenu mode={mode} onChange={setMode} />
         </div>
-      </div>
+      ) : (
+        <div className="room-canvas__ui room-canvas__toolbar" role="toolbar" aria-label="Sahne kontrolleri">
+          <div className="room-canvas__group">
+            <button type="button" aria-label="Yakınlaştır" onClick={() => zoomBy(ZOOM_STEP)}>
+              +
+            </button>
+            <button type="button" aria-label="Uzaklaştır" onClick={() => zoomBy(1 / ZOOM_STEP)}>
+              −
+            </button>
+            <button type="button" onClick={resetView}>
+              Sıfırla
+            </button>
+          </div>
+          <div className="room-canvas__group" role="group" aria-label="Gün zamanı">
+            {TIME_MODES.map((m) => (
+              <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}>
+                {TIME_LABELS[m]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <p className="room-canvas__hint">Sürükle: döndür · Çift tık: sıfırla</p>
+      <p className="room-canvas__hint">{hint}</p>
     </div>
   )
 }
