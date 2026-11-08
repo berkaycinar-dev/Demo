@@ -1,5 +1,6 @@
 // Oda seçim kartlarının statik izometrik görsellerini üretir: her tema 3D sahneden bir kez çizilir ve
-// public/room-thumbs/<tema>.webp olarak yazılır (şeffaf zemin, gündüz ışığı). Uygulama çalışırken
+// public/room-thumbs/<tema>.webp olarak yazılır (şeffaf zemin, gündüz ışığı). Gündüz dışındaki saatler
+// <tema>-<saat>.webp olur (koyu mod kartları: THUMB_TIME=evening). Uygulama çalışırken
 // görsel üretilmez; tema eklenince ya da odalar değişince bu script yeniden çalıştırılır.
 //
 // Kullanım (frontend klasöründen):
@@ -55,7 +56,7 @@ try {
         html, body, #root, .room-preview, .room-canvas { background: transparent !important; }`,
     })
     await new Promise((r) => setTimeout(r, 3500))
-    const out = resolve(outDir, `${theme}.webp`)
+    const out = resolve(outDir, `${theme}${time === 'day' ? '' : `-${time}`}.webp`)
     const canvas = await page.$('.room-canvas')
     await canvas.screenshot({ path: out, type: 'webp', quality: 82, omitBackground: true })
     console.log('yazıldı', out)

@@ -69,7 +69,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
     <header className="site-header" ref={ref}>
       <button type="button" className="site-brand" onClick={() => onGo(user ? 'sayfam' : 'anasayfa')}>
         <BrandMark />
-        Odakhane
+        <span className="site-brand__text">Odakhane</span>
       </button>
 
       {user && !onLanding && (
@@ -92,7 +92,9 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
       )}
 
       <div className="site-header__tools">
-        <ModeToggle isDark={isDark} onToggle={onToggleMode} iconOnly={!user || onLanding} />
+        <span className={user && !onLanding ? 'site-header__mode' : undefined}>
+          <ModeToggle isDark={isDark} onToggle={onToggleMode} iconOnly={!user || onLanding} />
+        </span>
         {user ? (
           <>
             {onLanding && (
@@ -113,6 +115,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
               </span>
               <span className="user-chip__name">{user.displayName}</span>
             </button>
+            {/* telefonda üst menü tek satır: mod ve çıkış hesap sayfasında (AccountPage SessionCard) */}
             <button type="button" className="header-link" onClick={onLogout}>
               Çıkış yap
             </button>
@@ -180,7 +183,7 @@ export function SiteFooter({ user, pages, onGo, isDark }) {
       <div className="site-footer__bottom">
         <div className="site-footer__inner">
           <span>© 2026 Odakhane (çalışma adı)</span>
-          <span>Tema: Kâğıt &amp; Mavi · {isDark ? 'koyu' : 'açık'}</span>
+          <span>Tema: Kâğıt &amp; Terakota · {isDark ? 'koyu' : 'açık'}</span>
         </div>
       </div>
     </footer>
