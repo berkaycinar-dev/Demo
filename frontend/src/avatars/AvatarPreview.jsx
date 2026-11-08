@@ -42,6 +42,8 @@ const SEATED = {
 const STANDING = {
   full: { elev: 24, span: [2.3, 1.9] },
   face: { anchor: 'head', elev: 10, span: [0.9, 0.72] },
+  // saç seçeneği görseli (scripts/render-avatar-thumbs.mjs): kısa kesimler tepeden ayrışır
+  crown: { anchor: 'head', elev: 30, span: [0.9, 0.72] },
   hat: { anchor: 'hat', elev: 12, span: [1, 0.8] },
   chest: { anchor: 'chest', elev: 12, span: [0.9, 0.72] },
   wrist: { anchor: 'wrist', elev: 14, span: [0.8, 0.64] },

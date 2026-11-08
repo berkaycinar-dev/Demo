@@ -76,8 +76,9 @@ const SUFFIX = ["'e", "'ye", "'e"]
 const sameLook = (a, b) => JSON.stringify({ ...a, name: '' }) === JSON.stringify({ ...b, name: '' })
 
 // Seçenek görselleri: scripts/render-avatar-thumbs.mjs ile avatar modelinden bir kez üretilir
-// (public/avatar-thumbs/<tür>-<id>.webp). thumbs: o alanın tür adı (hair, hat, glasses, beard, mustache).
-const thumbOf = (kind, id) => `${import.meta.env.BASE_URL}avatar-thumbs/${kind}-${id}.webp`
+// her beden için ayrı (public/avatar-thumbs/<tür>-<id>-<beden>.webp; sakal ve bıyık yalnızca male).
+// thumbs: o alanın tür adı (hair, hat, glasses, beard, mustache); body: avatarın bedeni.
+const thumbOf = (kind, id, body) => `${import.meta.env.BASE_URL}avatar-thumbs/${kind}-${id}-${body === 'female' ? 'female' : 'male'}.webp`
 
 // Tek seçimlik düğme. "Yok" seçeneği ikonla ve kesik çerçeveyle ayrılır; thumbs verilirse üstte
 // seçeneğin voxel görseli durur.
@@ -91,12 +92,12 @@ function OptionThumb({ src }) {
   )
 }
 
-function Option({ o, value, onChange, thumbs }) {
+function Option({ o, value, onChange, thumbs, body }) {
   const none = o.id === 'none'
   const cls = ['tile', none && 'tile--none', thumbs && 'tile--thumb'].filter(Boolean).join(' ')
   return (
     <button type="button" className={cls} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
-      {thumbs && <OptionThumb src={thumbOf(thumbs, o.id)} />}
+      {thumbs && <OptionThumb key={body} src={thumbOf(thumbs, o.id, body)} />}
       <span className="tile__label">
         {none && <Icon name="none" size={14} />}
         {o.label}
@@ -121,7 +122,7 @@ function FieldLabel({ label, current, note, bare = false, action }) {
 // Seçenekler (tek seçim). Az ve kısa seçenekler (variant="segment") bitişik bir şeritte, diğerleri
 // sıkı bir ızgarada. option.group varsa ızgara alt başlıklara bölünür. disabled: o anki seçimde
 // geçersiz; alan soluklaşır, düğmeler tıklanmaz ve klavyeyle de seçilmez, not (neden) okunur kalır.
-function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false, bare = false, thumbs }) {
+function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false, bare = false, thumbs, body }) {
   const groups = options[0]?.group ? [...new Set(options.map((o) => o.group))] : null
   const grid = thumbs ? 'option-grid option-grid--thumbs' : 'option-grid'
   return (
@@ -141,7 +142,7 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
             <span className="option-group__name">{g}</span>
             <div className={grid}>
               {options.filter((o) => o.group === g).map((o) => (
-                <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} />
+                <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} body={body} />
               ))}
             </div>
           </div>
@@ -149,7 +150,7 @@ function Choices({ label, options, value, onChange, note, variant = 'grid', disa
       ) : (
         <div className={grid}>
           {options.map((o) => (
-            <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} />
+            <Option key={o.id} o={o} value={value} onChange={onChange} thumbs={thumbs} body={body} />
           ))}
         </div>
       )}
@@ -676,7 +677,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           {tab === 'hair' && (
             <>
               <Section title="Saç">
-                <Choices label="Saç modeli" bare thumbs="hair" options={HAIR_STYLES} value={avatar.hairStyle} onChange={set('hairStyle')} />
+                <Choices label="Saç modeli" bare thumbs="hair" body={avatar.body} options={HAIR_STYLES} value={avatar.hairStyle} onChange={set('hairStyle')} />
                 <Choices
                   label="Kahkül"
                   variant="segment"
@@ -734,13 +735,13 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
             <>
               <Zone zone="hat" onZone={setZone}>
                 <Section title="Başlık">
-                  <Choices label="Başlık" bare thumbs="hat" options={HATS} value={avatar.hat} onChange={set('hat')} />
+                  <Choices label="Başlık" bare thumbs="hat" body={avatar.body} options={HATS} value={avatar.hat} onChange={set('hat')} />
                   {FIXED_COLOR_HATS.includes(avatar.hat) ? null : <Swatches label="Renk" options={CLOTH_COLORS} value={avatar.hatColor} onChange={set('hatColor')} />}
                 </Section>
               </Zone>
               <Section title="Yüz ve kulak">
                 <Zone zone="face" onZone={setZone}>
-                  <Choices label="Gözlük" thumbs="glasses" options={GLASSES} value={avatar.glasses} onChange={set('glasses')} />
+                  <Choices label="Gözlük" thumbs="glasses" body={avatar.body} options={GLASSES} value={avatar.glasses} onChange={set('glasses')} />
                 </Zone>
                 <Zone zone={avatar.headphones === 'neck' ? 'chest' : 'face'} onZone={setZone}>
                   <Choices label="Kulaklık" note={phoneNote} options={HEADPHONES} value={avatar.headphones} onChange={set('headphones')} />
