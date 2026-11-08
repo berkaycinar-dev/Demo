@@ -2455,3 +2455,74 @@
     margin-bottom: 18px;
   }
 }
+
+/* ---------- Görseller: yüklenirken iskelet, yüklenemezse yer tutucu (tema kartı, seçenek görseli) ---------- */
+.tile__thumb {
+  position: relative;
+  overflow: hidden;
+}
+
+.tile__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.theme-option__img {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+}
+
+.tile__thumb img,
+.theme-option__img img {
+  transition: opacity 200ms ease-out;
+}
+
+.tile__thumb[data-state='loading'] img,
+.theme-option__img[data-state='loading'] img {
+  opacity: 0;
+}
+
+/* iskelet: yüzeyden biraz koyu, üstünden yavaş bir ışık geçer */
+.tile__thumb[data-state='loading']::after,
+.theme-option__img[data-state='loading']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--surface) 70%, transparent) 50%, transparent 70%) var(--surface-sunken);
+  background-size: 250% 100%;
+  animation: thumbShimmer 1.4s ease-in-out infinite;
+}
+
+.theme-option__img[data-state='loading']::after {
+  inset: 10%;
+  border-radius: var(--radius-block);
+}
+
+.tile__thumb[data-state='error'],
+.theme-option__img[data-state='error'] {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.theme-option__img[data-state='error'] {
+  background: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--line) 55%, transparent) 9px 10px);
+}
+
+@keyframes thumbShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile__thumb[data-state='loading']::after,
+  .theme-option__img[data-state='loading']::after {
+    animation: none;
+  }
+}

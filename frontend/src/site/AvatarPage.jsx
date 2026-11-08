@@ -36,6 +36,7 @@ import AvatarPortrait from './AvatarPortrait'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
 import { loadPresets, savePresets } from './avatarStore'
+import useImageState from './useImageState'
 
 // icon: AvatarIcons adı; poz ve çalışma türü önizlemenin üstündeki HUD'da ikon + etiketle seçilir
 const MODES = [
@@ -80,12 +81,22 @@ const thumbOf = (kind, id) => `${import.meta.env.BASE_URL}avatar-thumbs/${kind}-
 
 // Tek seçimlik düğme. "Yok" seçeneği ikonla ve kesik çerçeveyle ayrılır; thumbs verilirse üstte
 // seçeneğin voxel görseli durur.
+// Seçenek görseli: yüklenirken iskelet, yüklenemezse çizgi ikonlu yer tutucu (kırık resim simgesi yok).
+function OptionThumb({ src }) {
+  const [state, imgProps] = useImageState()
+  return (
+    <span className="tile__thumb" data-state={state}>
+      {state === 'error' ? <Icon name="image" size={20} /> : <img src={src} alt="" width="56" height="56" loading="lazy" decoding="async" {...imgProps} />}
+    </span>
+  )
+}
+
 function Option({ o, value, onChange, thumbs }) {
   const none = o.id === 'none'
   const cls = ['tile', none && 'tile--none', thumbs && 'tile--thumb'].filter(Boolean).join(' ')
   return (
     <button type="button" className={cls} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
-      {thumbs && <img className="tile__thumb" src={thumbOf(thumbs, o.id)} alt="" width="56" height="56" loading="lazy" decoding="async" />}
+      {thumbs && <OptionThumb src={thumbOf(thumbs, o.id)} />}
       <span className="tile__label">
         {none && <Icon name="none" size={14} />}
         {o.label}

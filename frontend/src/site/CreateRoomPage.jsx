@@ -5,6 +5,7 @@ import Icon from './AvatarIcons'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
 import { normalizeCode } from './roomStore'
+import useImageState from './useImageState'
 
 const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
@@ -20,6 +21,16 @@ function inviteCode(name) {
       .replace(/[^A-Z]/g, '')
       .slice(0, 5) || 'ODA'
   return `${prefix}-${String(Math.floor(1000 + Math.random() * 9000))}`
+}
+
+// Tema kartı görseli: yüklenirken iskelet, yüklenemezse çizgi ikonlu yer tutucu (kırık resim simgesi yok).
+function ThemeShot({ src }) {
+  const [state, imgProps] = useImageState()
+  return (
+    <span className="theme-option__img" data-state={state}>
+      {state === 'error' ? <Icon name="image" size={28} /> : <img src={src} alt="" width="480" height="360" loading="lazy" decoding="async" {...imgProps} />}
+    </span>
+  )
 }
 
 // Kapasite adım seçici: − / + ve kişi ikonları (dolu: oda kapasitesi, soluk: temanın üst sınırına kadar).
@@ -145,7 +156,7 @@ export default function CreateRoomPage({ onCreate, onBack }) {
                 }}
               >
                 <span className="theme-option__shot">
-                  <img src={thumbOf(key)} alt="" width="480" height="360" loading="lazy" decoding="async" />
+                  <ThemeShot src={thumbOf(key)} />
                   <span className="theme-option__check" aria-hidden="true">
                     <Icon name="check" size={14} />
                   </span>

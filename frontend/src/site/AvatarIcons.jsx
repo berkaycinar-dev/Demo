@@ -28,6 +28,14 @@ const PATHS = {
   tap: <path d="M10 9.5V4a2 2 0 0 1 4 0v6M14 9a2 2 0 0 1 4 0v2M18 11a2 2 0 0 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-6-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.83L7 15V8a2 2 0 0 1 3 0" />,
   hat: <path d="M5 17c0-5.5 2.2-10 7-10s7 4.5 7 10M2 17.5h20M5.4 13.5h13.2" />,
   hatOff: <path d="M5 17c0-5.5 2.2-10 7-10s7 4.5 7 10M2 17.5h20M5.4 13.5h13.2M3 3l18 18" />,
+  // görsel yüklenemezse yer tutucu
+  image: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="2" />
+      <path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21" />
+    </>
+  ),
   none: <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM5.6 5.6l12.8 12.8" />,
   // poz ve çalışma türü (önizleme HUD'u)
   focus: (
