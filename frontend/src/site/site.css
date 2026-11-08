@@ -192,7 +192,8 @@
 
 .site-btn--primary:hover {
   background: var(--primary-fill);
-  filter: brightness(1.08);
+  /* koyulaşır: açılırsa krem yazının karşıtlığı 4.5:1'in altına düşer */
+  filter: brightness(0.94);
 }
 
 .site-btn--small {
@@ -450,7 +451,9 @@
 }
 
 .stepper__btn {
+  display: inline-grid;
   flex: none;
+  place-items: center;
   width: 48px;
   height: 48px;
   border: 1px solid var(--line-strong);
@@ -461,6 +464,11 @@
   font: 600 24px/1 var(--font-display);
   cursor: pointer;
   transition: background-color 150ms ease, transform 120ms ease-out;
+}
+
+/* kalın çizgi: blok düğmenin ağırlığına uyar; sahnedeki büyüteçli yakınlaştırmadan ayrı okunur */
+.stepper__btn .icon {
+  stroke-width: 2.75;
 }
 
 .stepper__btn:hover:not(:disabled) {
@@ -505,7 +513,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 1px;
-  color: var(--line-strong);
+  color: var(--glyph-off);
 }
 
 .stepper__person {
@@ -515,6 +523,11 @@
 
 .stepper__person--on {
   color: var(--primary);
+}
+
+/* dolu = koltuk sayıya dahil, boş çizgi = dahil değil (renk tek başına ayırmaz) */
+.stepper__person--on .icon {
+  fill: currentColor;
 }
 
 /* çipler: seçili olan dolgulu */

@@ -55,7 +55,7 @@ function CapacityStepper({ value, max, onChange }) {
   return (
     <div className="stepper" role="group" aria-labelledby="capacity-label">
       <button type="button" className="stepper__btn" onClick={() => onChange(value - 1)} disabled={value <= 1} aria-label="Bir kişi azalt">
-        <span aria-hidden="true">−</span>
+        <Icon name="minus" size={20} />
       </button>
       <div className="stepper__value">
         <output className="stepper__count" aria-live="polite">
@@ -70,7 +70,7 @@ function CapacityStepper({ value, max, onChange }) {
         </span>
       </div>
       <button type="button" className="stepper__btn" onClick={() => onChange(value + 1)} disabled={value >= max} aria-label="Bir kişi artır">
-        <span aria-hidden="true">+</span>
+        <Icon name="plus" size={20} />
       </button>
     </div>
   )

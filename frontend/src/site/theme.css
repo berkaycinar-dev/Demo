@@ -45,11 +45,12 @@
   --sign-edge: #3e2d20;
   --sign-ink: #f7eedd;
   --sign-ink-2: #d9c7ad;
-  /* ana vurgu: terakota, odalardaki tuğla / kil tonu. Düğme dolgusu (#aa4a2a, krem yazı) açık ve
+  /* ana vurgu: terakota, odalardaki tuğla / kil tonu. Düğme dolgusu (#a24526, krem yazı; parlamanın açık üst
+     ucunda bile ≥ 4.5:1) açık ve
      koyu modda aynı; yazı vurgusu, odak halkası ve logo her modda zemine göre ayarlanır. */
   --primary: #9c4122;
   --primary-hover: #85361c;
-  --primary-fill: var(--button-sheen), #aa4a2a;
+  --primary-fill: var(--button-sheen), #a24526;
   --primary-glow: inset 0 0 0 1px #8a3a1d, 0 2px 6px -2px rgba(140, 60, 30, 0.4);
   --on-primary: #fff8f1;
   --primary-soft: #f8e7dd;
@@ -59,6 +60,8 @@
   --chip-on-edge: #b5502d;
   --sel-ring: #b5502d;
   --on-ring: #fff8f1;
+  /* seçili olmayan küçük işaret (kapasite kişileri): batık zemine karşı ≥ 3:1 */
+  --glyph-off: #857a6d;
   /* klavye odağı: sitenin her yerinde tek halka rengi */
   --focus-ring: #9c4122;
   /* kullanıcı avatarı (üst menü): düğmeyle aynı malzeme */
@@ -123,6 +126,7 @@
   /* koyu zeminde seçili öğe açık terakota halkayla ayrılır (yüzeye karşı ≥ 3:1) */
   --sel-ring: #e08a66;
   --on-ring: #2a1209;
+  --glyph-off: #857b70;
   --focus-ring: #eb9a78;
   --none-mark: #b86b60;
   --badge: #e2bd6a;
