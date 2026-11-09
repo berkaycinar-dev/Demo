@@ -3,6 +3,7 @@ import { THEMES } from '../rooms/themes'
 import { ACCESS_LABELS } from './access'
 import { codeMatches } from './roomStore'
 import RoomShot from './RoomShot'
+import Dotted from './Dotted'
 
 const LockIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -45,9 +46,11 @@ function RoomCard({ room, onAction }) {
             </span>
           )}
         </div>
-        <h3>{room.name}</h3>
+        <h3>
+          <Dotted text={room.name} />
+        </h3>
         <p className="site-muted">
-          {room.capacity} kişilik · {ACCESS_LABELS[room.access]}
+          <Dotted parts={[`${room.capacity} kişilik`, ACCESS_LABELS[room.access]]} keep />
         </p>
         <div className="room-card__actions">
           {locked ? (
@@ -118,7 +121,9 @@ function CodeDialog({ room, onClose, onSuccess }) {
               <path d="M8 11V7a4 4 0 0 1 8 0v4" />
             </svg>
           </span>
-          <h2 id="codeDialogTitle">{room.name}</h2>
+          <h2 id="codeDialogTitle">
+            <Dotted text={room.name} />
+          </h2>
           <p className="site-muted">Bu oda gizli. Girmek için oda sahibinden aldığın davet kodunu yaz.</p>
           <div className="auth-field">
             <label htmlFor="roomCode">Davet kodu</label>
@@ -282,8 +287,8 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
             </div>
           </div>
           {shown.length === 0 ? (
-            <div className="lobby-empty">
-              <p className="site-muted">{open.length ? `“${query.trim()}” ile eşleşen açık oda yok.` : 'Şu an açık oda yok.'}</p>
+            <div className="empty-note">
+              <p>{open.length ? `“${query.trim()}” ile eşleşen açık oda yok.` : 'Şu an açık oda yok.'}</p>
               <button type="button" className="site-btn" onClick={onCreate}>
                 <PlusIcon />
                 Yeni oda oluştur
@@ -321,7 +326,9 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
           <section className="site-card lobby-panel" aria-labelledby="katildigimBaslik">
             <h2 id="katildigimBaslik">Son katıldıkların</h2>
             {history.length === 0 ? (
-              <p className="site-muted">Katıldığın odalar burada listelenir; tekrar girmek tek tık.</p>
+              <div className="empty-note">
+                <p>Katıldığın odalar burada listelenir; tekrar girmek tek tık.</p>
+              </div>
             ) : (
               <ul className="lobby-list">
                 {history.map(({ room, at }) => (
@@ -329,7 +336,7 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
                     <RoomShot theme={room.theme} className="lobby-list__shot" />
                     <span className="lobby-list__text">
                       <strong>
-                        {room.name}
+                        <Dotted text={room.name} />
                         {room.access === 'invite' && (
                           <span className="lobby-list__lock" title="Gizli oda">
                             <LockIcon />

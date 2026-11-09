@@ -3,6 +3,7 @@ import { QUOTES, quoteForVisit } from './quotes'
 import RoomShot from './RoomShot'
 import { useDocumentDark } from './roomThumbs'
 import { scrollToId } from './scroll'
+import Dotted from './Dotted'
 
 const HERO_THEME = 'library'
 const OPEN_ROOMS_SHOWN = 3
@@ -74,9 +75,11 @@ export default function LandingPage({ user, rooms = [], onGo, onEnter }) {
                 <li key={room.id} className="lp-open__room">
                   <RoomShot theme={room.theme} className="lp-open__img" />
                   <span className="lp-open__text">
-                    <strong>{room.name}</strong>
+                    <strong>
+                      <Dotted text={room.name} />
+                    </strong>
                     <span>
-                      {THEMES[room.theme].label} · {room.capacity} kişilik
+                      <Dotted parts={[THEMES[room.theme].label, `${room.capacity} kişilik`]} keep />
                     </span>
                   </span>
                   <button type="button" className="site-btn site-btn--primary" onClick={() => sit(room)} aria-label={`${room.name} odasına otur`}>

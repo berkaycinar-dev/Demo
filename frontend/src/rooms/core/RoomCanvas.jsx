@@ -159,15 +159,15 @@ function Lighting({ bounds, preset, lamps }) {
  * lamps: nokta ışıklar [[x, y, z] | { position, color }, ...] (performans için en fazla 4); renk verilmezse
  *        gün zamanı ayarındaki lampColor
  * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
- * toolbar: 'full' (varsayılan; zoom + dört gün zamanı düğmesi) ya da 'compact' (zoom + katlanır gün zamanı
- *          menüsü, sağ altta; oda oluşturma gibi asıl eylemin sahne dışında olduğu sayfalar için).
+ * Sahne araç çubuğu her sayfada tek düzendedir: sağ altta, yakınlaştırma ve görünümü sıfırlama ikonları,
+ * sayfaya özel düğmeler (controls) ve katlanır gün zamanı menüsü. İpucu sol altta.
  * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık).
  * controls: sahne araç çubuğuna eklenen sayfaya özel görünüm düğmeleri (ör. ortak odada "İsimler");
  *           <button> öğeleri verilir, kendi grubunda durur.
  * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
  *              ({ width: 'calc(100% - 400px)' } gibi). Verilmezse sahne kutunun tamamını kullanır.
  */
-// Kompakt araç çubuğunda yakınlaştırma büyüteçle gösterilir: aynı sayfadaki kapasite seçicinin
+// Yakınlaştırma büyüteçle gösterilir: aynı sayfadaki kapasite seçicinin
 // −/+ düğmeleriyle karışmasın (sitenin ikon dili: 24 px ızgara, 2 px çizgi, yuvarlak uçlar).
 function ZoomGlyph({ sign }) {
   return (
@@ -178,7 +178,17 @@ function ZoomGlyph({ sign }) {
   )
 }
 
-// Katlanır gün zamanı seçici (toolbar="compact"): düğme o anki seçimi gösterir, menü yukarı açılır;
+// Görünümü sıfırla: geri dönen ok (aynı ikon dili)
+function ResetGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  )
+}
+
+// Katlanır gün zamanı seçici: düğme o anki seçimi gösterir, menü yukarı açılır;
 // seçim, dışarı tıklama ya da Esc kapatır.
 function TimeMenu({ mode, onChange }) {
   const [open, setOpen] = useState(false)
@@ -255,13 +265,11 @@ export default function RoomCanvas({
   className = '',
   style,
   canvasStyle,
-  toolbar = 'full',
   hint = 'Sürükle: döndür · Çift tık: görünümü sıfırla',
   controls,
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
-  const compact = toolbar === 'compact'
   const hour = useCurrentHour()
   const timeOfDay = mode === 'auto' ? timeOfDayForHour(hour) : mode
   const preset = useMemo(
@@ -338,8 +346,9 @@ export default function RoomCanvas({
         <TimeOfDayContext.Provider value={preset}>{children}</TimeOfDayContext.Provider>
       </Canvas>
 
-      {compact ? (
-        <div className="room-canvas__ui room-canvas__toolbar room-canvas__toolbar--compact" role="toolbar" aria-label="Sahne kontrolleri">
+      {/* alt şerit: araç çubuğu sağda, ipucu solda; sığmazsa ipucu bir satır yukarı sarar */}
+      <div className="room-canvas__bar">
+        <div className="room-canvas__ui room-canvas__toolbar" role="toolbar" aria-label="Sahne kontrolleri">
           <div className="room-canvas__group">
             <button type="button" aria-label="Yakınlaştır" onClick={() => zoomBy(ZOOM_STEP)}>
               <ZoomGlyph sign="in" />
@@ -347,38 +356,15 @@ export default function RoomCanvas({
             <button type="button" aria-label="Uzaklaştır" onClick={() => zoomBy(1 / ZOOM_STEP)}>
               <ZoomGlyph sign="out" />
             </button>
-            <button type="button" onClick={resetView}>
-              Görünümü sıfırla
+            <button type="button" aria-label="Görünümü sıfırla" title="Görünümü sıfırla (çift tık)" onClick={resetView}>
+              <ResetGlyph />
             </button>
           </div>
           {controls && <div className="room-canvas__group">{controls}</div>}
           <TimeMenu mode={mode} onChange={setMode} />
         </div>
-      ) : (
-        <div className="room-canvas__ui room-canvas__toolbar" role="toolbar" aria-label="Sahne kontrolleri">
-          <div className="room-canvas__group">
-            <button type="button" aria-label="Yakınlaştır" onClick={() => zoomBy(ZOOM_STEP)}>
-              +
-            </button>
-            <button type="button" aria-label="Uzaklaştır" onClick={() => zoomBy(1 / ZOOM_STEP)}>
-              −
-            </button>
-            <button type="button" onClick={resetView}>
-              Görünümü sıfırla
-            </button>
-          </div>
-          {controls && <div className="room-canvas__group">{controls}</div>}
-          <div className="room-canvas__group" role="group" aria-label="Gün zamanı">
-            {TIME_MODES.map((m) => (
-              <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}>
-                {TIME_LABELS[m]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <p className="room-canvas__hint">{hint}</p>
+        <p className="room-canvas__hint">{hint}</p>
+      </div>
     </div>
   )
 }

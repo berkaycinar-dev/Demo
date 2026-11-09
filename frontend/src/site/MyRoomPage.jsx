@@ -6,6 +6,7 @@ import { ACCESS_LABELS } from './access'
 import RoomStage, { FocusModeButton } from './RoomStage'
 import TimerCard from './TimerCard'
 import { formatMinutes } from './usePomodoro'
+import Dotted from './Dotted'
 
 const MY_STATUSES = [
   { id: 'focus', label: 'Odakta' },
@@ -125,9 +126,11 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     <>
       <div className="stage-card stage-card--head">
         <div>
-          <h1 className="stage-card__title">{room.name}</h1>
+          <h1 className="stage-card__title">
+            <Dotted text={room.name} />
+          </h1>
           <p className="site-muted">
-            {label} · {room.capacity} kişilik · {ACCESS_LABELS[room.access]}
+            <Dotted parts={[label, `${room.capacity} kişilik`, ACCESS_LABELS[room.access]]} keep />
           </p>
           {spot && <p className="site-muted">Mola yeri: {spot.label}</p>}
           {room.code && (
@@ -218,10 +221,10 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
       timer={timer}
-      renderRoom={(canvasStyle, canvasProps) => (
+      renderRoom={(canvasStyle) => (
         <Room
           capacity={room.capacity}
-          canvasStyle={canvasStyle} {...canvasProps}
+          canvasStyle={canvasStyle}
           hint="Halkaya tıkla: mola yerine git · Sürükle: döndür"
           controls={
             <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>

@@ -153,7 +153,7 @@ export default function Site() {
 
   return (
     <div className={`site${focusMode ? ' site--focus' : ''}`}>
-      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} />}
+      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} wide={Boolean(roomPage)} />}
 
       <main className={mainClass}>
         {page === 'anasayfa' && <LandingPage user={user} rooms={rooms} onGo={go} onEnter={enter} />}

@@ -500,7 +500,7 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
       </Canvas>
       {hint && (
         <p className="avatar-preview__hint">
-          <span>Sürükle: döndür</span> · <span>Karaktere tıkla: selam verir</span> · <span>Çift tık: sıfırla</span>
+          Sürükle: döndür{' '}· Tıkla: selam ver
         </p>
       )}
     </div>
