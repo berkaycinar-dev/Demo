@@ -4,7 +4,7 @@ import Icon from './AvatarIcons'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
 import { normalizeCode } from './roomStore'
-import { thumbOf } from './RoomShot'
+import { thumbOf } from './roomThumbs'
 import useImageState from './useImageState'
 
 const DEFAULT_THEME = 'library'

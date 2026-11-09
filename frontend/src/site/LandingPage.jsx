@@ -1,6 +1,7 @@
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { QUOTES, quoteForVisit } from './quotes'
-import RoomShot, { useDocumentDark } from './RoomShot'
+import RoomShot from './RoomShot'
+import { useDocumentDark } from './roomThumbs'
 import { scrollToId } from './scroll'
 
 const HERO_THEME = 'library'
