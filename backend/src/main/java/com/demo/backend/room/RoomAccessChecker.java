@@ -14,6 +14,9 @@ public interface RoomAccessChecker {
 
     boolean isMember(UUID userId, UUID roomId);
 
+    /** True while the user has an open session in the room (entered and not yet exited or timed out). */
+    boolean hasActiveSession(UUID userId, UUID roomId);
+
     /** The user's role in the room, or empty if the user is not a member. */
     Optional<RoomRole> roleOf(UUID userId, UUID roomId);
 }

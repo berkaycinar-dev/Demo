@@ -2,6 +2,7 @@ package com.demo.backend.room;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -149,5 +150,22 @@ class RoomControllerTest {
         mockMvc.perform(post("/api/v1/rooms/" + ROOM + "/join"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("ROOM_FULL"));
+    }
+
+    @Test
+    void leaveReturns204() throws Exception {
+        mockMvc.perform(post("/api/v1/rooms/" + ROOM + "/leave"))
+                .andExpect(status().isNoContent());
+        verify(roomService).leave(ME, ROOM);
+    }
+
+    @Test
+    void ownerLeaveReturns409() throws Exception {
+        doThrow(new BusinessRuleException("OWNER_CANNOT_LEAVE", "The owner cannot leave the room."))
+                .when(roomService).leave(ME, ROOM);
+
+        mockMvc.perform(post("/api/v1/rooms/" + ROOM + "/leave"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("OWNER_CANNOT_LEAVE"));
     }
 }

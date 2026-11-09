@@ -72,7 +72,7 @@ com.demo.backend
 ├── ping/            H1 örneği: Controller → Service → DTO
 ├── auth/            H2: kayıt, giriş, JWT, refresh token, güvenlik ayarı
 ├── user/            H2: User entity, UserRepository, UserResponse
-├── room/            H3: oda, üyelik ve roller, RoomAccessChecker
+├── room/            H3: oda, üyelik ve roller, RoomAccessChecker. H4: oturumlar (room_sessions), ayrılma
 └── ...
 ```
 
@@ -114,7 +114,11 @@ Her özellik paketi aynı kalıbı izler:
 - `JwtDecoder` bean'i ortaktır. STOMP CONNECT kontrolü (D) aynı bean'i enjekte edip `Authorization` başlığındaki token'ı doğrular.
 - Bruno: `bruno/auth/` altında sırayla Register → Login → Me → Refresh → Logout. Token'lar ortam değişkenine otomatik yazılır.
 | `RoomServiceTest` | Oda kuralları: varsayılanlar, özel oda gizleme, davet kodu, doluluk, tekrar katılma | Hiçbir şey |
-| `RoomControllerTest` | Oda uçlarının durum kodu ve JSON alanları | Hiçbir şey (standalone MockMvc) |
+| `RoomControllerTest` | Oda uçlarının durum kodu ve JSON alanları (leave dahil) | Hiçbir şey (standalone MockMvc) |
+| `RoomSessionServiceTest` | Oturum kuralları: girme, tekrar girme, heartbeat, çıkma, odadakiler, zaman aşımı | Hiçbir şey |
+| `RoomSessionControllerTest` | Oturum uçlarının durum kodu ve JSON alanları | Hiçbir şey (standalone MockMvc) |
+| `RoomSessionSweeperTest`, `RoomSessionTest` | Zaman aşımı temizleyicisi ve oturum nesnesinin kuralları | Hiçbir şey |
+| `AfterCommitTest` | Olay yalnızca commit'ten sonra çıkar, geri alınırsa çıkmaz | Hiçbir şey |
 
 ## Odalar (H3)
 
@@ -124,3 +128,15 @@ Her özellik paketi aynı kalıbı izler:
 - **Olay:** İlk katılmada `RoomEventPublisher` ile `MEMBER_JOINED` yayınlanır. Gövde: `{roomId, userId, username, role}`.
 - **`RoomAccessChecker`:** `isMember(userId, roomId)` ve `roleOf(userId, roomId)`. D'nin STOMP SUBSCRIBE/SEND denetimi bunu çağırır. Üyelik kuralının tek sahibi budur.
 - Bruno: `bruno/rooms/` altında. Önce `auth/Login` çalıştır.
+
+## Oturumlar ve ayrılma (H4)
+
+- **Üyelik ile oturum farklıdır.** Üyelik (`room_members`) odaya ait olmaktır. Oturum (`room_sessions`) şu an odanın içinde olmaktır. Oturuma yalnızca üyeler girebilir.
+- **Uçlar:** `POST /rooms/{id}/sessions` (gir), `POST /rooms/{id}/sessions/current/heartbeat` (canlı tut), `DELETE /rooms/{id}/sessions/current` (çık), `GET /rooms/{id}/sessions/active` (odadakiler), `POST /rooms/{id}/leave` (üyelikten ayrıl).
+- **Tekrar girme zararsız:** Açık oturumun varsa yeni satır açılmaz, aynı oturum döner. Bir odada en fazla bir açık oturum olur (veritabanı da bunu zorlar).
+- **Zaman aşımı:** 60 saniye heartbeat gelmezse arka plan işi oturumu `TIMEOUT` ile kapatır. `ended_at` son heartbeat anı olur, kopuk geçen süre sayılmaz. Değer `app.room-sessions.timeout-seconds` (ortam değişkeni `ROOM_SESSION_TIMEOUT_SECONDS`). Bu değer D'nin gerçek zamanlı tarafıyla ortaktır, yalnızca D ile birlikte değiştir. Temizleyici 15 saniyede bir çalışır.
+- **Sahip ayrılamaz:** Oda sahibi `leave` çağırırsa 409 `OWNER_CANNOT_LEAVE`. Ayrılan üyenin açık oturumu `LEFT_ROOM` ile kapanır ve `MEMBER_LEFT` yayınlanır.
+- **Olaylar commit'ten sonra çıkar:** `MEMBER_JOINED` ve `MEMBER_LEFT`, veritabanı işlemi başarıyla bittikten sonra `RoomEventPublisher` ile yayınlanır (`realtime/AfterCommit`). İşlem geri alınırsa olay çıkmaz.
+- **`RoomAccessChecker.hasActiveSession(userId, roomId)`:** Kullanıcının odada açık oturumu var mı. D'nin gerçek zamanlı tarafı bunu kullanabilir.
+- **Süre ve puan:** Hiçbir oturum satırı silinmez. Süre ve puan ileride bu satırlardan hesaplanır.
+- Bruno: `bruno/rooms/` altında `EnterRoom`, `Heartbeat`, `ListActiveMembers`, `ExitRoom`, `LeaveRoom`.

@@ -1,0 +1,24 @@
+meta {
+  name: Heartbeat
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}/sessions/current/heartbeat
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 204
+}
+
+docs {
+  Oturumu canlı tutar. 60 saniye hiç çağırmazsan sunucu oturumu kendi kapatır.
+  Sonra tekrar çalıştırırsan 404 SESSION_NOT_FOUND gelir; yeniden Enter room çalıştır.
+}

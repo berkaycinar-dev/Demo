@@ -3,6 +3,7 @@ package com.demo.backend.room;
 import com.demo.backend.common.error.BusinessRuleException;
 import com.demo.backend.common.error.NotFoundException;
 import com.demo.backend.common.error.UnauthorizedException;
+import com.demo.backend.realtime.AfterCommit;
 import com.demo.backend.realtime.RoomEventPublisher;
 import com.demo.backend.user.User;
 import com.demo.backend.user.UserRepository;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Business rules for rooms: create, list, read and join. */
+/** Business rules for rooms: create, list, read, join and leave. */
 @Service
 public class RoomService {
 
@@ -32,15 +33,17 @@ public class RoomService {
 
     private final RoomRepository rooms;
     private final RoomMemberRepository members;
+    private final RoomSessionRepository sessions;
     private final UserRepository users;
     private final RoomEventPublisher events;
     private final Clock clock;
     private final SecureRandom random = new SecureRandom();
 
-    public RoomService(RoomRepository rooms, RoomMemberRepository members, UserRepository users,
-                       RoomEventPublisher events, Clock clock) {
+    public RoomService(RoomRepository rooms, RoomMemberRepository members, RoomSessionRepository sessions,
+                       UserRepository users, RoomEventPublisher events, Clock clock) {
         this.rooms = rooms;
         this.members = members;
+        this.sessions = sessions;
         this.users = users;
         this.events = events;
         this.clock = clock;
@@ -117,9 +120,40 @@ public class RoomService {
         User user = users.findById(userId)
                 .orElseThrow(() -> new UnauthorizedException("UNAUTHENTICATED", "Account no longer exists."));
         members.save(new RoomMember(roomId, userId, RoomRole.MEMBER, clock.instant()));
-        events.publish(roomId.toString(), MemberJoinedEvent.TYPE,
-                new MemberJoinedEvent(roomId, userId, user.getUsername(), RoomRole.MEMBER));
+        // After the commit, so clients never hear about a join that was rolled back.
+        MemberJoinedEvent event = new MemberJoinedEvent(roomId, userId, user.getUsername(), RoomRole.MEMBER);
+        AfterCommit.run(() -> events.publish(roomId.toString(), MemberJoinedEvent.TYPE, event));
         return RoomResponse.of(room, count + 1, RoomRole.MEMBER);
+    }
+
+    /**
+     * Gives up membership. The open session (if any) ends with LEFT_ROOM and MEMBER_LEFT is published.
+     * The OWNER cannot leave (409 OWNER_CANNOT_LEAVE). Leaving a room you are not in changes nothing,
+     * except that a private room looks like it does not exist.
+     */
+    @Transactional
+    public void leave(UUID userId, UUID roomId) {
+        Room room = rooms.findByIdForUpdate(roomId).orElseThrow(RoomService::notFound);
+
+        RoomMember member = members.findByRoomIdAndUserId(roomId, userId).orElse(null);
+        if (member == null) {
+            if (room.getVisibility() == RoomVisibility.PRIVATE) {
+                throw notFound();
+            }
+            return;
+        }
+        if (member.getRole() == RoomRole.OWNER) {
+            throw new BusinessRuleException("OWNER_CANNOT_LEAVE", "The owner cannot leave the room.");
+        }
+
+        User user = users.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("UNAUTHENTICATED", "Account no longer exists."));
+        sessions.findByRoomIdAndUserIdAndEndedAtIsNull(roomId, userId)
+                .ifPresent(s -> s.end(SessionEndReason.LEFT_ROOM, clock.instant()));
+        members.delete(member);
+
+        MemberLeftEvent event = new MemberLeftEvent(roomId, userId, user.getUsername(), member.getRole());
+        AfterCommit.run(() -> events.publish(roomId.toString(), MemberLeftEvent.TYPE, event));
     }
 
     private String newInviteCode() {

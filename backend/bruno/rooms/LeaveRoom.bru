@@ -1,0 +1,25 @@
+meta {
+  name: Leave room (give up membership)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}/leave
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Oda sahibi ayrılamaz, bu yüzden Create public room ile açtığın odada 409 OWNER_CANNOT_LEAVE gelir.
+  Gerçek ayrılma için: ikinci hesapla Login yap, Join çalıştır, sonra bu isteği çalıştır (beklenen 204).
+  Bunu yaparken assert satırını 'res.status: eq 204' yap.
+}

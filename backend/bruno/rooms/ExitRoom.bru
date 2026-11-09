@@ -1,0 +1,23 @@
+meta {
+  name: Exit room (close session)
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}/sessions/current
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 204
+}
+
+docs {
+  Açık oturumu kapatır. Açık oturum yoksa da 204 döner (zararsız).
+}

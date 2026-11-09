@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /** Unit test: repositories and the event publisher are mocks. No Spring, no database. */
 class RoomServiceTest {
@@ -34,10 +36,11 @@ class RoomServiceTest {
 
     private final RoomRepository rooms = mock(RoomRepository.class);
     private final RoomMemberRepository members = mock(RoomMemberRepository.class);
+    private final RoomSessionRepository sessions = mock(RoomSessionRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final RoomEventPublisher events = mock(RoomEventPublisher.class);
     private final RoomService service =
-            new RoomService(rooms, members, users, events, Clock.fixed(NOW, ZoneOffset.UTC));
+            new RoomService(rooms, members, sessions, users, events, Clock.fixed(NOW, ZoneOffset.UTC));
 
     // ---------- create ----------
 
@@ -185,6 +188,128 @@ class RoomServiceTest {
 
         // Codes are typed by hand: case and spaces around it are forgiven.
         assertThat(service.join(ME, room.getId(), "  code2345 ").myRole()).isEqualTo(RoomRole.MEMBER);
+    }
+
+    // ---------- after commit ----------
+
+    @Test
+    void joinPublishesOnlyAfterTheTransactionCommits() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+        when(members.countByRoomId(room.getId())).thenReturn(1L);
+        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.join(ME, room.getId(), null);
+            verify(events, never()).publish(any(), any(), any());
+
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCommit();
+            }
+            verify(events).publish(eq(room.getId().toString()), eq("MEMBER_JOINED"), any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void joinDoesNotPublishWhenTheTransactionRollsBack() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+        when(members.countByRoomId(room.getId())).thenReturn(1L);
+        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.join(ME, room.getId(), null);
+            for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
+                sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+            }
+            verify(events, never()).publish(any(), any(), any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    // ---------- leave ----------
+
+    @Test
+    void leaveRemovesMemberClosesOpenSessionAndPublishesEvent() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        RoomMember member = new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW);
+        RoomSession open = new RoomSession(room.getId(), ME, NOW.minusSeconds(600));
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.of(member));
+        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(room.getId(), ME)).thenReturn(Optional.of(open));
+
+        service.leave(ME, room.getId());
+
+        verify(members).delete(member);
+        assertThat(open.isOpen()).isFalse();
+        assertThat(open.getEndReason()).isEqualTo(SessionEndReason.LEFT_ROOM);
+        assertThat(open.getEndedAt()).isEqualTo(NOW);
+
+        ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
+        verify(events).publish(eq(room.getId().toString()), eq("MEMBER_LEFT"), payload.capture());
+        MemberLeftEvent event = (MemberLeftEvent) payload.getValue();
+        assertThat(event.userId()).isEqualTo(ME);
+        assertThat(event.username()).isEqualTo("ada_l");
+        assertThat(event.role()).isEqualTo(RoomRole.MEMBER);
+    }
+
+    @Test
+    void leaveWithoutOpenSessionStillRemovesMember() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        RoomMember member = new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.of(member));
+        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(room.getId(), ME)).thenReturn(Optional.empty());
+
+        service.leave(ME, room.getId());
+
+        verify(members).delete(member);
+    }
+
+    @Test
+    void ownerCannotLeave() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME))
+                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.OWNER, NOW)));
+
+        assertThatThrownBy(() -> service.leave(ME, room.getId()))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("OWNER_CANNOT_LEAVE"));
+        verify(members, never()).delete(any());
+        verify(events, never()).publish(any(), any(), any());
+    }
+
+    @Test
+    void leaveWhenNotAMemberOfPublicRoomChangesNothing() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+
+        service.leave(ME, room.getId());
+
+        verify(members, never()).delete(any());
+        verify(events, never()).publish(any(), any(), any());
+    }
+
+    @Test
+    void leavePrivateRoomAsOutsiderLooksLikeUnknownRoom() {
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.leave(ME, room.getId()))
+                .isInstanceOfSatisfying(NotFoundException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("ROOM_NOT_FOUND"));
     }
 
     // ---------- list ----------
