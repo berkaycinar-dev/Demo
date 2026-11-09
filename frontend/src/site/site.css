@@ -597,9 +597,17 @@
 
 /* koyu modda oda sahnesinin boşluğu: gün zamanının rengi koyu zeminle karışır (gündüz kremi
    göz almasın, odanın kendi ışığı öne çıksın); sahne düğmeleri de koyu yüzeye geçer */
+/* --room-paint: sahnenin boyanan zemin rengi. Odak modu sayacı tonunu bundan ölçer ve telefondaki
+   panel bununla boyanır (RoomStage.jsx); gradyanın dış durağı da bu renktir, ikisi ayrışmaz. */
+.room-canvas {
+  --room-paint: var(--room-bg);
+}
+
 :root[data-mode='dark'] .room-canvas {
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--room-bg) 14%, var(--scene-glow)),
-    color-mix(in srgb, var(--room-bg) 8%, var(--scene-base)));
+  --room-paint: color-mix(in srgb, var(--room-bg) 8%, var(--scene-base));
+  --room-wash: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--room-bg) 14%, var(--scene-glow)),
+    var(--room-paint));
+  background: var(--room-wash);
 }
 
 :root[data-mode='dark'] .room-canvas__group {

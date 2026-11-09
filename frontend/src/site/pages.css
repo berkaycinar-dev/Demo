@@ -867,12 +867,15 @@
   justify-content: center;
 }
 
-/* Odak modu: sayaç kutusuz, doğrudan odanın arka planı üstünde. Renkler odanın tonuna göre
-   (data-tone, RoomStage ölçer); sitenin açık/koyu modundan bağımsızdır. */
+/* Odak modu: sayaç kutusuz, doğrudan odanın arka planı üstünde. Renkler odanın gerçekten boyanan
+   zeminine göre (data-tone ve --stage-bg, RoomStage .room-canvas'ın --room-paint'inden ölçer); koyu
+   modda zemin koyulaştığı için ton da koyuya döner. --text değerleri RoomStage.jsx'teki
+   TEXT_ON_LIGHT / TEXT_ON_DARK ile aynı kalmalı. --muted 13px "ODAK" ve not satırında da 4.5:1
+   tutacak kadar dolu. */
 .stage__panel[data-tone='light'] {
   --text: #1f2430;
   --text-2: #353b47;
-  --muted: rgba(31, 36, 48, 0.62);
+  --muted: rgba(31, 36, 48, 0.8);
   --line-strong: rgba(31, 36, 48, 0.24);
   /* halka: arka planın kendi rengi, yalnızca çizgisi seçilecek kadar koyu */
   --timer: color-mix(in srgb, var(--stage-bg, #e9e2d6) 80%, #000000);
@@ -883,7 +886,7 @@
 .stage__panel[data-tone='dark'] {
   --text: #eef1f6;
   --text-2: #d3d9e3;
-  --muted: rgba(238, 241, 246, 0.66);
+  --muted: rgba(238, 241, 246, 0.78);
   --line-strong: rgba(238, 241, 246, 0.3);
   /* halka: arka planın kendi rengi, yalnızca çizgisi seçilecek kadar açık */
   --timer: color-mix(in srgb, var(--stage-bg, #1f2433) 74%, #ffffff);
@@ -2159,10 +2162,16 @@
     height: 55svh;
   }
 
-  /* telefonda sayaç odanın altında: arka planı odanın rengini alır */
+  /* telefonda sayaç odanın altında: arka planı odanın boyanan rengini (--stage-bg = --room-paint)
+     alır. Koyu modda sahnenin ışıltılı gradyanı alt kenarda bu renge iner; oda ile panel arasında
+     çizgi kalmaz. */
   .stage--focus .stage__panel {
     min-height: 45svh;
     background: var(--stage-bg, transparent);
+  }
+
+  :root[data-mode='dark'] .stage--focus .room-canvas {
+    background: linear-gradient(to bottom, transparent 55%, var(--room-paint)), var(--room-wash);
   }
 
   .stage .room-canvas__toolbar {

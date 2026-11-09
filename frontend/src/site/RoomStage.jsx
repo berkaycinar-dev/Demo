@@ -1,33 +1,72 @@
 import { useEffect, useRef, useState } from 'react'
 
-// Odanın o anki arka planı açık mı koyu mu: renk parlaklığına göre. Odak modundaki sayaç bununla
-// yazı ve halka rengini seçer (gece koyu oda → açık yazı, gündüz açık oda → koyu yazı).
-function toneOf(color) {
-  const hex = color.trim().replace('#', '')
-  if (!/^[0-9a-f]{6}$/i.test(hex)) return 'light'
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const c = parseInt(hex.slice(i, i + 2), 16) / 255
+// Odak modundaki yazı renkleri (pages.css .stage__panel[data-tone] ile aynı olmalı).
+const TEXT_ON_LIGHT = [0x1f, 0x24, 0x30]
+const TEXT_ON_DARK = [0xee, 0xf1, 0xf6]
+
+const luminance = (rgb) => {
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
   })
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25 ? 'dark' : 'light'
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const contrast = (a, b) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
 }
 
-// RoomCanvas arka planı gün zamanı ve temayla değişir (--room-bg); değişince yeniden ölçülür.
+// Zemin rengine hangi yazı daha okunur: iki yazı rengiyle kontrast karşılaştırılır (sabit bir
+// parlaklık eşiği orta tonlarda yanlış tarafı seçer).
+const toneOf = (rgb) => (contrast(rgb, TEXT_ON_DARK) > contrast(rgb, TEXT_ON_LIGHT) ? 'dark' : 'light')
+
+// Herhangi bir CSS rengini (color-mix dahil) tarayıcıya çözdürüp 0-255 RGB'ye çevirir. Tarayıcı
+// sonucu rgb(...) ya da color(srgb 0-1 ...) biçiminde yazar; ikisi de okunur.
+function resolveColor(value, probe) {
+  probe.style.color = ''
+  probe.style.color = value
+  if (!probe.style.color) return null
+  const out = getComputedStyle(probe).color
+  const nums = out.match(/-?[\d.]+(e-?\d+)?/gi)?.map(Number)
+  if (!nums || nums.length < 3) return null
+  const rgb = out.startsWith('color(') ? nums.slice(0, 3).map((v) => v * 255) : nums.slice(0, 3)
+  return rgb.map((v) => Math.round(Math.min(255, Math.max(0, v))))
+}
+
+// Odanın gerçekten boyanan zemini: .room-canvas üzerindeki --room-paint (açık modda gün zamanının
+// rengi, koyu modda o rengin koyu sahne zeminiyle karışımı; bkz. site.css). Ton bu boyanan renkten
+// hesaplanır ve aynı renk --stage-bg olarak panele verilir, böylece sayaç yazısı, halka ve telefondaki
+// panel zemini odayla aynı rengi görür. Gün zamanı, tema ya da site modu değişince yeniden ölçülür.
 function useRoomTone(roomRef) {
   const [room, setRoom] = useState({ tone: 'light', color: '' })
   useEffect(() => {
     const host = roomRef.current
     if (!host) return undefined
+    const probe = document.createElement('span')
+    probe.hidden = true
+    document.body.append(probe)
     const measure = () => {
       const canvas = host.querySelector('.room-canvas')
       if (!canvas) return
-      const color = getComputedStyle(canvas).getPropertyValue('--room-bg').trim()
-      setRoom((old) => (old.color === color ? old : { tone: toneOf(color), color }))
+      const css = getComputedStyle(canvas)
+      const paint = css.getPropertyValue('--room-paint').trim() || css.getPropertyValue('--room-bg').trim()
+      const rgb = paint && resolveColor(paint, probe)
+      const dark = document.documentElement.dataset.mode === 'dark'
+      const next = rgb
+        ? { tone: toneOf(rgb), color: `rgb(${rgb.join(' ')})` }
+        : { tone: dark ? 'dark' : 'light', color: '' }
+      setRoom((old) => (old.color === next.color && old.tone === next.tone ? old : next))
     }
     measure()
     const mo = new MutationObserver(measure)
     mo.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'data-time'] })
-    return () => mo.disconnect()
+    const modeMo = new MutationObserver(measure)
+    modeMo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-mode'] })
+    return () => {
+      mo.disconnect()
+      modeMo.disconnect()
+      probe.remove()
+    }
   }, [roomRef])
   return room
 }
