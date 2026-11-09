@@ -38,3 +38,9 @@ app:
     issuer: demo-backend
     access-ttl-seconds: 900
     refresh-ttl-days: 14
+  room-sessions:
+    # No heartbeat for this long = connection lost, the session is closed (reason TIMEOUT).
+    # Shared with D's real-time side: change it only together with D.
+    timeout-seconds: ${ROOM_SESSION_TIMEOUT_SECONDS:60}
+    # How often the background job looks for timed-out sessions.
+    sweep-interval-ms: 15000

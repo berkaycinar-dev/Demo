@@ -1,0 +1,23 @@
+meta {
+  name: List people inside the room
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}/sessions/active
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Şu an odada olanlar (açık oturumu olanlar). Önce Enter room çalıştır, listede kendini görmelisin.
+}

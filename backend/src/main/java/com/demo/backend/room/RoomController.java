@@ -50,6 +50,12 @@ public class RoomController {
         return roomService.join(userId(jwt), roomId, code);
     }
 
+    @PostMapping("/{roomId}/leave")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void leave(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID roomId) {
+        roomService.leave(userId(jwt), roomId);
+    }
+
     private static UUID userId(Jwt jwt) {
         return UUID.fromString(jwt.getSubject());
     }

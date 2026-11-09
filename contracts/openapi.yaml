@@ -57,7 +57,17 @@ tags:
       **Capacity.** `maxMembers` is 2 to 10 (default 8). Joining a full room gives 409 `ROOM_FULL`.
 
       **Events.** On a first join the server publishes `MEMBER_JOINED` through `RoomEventPublisher`
-      with payload `{roomId, userId, username, role}`. `MEMBER_LEFT` comes with leave in H4.
+      with payload `{roomId, userId, username, role}`. When a member gives up membership (`leave`) it
+      publishes `MEMBER_LEFT` with the same payload. Events are published after the database commit,
+      so a rolled-back change is never announced.
+
+      **Sessions (H4).** Membership says who belongs to a room; a session says who is inside it now.
+      A member opens a session (`POST .../sessions`), keeps it alive with heartbeats
+      (`POST .../sessions/current/heartbeat`, every 15 to 20 seconds is fine) and closes it
+      (`DELETE .../sessions/current`). If no heartbeat arrives for 60 seconds the server closes the
+      session by itself (end reason `TIMEOUT`, time after the last heartbeat is not counted).
+      Every session is kept as a row; time spent and points are computed from them.
+      `RoomAccessChecker.hasActiveSession` tells D's real-time side whether a user is inside a room.
 
 paths:
   /api/v1/ping:
@@ -328,6 +338,157 @@ paths:
                 detail: Room is full
                 code: ROOM_FULL
 
+  /api/v1/rooms/{roomId}/leave:
+    post:
+      tags: [rooms]
+      operationId: leaveRoom
+      summary: Give up membership of a room
+      description: |
+        Removes the caller from the room, closes their open session (end reason `LEFT_ROOM`) and
+        publishes `MEMBER_LEFT`. The `OWNER` cannot leave (409 `OWNER_CANNOT_LEAVE`). Leaving a public
+        room you are not in changes nothing (204). A private room you are not in looks unknown (404).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "204":
+          description: The caller is no longer a member
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+        "409":
+          description: The caller is the owner (`code` is OWNER_CANNOT_LEAVE).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: The owner cannot leave the room.
+                code: OWNER_CANNOT_LEAVE
+
+  /api/v1/rooms/{roomId}/sessions:
+    post:
+      tags: [rooms]
+      operationId: enterRoom
+      summary: Enter a room (open a session)
+      description: |
+        Members only. If the caller already has an open session in this room it is kept and refreshed,
+        so a page reload does not create a second one. A private room is 404 for non-members;
+        a public room answers 409 `NOT_A_MEMBER` (join it first).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: The open session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomSessionResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+        "409":
+          description: The caller is not a member of this public room (`code` is NOT_A_MEMBER).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: Join the room before entering it.
+                code: NOT_A_MEMBER
+
+  /api/v1/rooms/{roomId}/sessions/current/heartbeat:
+    post:
+      tags: [rooms]
+      operationId: heartbeatSession
+      summary: Keep the open session alive
+      description: |
+        Send it every 15 to 20 seconds while the user is in the room. After 60 seconds without one
+        the session is closed by the server. If that happened, this call answers 404
+        `SESSION_NOT_FOUND` and the client should enter the room again.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "204":
+          description: Session refreshed
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          description: The caller has no open session in this room (`code` is SESSION_NOT_FOUND).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 404
+                title: Not found
+                detail: No open session in this room.
+                code: SESSION_NOT_FOUND
+
+  /api/v1/rooms/{roomId}/sessions/current:
+    delete:
+      tags: [rooms]
+      operationId: exitRoom
+      summary: Exit a room (close the open session)
+      description: Calling it with no open session is allowed and changes nothing (204).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "204":
+          description: No open session remains
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /api/v1/rooms/{roomId}/sessions/active:
+    get:
+      tags: [rooms]
+      operationId: listActiveMembers
+      summary: Who is inside the room now
+      description: |
+        People with an open session, the longest-inside first. Members only
+        (same 404 / 409 rules as entering).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: People inside the room
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActiveMemberResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+        "409":
+          description: The caller is not a member of this public room (`code` is NOT_A_MEMBER).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: Join the room before entering it.
+                code: NOT_A_MEMBER
+
 components:
   securitySchemes:
     bearerAuth:
@@ -569,3 +730,37 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    RoomSessionResponse:
+      type: object
+      required: [id, roomId, startedAt, lastSeenAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        roomId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+          description: Time of the last heartbeat (or of entering).
+
+    ActiveMemberResponse:
+      type: object
+      required: [userId, username, role, startedAt]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role:
+          $ref: "#/components/schemas/RoomRole"
+        startedAt:
+          type: string
+          format: date-time
+          description: When this person entered the room.

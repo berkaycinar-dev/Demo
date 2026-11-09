@@ -1,0 +1,24 @@
+meta {
+  name: Enter room (open session)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}/sessions
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Önce auth/Login ve Create public room çalıştır. Odaya girer, açık oturum açar.
+  İkinci kez çalıştırırsan yeni satır açılmaz, aynı oturum döner (startedAt değişmez).
+}
