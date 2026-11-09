@@ -56,6 +56,17 @@ const PATHS = {
   minus: <path d="M5 12h14" />,
   plus: <path d="M5 12h14M12 5v14" />,
   close: <path d="M18 6 6 18M6 6l12 12" />,
+  // karakter menüsü (deneme): önceki / sonraki öğe ve "Hepsi" ızgarası
+  chevronLeft: <path d="m15 18-6-6 6-6" />,
+  chevronRight: <path d="m9 18 6-6-6-6" />,
+  grid: (
+    <>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </>
+  ),
   // rastgele avatar: beş noktalı zar
   dice: (
     <>
