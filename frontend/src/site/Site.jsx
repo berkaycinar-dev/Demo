@@ -159,7 +159,7 @@ export default function Site() {
         {page === 'anasayfa' && <LandingPage user={user} rooms={rooms} onGo={go} onEnter={enter} />}
         {page === 'giris' && <LoginPage onDone={(u) => signedIn(u, false)} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={(u) => signedIn(u, true)} onGo={go} />}
-        {page === 'sayfam' && <HomePage user={user} avatar={avatar} timer={timer} rooms={rooms} onGo={go} onEnter={enter} />}
+        {page === 'sayfam' && <HomePage user={user} avatar={avatar} timer={timer} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}
         {page === 'odam' && <SoloRoomPage user={user} avatar={avatar} timer={timer} focusMode={focusMode} onFocusModeChange={setFocusMode} />}
         {page === 'oda' && (
           <MyRoomPage

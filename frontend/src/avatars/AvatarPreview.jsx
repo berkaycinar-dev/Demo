@@ -498,7 +498,11 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHeadwear={hideHeadwear} shuffle={shuffle} />
         <Ticker animated={animated} />
       </Canvas>
-      {hint && <p className="avatar-preview__hint">Sürükle: döndür · Karaktere tıkla: selam verir · Çift tık: sıfırla</p>}
+      {hint && (
+        <p className="avatar-preview__hint">
+          <span>Sürükle: döndür</span> · <span>Karaktere tıkla: selam verir</span> · <span>Çift tık: sıfırla</span>
+        </p>
+      )}
     </div>
   )
 }

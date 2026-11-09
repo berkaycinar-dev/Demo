@@ -139,7 +139,7 @@ export function SiteFooter({ onGo }) {
             Gizlilik politikası
           </button>
         </nav>
-        <span className="site-footer__copy">© 2026 Odakhane (çalışma adı)</span>
+        <span className="site-footer__copy">© 2026 Odakhane</span>
       </div>
     </footer>
   )

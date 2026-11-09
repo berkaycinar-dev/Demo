@@ -162,6 +162,8 @@ function Lighting({ bounds, preset, lamps }) {
  * toolbar: 'full' (varsayılan; zoom + dört gün zamanı düğmesi) ya da 'compact' (zoom + katlanır gün zamanı
  *          menüsü, sağ altta; oda oluşturma gibi asıl eylemin sahne dışında olduğu sayfalar için).
  * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık).
+ * controls: sahne araç çubuğuna eklenen sayfaya özel görünüm düğmeleri (ör. ortak odada "İsimler");
+ *           <button> öğeleri verilir, kendi grubunda durur.
  * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
  *              ({ width: 'calc(100% - 400px)' } gibi). Verilmezse sahne kutunun tamamını kullanır.
  */
@@ -255,6 +257,7 @@ export default function RoomCanvas({
   canvasStyle,
   toolbar = 'full',
   hint = 'Sürükle: döndür · Çift tık: görünümü sıfırla',
+  controls,
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
@@ -348,6 +351,7 @@ export default function RoomCanvas({
               Görünümü sıfırla
             </button>
           </div>
+          {controls && <div className="room-canvas__group">{controls}</div>}
           <TimeMenu mode={mode} onChange={setMode} />
         </div>
       ) : (
@@ -363,6 +367,7 @@ export default function RoomCanvas({
               Görünümü sıfırla
             </button>
           </div>
+          {controls && <div className="room-canvas__group">{controls}</div>}
           <div className="room-canvas__group" role="group" aria-label="Gün zamanı">
             {TIME_MODES.map((m) => (
               <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}>

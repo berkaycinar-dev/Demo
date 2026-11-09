@@ -8,13 +8,15 @@ const dateText = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long',
 // Sayfam: giriş yapınca açılan ilk sayfa. Tek birincil eylem "Odama git"; yanında sayacın o anki
 // durumu ve odanın adı yazar, böylece ilk gelen kişi masasının ve sayacının hazır olduğunu görür.
 // Bugünkü odak kartı ancak sayılacak bir şey olunca çıkar (ilk gün "0 dk" gösterilmez).
-export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) {
+// İlk kez gelen (henüz hiçbir ortak odaya girmemiş) kişide Odalar kartı ilk odayı seçmeye yönlendirir.
+export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo, onEnter }) {
   const roomLabel = THEMES[loadMyRoom(user).theme]?.label ?? 'Kütüphane'
   const firstName = user.displayName.split(' ')[0]
   const open = rooms.filter((r) => r.access === 'public')
   const quick = open[0]
   const { minutes, pomodoros } = timer.stats
   const hasToday = minutes > 0 || pomodoros > 0
+  const firstRoom = joined.length === 0
   const timerText = timer.running
     ? `${timer.phase === 'focus' ? 'Odaktasın' : 'Moladasın'} · ${formatClock(timer.remaining)}`
     : timer.fresh
@@ -50,11 +52,16 @@ export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) 
 
         <section className="site-card home__rooms">
           <div className="section-head section-head--row">
-            <h2>Odalar</h2>
+            <h2>{firstRoom ? 'İlk odanı seç' : 'Odalar'}</h2>
             <button type="button" className="site-btn" onClick={() => onGo('lobi')}>
               Lobiye git
             </button>
           </div>
+          {firstRoom && (
+            <p className="home__first">
+              Lobideki herkese açık odalardan birine otur; avatarın boş bir masaya geçer, sayacın seninle gelir. Davet kodun varsa gizli odaya da Lobi’den katılırsın.
+            </p>
+          )}
           <p className="site-muted">
             Şu an {open.length} herkese açık oda var.{' '}
             {quick && (

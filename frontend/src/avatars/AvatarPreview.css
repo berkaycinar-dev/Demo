@@ -18,6 +18,8 @@
   max-width: calc(100% - 20px);
   margin: 0;
   padding: 5px 11px;
+  /* dar kartta (Sayfam) iki satıra iner; satır yalnızca "·" aralarında bölünür, son kelime tek kalmaz */
+  text-wrap: balance;
   border-radius: 999px;
   /* geri al / ileri al haplarıyla aynı yüzey; saydam ve bulanık zemin karakterin üstünde okunur */
   background: color-mix(in srgb, var(--surface, #fff) 80%, transparent);
@@ -28,4 +30,8 @@
   font-size: 12px;
   line-height: 1.35;
   pointer-events: none;
+}
+
+.avatar-preview__hint span {
+  white-space: nowrap;
 }

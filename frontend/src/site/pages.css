@@ -261,6 +261,7 @@
 
 .lp-lead {
   max-width: 34em;
+  text-wrap: pretty;
   margin: 0 !important;
   color: var(--text-2);
   font-size: 19px;
@@ -657,12 +658,14 @@
 
 .site .auth__brand h2 {
   margin: 0;
+  text-wrap: balance;
   font-size: 28px;
   line-height: 1.15;
 }
 
 .auth__brand p {
   max-width: 40ch;
+  text-wrap: pretty;
   margin: 0;
   color: var(--text-2);
   font-size: 16px;
@@ -683,10 +686,12 @@
 
 .auth__head h1 {
   margin: 0 0 6px;
+  text-wrap: balance;
 }
 
 .auth__head p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 .auth__form {
@@ -715,6 +720,7 @@
 
 .auth-field__hint {
   font-size: 14px;
+  text-wrap: pretty;
 }
 
 .auth-field input {
@@ -811,6 +817,7 @@
 
 .home__lead {
   max-width: 34em;
+  text-wrap: pretty;
   margin: 0 !important;
   color: var(--text-2);
   font-size: 17px;
@@ -853,6 +860,13 @@
 
 .home__rooms p {
   margin: 0;
+  text-wrap: pretty;
+}
+
+.home__rooms .home__first {
+  max-width: 40em;
+  margin-bottom: 8px;
+  color: var(--text-2);
 }
 
 .home__avatar {
@@ -1063,6 +1077,35 @@
 
 .stage-card__status .choice-row {
   flex-wrap: wrap;
+}
+
+/* durum düğmeleri odadaki işaretin aynısını taşır (lejant); altında tek satırda mola halkaları */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-chip .roster__dot {
+  flex: none;
+}
+
+.room-legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0 0 !important;
+  color: var(--text-2);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+
+.room-legend__ring {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--text-2);
 }
 
 .stage-card__actions {
@@ -2147,6 +2190,7 @@
 
 /* kullanım koşulları onayı */
 .auth-terms {
+  text-wrap: pretty;
   display: flex;
   flex-direction: column;
   gap: 6px;

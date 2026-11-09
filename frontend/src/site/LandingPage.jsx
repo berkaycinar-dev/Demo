@@ -10,7 +10,7 @@ const OPEN_ROOMS_SHOWN = 3
 const STEPS = [
   { no: '1', title: 'Bir oda seç', text: 'Sessiz kütüphane, şömineli dağ evi ya da kod yazanların ofisi. Herkese açık odalara katıl ya da arkadaşlarına davet kodu gönder.' },
   { no: '2', title: 'Sayacını başlat', text: '25, 50 ya da 90 dakikalık bloklar. Avatarın masasına oturur; molada mola köşesine yürür. Kimse seni görmez, herkes çalıştığını bilir.' },
-  { no: '3', title: 'Damlaları biriktir', text: 'Her odak dakikası sayılır. Bugünkü süreni gör, odadaki sıralamada arkadaşlarınla birlikte yüksel.' },
+  { no: '3', title: 'Odak süreni izle', text: 'Her odak dakikası sayılır. Bugünkü toplamını ve bitirdiğin pomodoroları Sayfam’da gör; ortak odada sıralamadaki yerini izle.' },
 ]
 
 // "Kamera yok" hero'da söyleniyor; burada yalnızca ürünün geri kalanı.
@@ -65,8 +65,8 @@ export default function LandingPage({ user, rooms = [], onGo, onEnter }) {
           <section className="lp-open" aria-labelledby="acikBaslik">
             <div className="lp-open__head">
               <h2 id="acikBaslik">Lobide açık odalar</h2>
-              <button type="button" className="link-btn link-btn--strong" onClick={() => onGo(user ? 'lobi' : 'kayit')}>
-                Lobinin tamamı
+              <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('lobi')}>
+                Tüm aktif odaları gör
               </button>
             </div>
             <ul className="lp-open__list">

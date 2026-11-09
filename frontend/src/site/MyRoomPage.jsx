@@ -49,7 +49,19 @@ export default function MyRoomPage({ room, onBrowse, ...rest }) {
 // Durum düğmeleri: Molada'ya basınca en yakın boş mola yerine yürürsün; zemindeki bir halkaya
 // tıklayınca o mola yerine gidersin (doluysa sıradakine). Avatarların üstünde yalnızca durum
 // noktası durur (kalabalıkta isimler üst üste binmesin); isimler paneldeki listede. Listede
-// bir kişinin üstüne gelince odadaki avatarının adı açılır; "İsimler" herkesinkini açar.
+// bir kişinin üstüne gelince odadaki avatarının adı açılır; sahne araç çubuğundaki "İsimler"
+// herkesinkini açar. Durum işaretleri şekille de ayrılır (daire, elmas, içi boş halka) ve her durum
+// düğmesi kendi işaretini taşır: düğmeler işaretlerin lejantıdır, anlam yalnızca renkle verilmez.
+// Zemindeki mola halkaları düğmelerin altındaki tek satırda açıklanır.
+function RoomLegend() {
+  return (
+    <p className="room-legend">
+      <span className="room-legend__ring" aria-hidden="true" />
+      Zemindeki halkalar: mola yerleri
+    </p>
+  )
+}
+
 function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }) {
   const [spot, setSpot] = useState(null)
   const [names, setNames] = useState(false)
@@ -138,19 +150,19 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
               <button
                 key={s.id}
                 type="button"
+                className={`status-chip roster__item--${s.id}`}
                 aria-pressed={myStatus === s.id}
                 onClick={() => {
                   setMyStatus(s.id)
                   if (s.id !== 'break') setSpot(null)
                 }}
               >
+                <span className="roster__dot" aria-hidden="true" />
                 {s.label}
               </button>
             ))}
-            <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
-              İsimler
-            </button>
           </div>
+          <RoomLegend />
         </div>
         <div className="stage-card__actions">
           <FocusModeButton onClick={() => onFocusModeChange(true)} />
@@ -210,6 +222,12 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
         <Room
           capacity={room.capacity}
           canvasStyle={canvasStyle} {...canvasProps}
+          hint="Halkaya tıkla: mola yerine git · Sürükle: döndür"
+          controls={
+            <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
+              İsimler
+            </button>
+          }
           onSpotClick={(s) => {
             setSpot(s)
             setMyStatus('break', s.id)
