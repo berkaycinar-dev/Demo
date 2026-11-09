@@ -1,34 +1,23 @@
 import { useState } from 'react'
 import { PASSWORD_RULES, lastLoginId, login, register, requestPasswordReset, validateRegistration } from './auth'
 import { LegalDialog } from './LegalPages'
+import RoomShot from './RoomShot'
 
-const BRAND_POINTS = [
-  { text: 'Kişisel oda ve pomodoro sayacı', icon: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2' },
-  { text: 'Kütüphane, dağ evi, ofis gibi 3D odalar', icon: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z' },
-  { text: 'Çok kişili odalarda canlı sıralama', icon: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z' },
-]
-
-function AuthShell({ children }) {
+// Marka paneli: madde listesi yerine odanın kendisi. Görsel süstür. Uzun formda (kayıt) panel de
+// uzar; boş kalmasın diye ikinci bir oda eklenir. Telefonda panel formun üstünde ince bir satırdır.
+function AuthShell({ rooms = ['cabin'], children }) {
   return (
     <div className="auth">
       <section className="auth__brand" aria-label="Odakhane hakkında">
+        <div className={`auth__rooms${rooms.length > 1 ? ' auth__rooms--pair' : ''}`}>
+          {rooms.map((theme, i) => (
+            <RoomShot key={theme} theme={theme} className="auth__room" eager={i === 0} />
+          ))}
+        </div>
         <div className="auth__brand-top">
-          <span className="auth__kicker">ODAKHANE</span>
           <h2>Kamerasız, sessiz, birlikte.</h2>
           <p>Başkalarının da çalıştığını görmek odaklanmayı kolaylaştırır. Odana gir, sayacını başlat, gerisini birlikte hallederiz.</p>
         </div>
-        <ul>
-          {BRAND_POINTS.map((p) => (
-            <li key={p.text}>
-              <span aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d={p.icon} />
-                </svg>
-              </span>
-              {p.text}
-            </li>
-          ))}
-        </ul>
       </section>
       <section className="auth__card">{children}</section>
     </div>
@@ -299,7 +288,7 @@ export function RegisterPage({ onDone, onGo }) {
   )
 
   return (
-    <AuthShell>
+    <AuthShell rooms={['cabin', 'library']}>
       <div className="auth__head">
         <h1>Hesap oluştur</h1>
         <p className="site-muted">Bir dakikanı alır. Avatarını kayıttan sonra hazırlarsın.</p>

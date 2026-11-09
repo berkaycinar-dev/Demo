@@ -106,7 +106,8 @@
   --avatar-fg: #fff8f1;
   /* "yok" renk seçeneğinin çaprazı */
   --none-mark: #c44;
-  --badge: #a0700e;
+  /* yazı rengi: --badge-soft üstünde 4.8:1 (#a0700e 3.8:1 kalıyordu) */
+  --badge: #8a5f08;
   --badge-soft: #f6eedb;
   --timer: #b5502d;
   --info: #1f93ab;

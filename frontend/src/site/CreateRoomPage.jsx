@@ -4,6 +4,7 @@ import Icon from './AvatarIcons'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
 import { normalizeCode } from './roomStore'
+import { thumbOf } from './roomThumbs'
 import useImageState from './useImageState'
 
 const DEFAULT_THEME = 'library'
@@ -19,10 +20,6 @@ const ACCESS_OPTIONS = [
 // (birleştiriciler, ten tonu ve bayrak harfleriyle) alınmaz, altta not çıkar.
 const EMOJI_PARTS = /\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣/gu
 const EMOJI_NOTE = 'Tabelaya emoji yazılamaz; harf, rakam ve noktalama kullan.'
-// Oda kartı görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir.
-// koyu modda akşam ışığında çizilmiş varyant (<tema>-evening.webp): krem gündüz duvarları koyu
-// zeminde parlak kutu gibi durmaz, kart canlı sahneyle aynı ışıkta görünür
-const thumbOf = (theme, isDark) => `${import.meta.env.BASE_URL}room-thumbs/${theme}${isDark ? '-evening' : ''}.webp`
 
 // Oda oluşturulamadığında: ne oldu ve ne yapılabilir
 const FAILURE_TEXT = {

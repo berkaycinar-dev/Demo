@@ -42,6 +42,17 @@ const PUBLIC_PAGES = new Set(['anasayfa', 'kosullar', 'gizlilik'])
 
 const hashPage = () => window.location.hash.slice(1)
 
+// Girilen oda yenilemede kaybolmasın: kimliği saklanır, açılışta oda listesinde varsa ona dönülür.
+const ROOM_KEY = 'odakhane.current-room'
+function loadCurrentId() {
+  try {
+    const id = JSON.parse(localStorage.getItem(ROOM_KEY) ?? 'null')?.id
+    return typeof id === 'string' && id ? id : null
+  } catch {
+    return null
+  }
+}
+
 // İstenen sayfa oturuma göre düzeltilir: oturum yoksa uygulama sayfaları girişe, oturum varken
 // giriş / kayıt sayfası Sayfam'a döner. Bilinmeyen adres varsayılan sayfaya gider.
 function resolvePage(requestedId, user) {
@@ -57,7 +68,7 @@ export default function Site() {
   const [requested, setRequested] = useState(hashPage)
   const [rooms, setRooms] = useState(loadRooms)
   const [joined, setJoined] = useState(() => (user ? loadJoined(user) : []))
-  const [currentId, setCurrentId] = useState(null)
+  const [currentId, setCurrentId] = useState(() => (user ? loadCurrentId() : null))
   const [avatar, setAvatar] = useState(loadAvatar)
   const [focusMode, setFocusMode] = useState(false)
   const { isDark, toggle: toggleMode } = useColorMode()
@@ -78,6 +89,15 @@ export default function Site() {
       window.removeEventListener('hashchange', sync)
     }
   }, [])
+
+  useEffect(() => {
+    try {
+      if (currentId) localStorage.setItem(ROOM_KEY, JSON.stringify({ id: currentId }))
+      else localStorage.removeItem(ROOM_KEY)
+    } catch {
+      /* yok say: oda yalnızca bu oturumda hatırlanır */
+    }
+  }, [currentId])
 
   // Düzeltilen sayfa adres çubuğuna da yazılır (geçmişe yeni kayıt eklemeden).
   useEffect(() => {
@@ -136,7 +156,7 @@ export default function Site() {
       {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} />}
 
       <main className={mainClass}>
-        {page === 'anasayfa' && <LandingPage user={user} onGo={go} />}
+        {page === 'anasayfa' && <LandingPage user={user} rooms={rooms} onGo={go} onEnter={enter} />}
         {page === 'giris' && <LoginPage onDone={(u) => signedIn(u, false)} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={(u) => signedIn(u, true)} onGo={go} />}
         {page === 'sayfam' && <HomePage user={user} avatar={avatar} timer={timer} rooms={rooms} onGo={go} onEnter={enter} />}
@@ -175,7 +195,7 @@ export default function Site() {
         {(page === 'kosullar' || page === 'gizlilik') && <LegalPage kind={page} onGo={go} />}
       </main>
 
-      {!focusMode && <SiteFooter user={user} pages={PAGES} onGo={go} isDark={isDark} />}
+      {!focusMode && <SiteFooter onGo={go} />}
     </div>
   )
 }

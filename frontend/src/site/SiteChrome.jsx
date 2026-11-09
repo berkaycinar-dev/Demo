@@ -1,13 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { scrollToId } from './scroll'
 
 // Sitenin çerçevesi: marka, üst menü, açık/koyu mod düğmesi ve alt bilgi.
-
-const LANDING_SECTIONS = [
-  { id: 'nasil', label: 'Nasıl çalışır' },
-  { id: 'odalar', label: 'Odalar' },
-  { id: 'neden', label: 'Neden işe yarar' },
-]
 
 export function BrandMark({ size = 28 }) {
   return (
@@ -81,16 +74,6 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
           ))}
         </nav>
       )}
-      {onLanding && (
-        <nav className="site-nav site-nav--sections" aria-label="Sayfa bölümleri">
-          {LANDING_SECTIONS.map((s) => (
-            <button key={s.id} type="button" onClick={() => scrollToId(s.id)}>
-              {s.label}
-            </button>
-          ))}
-        </nav>
-      )}
-
       <div className="site-header__tools">
         <span className={user && !onLanding ? 'site-header__mode' : undefined}>
           <ModeToggle isDark={isDark} onToggle={onToggleMode} iconOnly={!user || onLanding} />
@@ -135,7 +118,9 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
   )
 }
 
-export function SiteFooter({ user, pages, onGo, isDark }) {
+// Alt bilgi tek satır: marka ve tek cümle, yasal bağlantılar, telif. Sayfa menüsü üstte zaten var;
+// burada tekrarlanmaz.
+export function SiteFooter({ onGo }) {
   return (
     <footer className="site-footer">
       <div className="site-footer__inner">
@@ -144,47 +129,17 @@ export function SiteFooter({ user, pages, onGo, isDark }) {
             <BrandMark size={22} />
             Odakhane
           </span>
-          <span>Kamerasız, sessiz, birlikte. Herkes kendi sayacıyla aynı odada çalışır.</span>
+          <span>Kamerasız, sessiz, birlikte.</span>
         </div>
-        <nav className="site-footer__nav" aria-label="Alt menü">
-          <div className="site-footer__col">
-            <span className="site-footer__heading">Odakhane</span>
-            <button type="button" onClick={() => onGo('anasayfa')}>
-              Ana sayfa
-            </button>
-            {user && pages.map((p) => (
-              <button key={p.id} type="button" onClick={() => onGo(p.id)}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-          {!user && (
-            <div className="site-footer__col">
-              <span className="site-footer__heading">Hesap</span>
-              <button type="button" onClick={() => onGo('giris')}>
-                Giriş yap
-              </button>
-              <button type="button" onClick={() => onGo('kayit')}>
-                Kayıt ol
-              </button>
-            </div>
-          )}
-          <div className="site-footer__col">
-            <span className="site-footer__heading">Yasal</span>
-            <button type="button" onClick={() => onGo('kosullar')}>
-              Kullanım koşulları
-            </button>
-            <button type="button" onClick={() => onGo('gizlilik')}>
-              Gizlilik politikası
-            </button>
-          </div>
+        <nav className="site-footer__nav" aria-label="Yasal">
+          <button type="button" onClick={() => onGo('kosullar')}>
+            Kullanım koşulları
+          </button>
+          <button type="button" onClick={() => onGo('gizlilik')}>
+            Gizlilik politikası
+          </button>
         </nav>
-      </div>
-      <div className="site-footer__bottom">
-        <div className="site-footer__inner">
-          <span>© 2026 Odakhane (çalışma adı)</span>
-          <span>Tema: Kâğıt &amp; Terakota · {isDark ? 'koyu' : 'açık'}</span>
-        </div>
+        <span className="site-footer__copy">© 2026 Odakhane (çalışma adı)</span>
       </div>
     </footer>
   )

@@ -14,7 +14,7 @@
   gap: 4px 16px;
   margin: 0 0 16px;
   color: var(--muted);
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
 }
 
 .cmenu__keys span {
@@ -103,7 +103,7 @@
 
 .cmenu__note {
   color: var(--muted);
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
   line-height: 1.35;
 }
 
@@ -259,15 +259,15 @@
   white-space: nowrap;
 }
 
-/* sıra: "3/21", küçük piksel rozet (11 px) */
+/* sıra: "3/21". Okunması gereken bilgi: 11 px piksel okunmadığı, 22 px piksel de değerle yarıştığı için
+   okunur fontta (Inter 14 px), eşit genişlikte rakamlarla */
 .cmenu__count {
   color: var(--muted);
-  font-family: var(--font-pixel);
-  font-size: var(--pixel-s);
-  font-weight: 500;
-  font-synthesis: none;
-  letter-spacing: 0;
-  line-height: 1;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .cmenu__row[data-active] .cmenu__count {
@@ -286,7 +286,7 @@
   background: transparent;
   color: var(--text-2);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms var(--ease-out, ease-out);

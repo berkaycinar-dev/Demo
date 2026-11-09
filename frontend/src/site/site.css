@@ -11,12 +11,16 @@
   line-height: 1.5;
 }
 
+/* Üç ses, üç rol: sayfa başlığı (h1) piksel (Pixelify Sans, ızgara boyutu 33 px); alt başlık (h2, h3,
+   kart ve bölüm başlığı) Space Grotesk; okunan ve tıklanan her şey Inter. Piksel ayrıntısı aşağıda. */
 .site h1 {
   margin: 0 0 16px;
-  font-family: var(--font-display);
-  font-size: 34px;
-  line-height: 1.15;
-  letter-spacing: -0.5px;
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-xl);
+  font-weight: 500;
+  font-synthesis: none;
+  line-height: 1.1;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -346,7 +350,7 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.35;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -597,9 +601,17 @@
 
 /* koyu modda oda sahnesinin boşluğu: gün zamanının rengi koyu zeminle karışır (gündüz kremi
    göz almasın, odanın kendi ışığı öne çıksın); sahne düğmeleri de koyu yüzeye geçer */
+/* --room-paint: sahnenin boyanan zemin rengi. Odak modu sayacı tonunu bundan ölçer ve telefondaki
+   panel bununla boyanır (RoomStage.jsx); gradyanın dış durağı da bu renktir, ikisi ayrışmaz. */
+.room-canvas {
+  --room-paint: var(--room-bg);
+}
+
 :root[data-mode='dark'] .room-canvas {
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--room-bg) 14%, var(--scene-glow)),
-    color-mix(in srgb, var(--room-bg) 8%, var(--scene-base)));
+  --room-paint: color-mix(in srgb, var(--room-bg) 8%, var(--scene-base));
+  --room-wash: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--room-bg) 14%, var(--scene-glow)),
+    var(--room-paint));
+  background: var(--room-wash);
 }
 
 :root[data-mode='dark'] .room-canvas__group {
@@ -641,12 +653,12 @@
   border-radius: 999px;
   background: var(--surface);
   box-shadow: var(--card-edge);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .roster__item .site-muted {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 400;
 }
 
@@ -736,7 +748,7 @@
   max-width: calc(100% - 20px);
   padding-left: 12px;
   transform: translateX(-50%);
-  font-size: 12.5px;
+  font-size: 14px;
   white-space: nowrap;
 }
 
@@ -773,7 +785,7 @@
   background: var(--text);
   box-shadow: 0 6px 14px -8px rgba(40, 26, 12, 0.5);
   color: var(--surface);
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
@@ -852,7 +864,7 @@
 /* poz ve çalışma türü seçeneği: ikon + etiket */
 .hud__opt {
   padding: 0 12px 0 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -874,7 +886,7 @@
     min-width: 52px;
     padding: 5px 4px 4px;
     border-radius: 14px;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.1;
   }
 
@@ -999,7 +1011,7 @@
 .wardrobe__status {
   min-height: 1.3em;
   color: var(--success);
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
   font-weight: 600;
 }
 
@@ -1078,14 +1090,14 @@
 .wardrobe__name {
   display: grid;
   min-width: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
 }
 
 .wardrobe__name small {
   color: var(--muted);
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
   font-weight: 500;
 }
 
@@ -1207,7 +1219,7 @@
     flex-direction: column;
     gap: 3px;
     min-height: 60px;
-    font-size: 12.5px;
+    font-size: 14px;
     line-height: 1.2;
   }
 }
@@ -1222,8 +1234,8 @@
    ekran okuyucuda (.field__label--bare). */
 .avatar-page {
   --type-section: 20px;
-  --type-label: 14px;
-  --type-caption: 12px;
+  --type-label: 15px;
+  --type-caption: 14px;
 }
 
 .opt-section {
@@ -1276,13 +1288,13 @@
 
 .field__note {
   color: var(--muted);
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
   font-weight: 400;
 }
 
 .field__action {
   margin-left: auto;
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
 }
 
 .visually-hidden {
@@ -1470,7 +1482,7 @@
 }
 
 .tile--thumb .tile__label {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .tile--none {
@@ -1628,22 +1640,23 @@
   font-size: 14px;
 }
 
+/* tek satır: marka, yasal bağlantılar, telif; darda alt alta akar */
 .site-footer__inner {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px 32px;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 28px 32px;
+  padding: 24px 32px;
 }
 
 .site-footer__about {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 360px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
   line-height: 1.5;
 }
 
@@ -1661,6 +1674,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px 24px;
+  margin-left: auto;
 }
 
 .site-footer__nav button {
@@ -1677,17 +1691,6 @@
 
 .site-footer__nav button:hover {
   color: var(--header-text);
-}
-
-.site-footer__bottom {
-  border-top: 1px solid var(--header-border);
-  font-size: 13px;
-}
-
-.site-footer__bottom .site-footer__inner {
-  gap: 8px;
-  padding-top: 14px;
-  padding-bottom: 14px;
 }
 
 @media (max-width: 900px) {
@@ -1711,10 +1714,6 @@
   .site-footer__inner {
     padding-left: 16px;
     padding-right: 16px;
-  }
-
-  .site h1 {
-    font-size: 28px;
   }
 
   .mode-btn__text {
@@ -1806,7 +1805,7 @@
 .sheet__note {
   margin: 0 0 12px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 
@@ -1850,7 +1849,7 @@
   gap: 3px;
   min-height: 54px;
   padding: 4px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.15;
 }
 
@@ -1910,7 +1909,7 @@
 
   .hud--bottom {
     padding-left: 10px;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .segmented button {
@@ -1961,19 +1960,37 @@
   }
 }
 
-/* telefonda üst menü tek satır: logo yalnızca işaret, dört sayfa, hesap avatarı. Koyu mod ve çıkış
-   hesap sayfasında (Görünüm ve oturum). */
+/* telefonda üst menü tek biçim, oturum açık da kapalı da: tek satır, 44px hedefler, logo yalnızca
+   işaret (ad ekran okuyucuya kalır). Oturumluyken dört sayfa ve hesap avatarı; koyu mod ve çıkış
+   hesap sayfasında (Görünüm ve oturum). Oturumsuzken koyu mod ve "Kayıt ol". */
 @media (max-width: 560px) {
-  .site-header:has(.site-nav:not(.site-nav--sections)) {
+  .site-header {
     flex-wrap: nowrap;
     gap: 6px;
     padding: 6px 12px;
   }
 
-  .site-header:has(.site-nav:not(.site-nav--sections)) .site-brand__text,
+  .site-header .site-brand__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .site-header__mode,
   .site-header .header-link {
     display: none;
+  }
+
+  .site-header .mode-btn--icon {
+    width: 44px;
+    min-height: 44px;
+  }
+
+  .site-header .header-cta {
+    min-height: 44px;
   }
 
   .site-header .site-nav:not(.site-nav--sections) {
@@ -2004,9 +2021,10 @@
     padding: 3px;
   }
 
+  /* 3 + 36 + 3 + 2 kenar = 44px: oturumsuz header'daki 44px düğmelerle aynı yükseklik */
   .site-header .user-chip__avatar {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
   }
 }
 
@@ -2109,7 +2127,7 @@
 }
 
 /* ==========================================================================
-   Avatar atölyesi + Oda oluştur: piksel başlık yazısı ve kâğıt dokusu
+   Piksel yazı (bütün sayfa başlıkları) + Avatar atölyesi ve Oda oluştur: kâğıt dokusu
    Terakota vurgu ve seçim rolleri sitenin geneliyle aynı (theme.css); burada yalnızca doku eklenir.
    Kontrollerin köşe, kenar ve boşlukları sitenin geri kalanıyla aynı; voxel hissi yalnızca
    tipografiden gelir (Pixelify Sans, OFL 1.1, fonts/pixelify-sans/OFL.txt).
@@ -2147,18 +2165,19 @@
   line-gap-override: 0%;
 }
 
-/* İki font, iki görev. Piksel (Pixelify Sans): bir şeyi adlandıran ya da bir değeri okutan kısa yazı;
-   sayfa ve bölüm başlıkları, alt sayfa başlığı, tabela, sayaç, rozet, seçili değer. Inter: okunan ve
+/* Üç font, üç görev. Piksel (Pixelify Sans): sayfa başlığı (her sayfanın h1'i) ve bir değeri okutan kısa
+   yazı; tabela, sayaç, seçili değer. Space Grotesk: bölüm, kart ve alt sayfa başlığı. Inter: okunan ve
    tıklanan her şey; gövde, açıklama, not, form etiketi (tabeladaki "Oda adı" dahil), karakter sayacı gibi
    yardım metni, seçenek ve düğme yazısı.
-   Piksel ızgarası: bir font pikseli 92/1000 em. Yalnızca 11 / 22 / 33 px'te bu tam 1 / 2 / 3 ekran
-   pikseline oturur ve kenarlar keskin kalır; ara boyut (16, 28…) kenarları bulanıklaştırır, kullanılmaz. */
-.avatar-workshop,
-.create-room-page {
+   Piksel ızgarası: bir font pikseli 92/1000 em. Yalnızca 11'in katlarında (22 / 33 / 44 / 55 px) bu tam
+   ekran pikseline oturur ve kenarlar keskin kalır; ara boyut (16, 28…) kenarları bulanıklaştırır,
+   kullanılmaz. 11 px okunmaz: okunması gereken piksel yazı 22 px'in altına inmez. */
+:root {
   --font-pixel: 'Pixelify Sans', 'Pixelify Fallback', var(--font-display);
+  --pixel-hero: 55px; /* tanıtım sayfasının ana başlığı; dar ekranda --pixel-2xl */
+  --pixel-2xl: 44px; /* Sayfam karşılama başlığı */
   --pixel-xl: 33px; /* sayfa başlığı, kapı tabelası, kapasite sayacı */
-  --pixel-l: 22px; /* bölüm ve alt sayfa başlığı, tema adı, seçili değer */
-  --pixel-s: 11px; /* küçük rozet: mini önizlemedeki kişi sayısı */
+  --pixel-l: 22px; /* tema adı, seçili değer, sıra rozeti; okunan piksel yazının tabanı */
 }
 
 .avatar-page,
@@ -2173,8 +2192,6 @@
 
 /* ---------- piksel rol. Tek ağırlık (500), sahte kalınlık yok. Harf aralığı 0: eklenen kesirli aralık
    harfleri piksel ızgarasından kaydırır. Telefonda da aynı boyutlar (ızgara dışı ara boyut yok). */
-.site :is(.avatar-workshop, .create-room-page) h1,
-.site .avatar-page :is(.opt-section__title, .wardrobe__title, .sheet__title),
 .create-room-page .door-sign__plate textarea,
 .create-room-page .stepper__count,
 .create-room-page .create-room__theme-name,
@@ -2184,17 +2201,6 @@
   font-weight: 500;
   font-synthesis: none;
   letter-spacing: 0;
-}
-
-.site :is(.avatar-workshop, .create-room-page) h1 {
-  font-size: var(--pixel-xl);
-  line-height: 1.1;
-}
-
-/* bölüm başlığı (Saç, Kaş), Kombinler ve telefondaki "Poz ve kombinler" alt sayfası aynı rol */
-.site .avatar-page :is(.opt-section__title, .wardrobe__title, .sheet__title) {
-  font-size: var(--pixel-l);
-  line-height: 1.1;
 }
 
 /* seçili değer ("Kahverengi"): etiketin yanında okunan değer; 22 px piksel, etiketten 12 px açık,
@@ -2279,7 +2285,7 @@
   background: var(--material-paper);
   box-shadow: 0 1px 2px rgba(40, 26, 12, 0.3);
   color: var(--sign-wood);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.4;
   transform: translateX(-50%) rotate(1.2deg);
@@ -2408,7 +2414,7 @@
   }
 
   .create-room-page .theme-option__name {
-    font-size: 13px;
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2607,6 +2613,7 @@
     object-fit: cover;
   }
 
+  /* kişi sayısı rozeti: yalnızca süs (aria-hidden; sayı yanındaki özette okunur), 11 px piksel burada kalır */
   .create-room__mini-count {
     position: absolute;
     right: 3px;
@@ -2628,7 +2635,7 @@
     display: grid;
     gap: 1px;
     align-self: center;
-    font-size: 13px;
+    font-size: 14px;
     overflow-wrap: anywhere;
   }
 
@@ -2691,7 +2698,7 @@
 .wardrobe__hint {
   margin: -4px 0 8px;
   color: var(--muted);
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
   line-height: 1.4;
 }
 
@@ -2716,7 +2723,7 @@
   min-height: 32px;
   margin: -8px -6px -8px 0;
   padding: 0 6px;
-  font-size: var(--type-caption, 12px);
+  font-size: var(--type-caption, 14px);
   font-weight: 700;
 }
 
@@ -2778,7 +2785,7 @@
   min-height: 1.4em;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.4;
 }
 

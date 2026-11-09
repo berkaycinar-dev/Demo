@@ -55,7 +55,6 @@ export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) 
         <section className="site-card home__rooms">
           <div className="section-head section-head--row">
             <div>
-              <span className="eyebrow">Birlikte çalış</span>
               <h2>Odalar</h2>
             </div>
             <button type="button" className="site-btn" onClick={() => onGo('lobi')}>
