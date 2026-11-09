@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { formatClock } from './usePomodoro'
 
 // Odak modundaki yazı renkleri (pages.css .stage__panel[data-tone] ile aynı olmalı).
 const TEXT_ON_LIGHT = [0x1f, 0x24, 0x30]
@@ -71,13 +72,44 @@ function useRoomTone(roomRef) {
   return room
 }
 
+// Dar ekran eşiği (pages.css'teki @media (max-width: 900px) ile aynı); değişince yeniden çizer.
+const NARROW = '(max-width: 900px)'
+function useNarrow() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia(NARROW)
+      m.addEventListener('change', cb)
+      return () => m.removeEventListener('change', cb)
+    },
+    () => window.matchMedia(NARROW).matches,
+  )
+}
+
+// Telefonda odanın hemen altındaki sayaç çubuğu: kalan süre, aşama ve tek eylem. Tam sayaç kartı
+// paneldedir; çubuk, sayfa kaydırılmadan sayacın görünmesi içindir (masaüstünde gizli).
+function StageBar({ timer }) {
+  const isFocus = timer.phase === 'focus'
+  return (
+    <div className="stage-bar" data-phase={timer.phase} role="group" aria-label="Sayaç özeti">
+      <span className="stage-bar__phase">{isFocus ? 'Odak' : 'Mola'}</span>
+      <span className="stage-bar__clock">{formatClock(timer.remaining)}</span>
+      <button type="button" className="site-btn site-btn--primary stage-bar__toggle" onClick={timer.toggle}>
+        {timer.running ? 'Duraklat' : timer.fresh ? 'Başlat' : 'Devam et'}
+      </button>
+    </div>
+  )
+}
+
 // Oda sayfalarının düzeni: oda sahnesi header ile footer arasındaki alanın tamamını kaplar (arka plan
 // odanın kendi rengi), sağda yüzen bir panel durur. Odak modunda sayfa tam ekran olur; header,
 // footer ve panelin geri kalanı gizlenir, yalnızca oda ve focusPanel kalır.
 //
-// renderRoom(canvasStyle): odayı çizer; canvasStyle, 3D sahneyi panelin solunda kalan alana sığdırır.
-export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, onFocusModeChange }) {
+// renderRoom(canvasStyle, canvasProps): odayı çizer; canvasStyle, 3D sahneyi panelin solunda kalan
+// alana sığdırır; canvasProps (toolbar) Room'a aynen geçer: dar ekranda kompakt sahne araç çubuğu.
+// timer verilirse telefonda odanın altında sayaç çubuğu çıkar (odak modunda panelin kendisi sayaçtır).
+export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, onFocusModeChange, timer }) {
   const roomRef = useRef(null)
+  const narrow = useNarrow()
   const { tone, color } = useRoomTone(roomRef)
 
   // Tam ekran: tarayıcı izin verirse gerçek tam ekran, vermezse yalnızca sayfa içi tam boy.
@@ -103,8 +135,9 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
   return (
     <div className={`stage${focusMode ? ' stage--focus' : ''}`} style={color ? { '--stage-bg': color } : undefined}>
       <div className="stage__room" ref={roomRef}>
-        {renderRoom({ width: 'var(--stage-canvas-w, 100%)' })}
+        {renderRoom({ width: 'var(--stage-canvas-w, 100%)' }, { toolbar: narrow ? 'compact' : 'full' })}
       </div>
+      {timer && !focusMode && <StageBar timer={timer} />}
       <aside className="stage__panel" data-tone={focusMode ? tone : undefined} aria-label={focusMode ? 'Sayaç' : 'Oda paneli'}>
         {focusMode ? (
           <>

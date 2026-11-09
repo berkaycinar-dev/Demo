@@ -851,12 +851,12 @@
 
 .stage__panel {
   position: absolute;
-  top: 20px;
+  top: 16px;
   right: 24px;
-  bottom: 20px;
+  bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   width: var(--panel-w);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -865,6 +865,36 @@
 
 .stage--focus .stage__panel {
   justify-content: center;
+}
+
+/* Odak modu tek işe iner: sayaç ve duraklat / devam. Sahne araçları, ipucu, sıfırla ve atla gizli;
+   çıkış düğmesi sessiz bir metin düğmesi (Esc de çıkarır). */
+.stage--focus .room-canvas__toolbar,
+.stage--focus .room-canvas__hint,
+.stage--focus .timer-card__actions .site-btn:not(.timer-card__main) {
+  display: none;
+}
+
+.stage--focus .stage__exit {
+  align-self: center;
+  min-height: 44px;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.stage--focus .stage__panel .stage__exit:hover {
+  color: var(--text);
+}
+
+/* Telefon sayaç çubuğu (RoomStage StageBar): yalnızca dar ekranda görünür. */
+.stage-bar {
+  display: none;
+}
+
+/* Panelde sayacın başlık satırı yok: süre ön ayarlarda, durum düğmede yazıyor. */
+.stage__panel .timer-card__head {
+  display: none;
 }
 
 /* Odak modu: sayaç kutusuz, doğrudan odanın arka planı üstünde. Renkler odanın gerçekten boyanan
@@ -955,6 +985,27 @@
 
 .stage-card--head p {
   margin: 0;
+}
+
+.stage-card__status .choice-row {
+  flex-wrap: wrap;
+}
+
+.stage-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.stage-card__actions .focus-btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.stage-card__actions > .site-btn:not(.focus-btn) {
+  flex: none;
+  min-height: 54px;
+  border-radius: 14px;
 }
 
 .site .stage-card__h2 {
@@ -1164,6 +1215,15 @@
   width: min(280px, 100%);
 }
 
+/* odanın panelinde sayaç ikinci sırada: halka küçük, odak modunda büyür */
+.stage:not(.stage--focus) .timer-ring {
+  width: min(184px, 100%);
+}
+
+.stage:not(.stage--focus) .timer-ring__clock {
+  font-size: 42px;
+}
+
 .stage--focus .timer-ring__clock {
   font-size: 58px;
 }
@@ -1262,14 +1322,14 @@
   font-size: 13px;
 }
 
-/* ---------- sıralama (açılır kart) ---------- */
+/* ---------- açılır kart (odadakiler, oda ayarları) ---------- */
 
-.rank {
+.fold {
   padding: 0;
   overflow: hidden;
 }
 
-.rank__toggle {
+.fold__toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1283,40 +1343,71 @@
   cursor: pointer;
 }
 
-.rank__toggle > span {
+.fold__toggle > span {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.rank__toggle > span svg {
+.fold__toggle > span svg {
   color: var(--badge);
 }
 
-.rank__toggle:hover {
+.fold__toggle:hover {
   background: var(--surface-2);
 }
 
-.rank__chevron {
+.fold__chevron {
   color: var(--muted);
   transition: transform 0.2s ease;
 }
 
-.rank__toggle[aria-expanded='true'] .rank__chevron {
+.fold__toggle[aria-expanded='true'] .fold__chevron {
   transform: rotate(180deg);
 }
 
-.rank__body {
+.fold__body {
   padding: 4px 20px 18px;
   border-top: 1px solid var(--line);
-  animation: rankOpen 0.2s ease;
+  animation: foldOpen 0.2s ease;
 }
 
-@keyframes rankOpen {
+@keyframes foldOpen {
   from {
     opacity: 0;
     transform: translateY(-6px);
   }
+}
+
+/* başlık içindeki düğme: h2 yalnızca belge yapısı için, görünüm düğmede */
+.site .fold__heading {
+  margin: 0;
+  font-size: inherit;
+}
+
+.fold__count {
+  min-width: 24px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font: 700 13px var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.fold__summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font: 500 13px var(--font-body);
+  white-space: nowrap;
+}
+
+.fold__body .field:first-child {
+  margin-top: 16px;
 }
 
 .rank__note {
@@ -1371,6 +1462,15 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank__row .roster__dot {
+  flex: none;
+}
+
+.rank__status {
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -2210,10 +2310,55 @@
     height: auto;
   }
 
+  /* oda küçülür: altındaki sayaç çubuğu ilk ekranda kalır */
   .stage__room {
     position: relative;
-    height: 62svh;
-    min-height: 360px;
+    height: clamp(260px, 50svh, 440px);
+  }
+
+  .stage-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+
+  .stage-bar__phase {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-2);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .stage-bar__phase::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--timer);
+  }
+
+  .stage-bar[data-phase='break'] .stage-bar__phase::before {
+    background: var(--break);
+  }
+
+  .stage-bar__clock {
+    flex: 1;
+    color: var(--text);
+    font: 700 28px var(--font-numeric);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+
+  .site .stage-bar__toggle {
+    min-width: 112px;
+    min-height: 44px;
   }
 
   .stage__panel {
@@ -2223,16 +2368,39 @@
     overflow: visible;
   }
 
+  /* odak modu tek ekranda: oda kalan yeri alır, sayaç ve duraklat hep görünür */
+  .stage--focus {
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+  }
+
   .stage--focus .stage__room {
-    height: 55svh;
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
   }
 
   /* telefonda sayaç odanın altında: arka planı odanın boyanan rengini (--stage-bg = --room-paint)
      alır. Koyu modda sahnenin ışıltılı gradyanı alt kenarda bu renge iner; oda ile panel arasında
      çizgi kalmaz. */
   .stage--focus .stage__panel {
-    min-height: 45svh;
+    flex: none;
+    gap: 4px;
+    padding: 8px 16px max(12px, env(safe-area-inset-bottom));
     background: var(--stage-bg, transparent);
+  }
+
+  .stage--focus .stage-card {
+    padding: 8px 0 0;
+  }
+
+  .stage--focus .timer-ring {
+    width: min(240px, 32svh, 100%);
+  }
+
+  .stage--focus .timer-ring__clock {
+    font-size: clamp(40px, 6.5svh, 58px);
   }
 
   :root[data-mode='dark'] .stage--focus .room-canvas {
@@ -2242,6 +2410,38 @@
   .stage .room-canvas__toolbar {
     top: 10px;
     left: 10px;
+  }
+
+  /* kompakt araç çubuğu (RoomStage dar ekranda verir) sağ altta kalır; ipucu dokunmatikte yanıltıcı
+     ("çift tık") ve araç çubuğuyla çakışır */
+  .stage .room-canvas__toolbar--compact {
+    top: auto;
+    left: auto;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .stage .room-canvas__hint {
+    display: none;
+  }
+
+  /* dokunma hedefleri ≥ 44 px */
+  .site-footer__col {
+    gap: 0;
+  }
+
+  .site-footer__nav button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .invite-code .link-btn {
+    min-height: 44px;
+    padding: 0 6px;
+  }
+
+  .stage__panel .site-btn--small {
+    min-height: 44px;
   }
 }
 
@@ -2281,7 +2481,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rank__body {
+  .fold__body {
     animation: none;
   }
 

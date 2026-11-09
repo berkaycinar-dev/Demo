@@ -54,7 +54,7 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
   const [spot, setSpot] = useState(null)
   const [names, setNames] = useState(false)
   const [picked, setPicked] = useState(null)
-  const [rankOpen, setRankOpen] = useState(false)
+  const [peopleOpen, setPeopleOpen] = useState(false)
   // null | 'ok' | 'failed'
   const [copy, setCopy] = useState(null)
   const codeRef = useRef(null)
@@ -75,6 +75,8 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
       id: o.id,
       name: o.me ? 'Sen' : o.name,
       me: !!o.me,
+      status: o.status,
+      since: o.since,
       minutes: o.me ? timer.stats.minutes : 15 + (seedOf(room.id + o.id) % 210),
     }))
     return list.sort((a, b) => b.minutes - a.minutes)
@@ -105,6 +107,8 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
 
   const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} />
 
+  // Panel tek sütunda, 1440×900'de kaydırmadan sığar: başlık kartında durumun ve iki eylem, sonra
+  // sayaç, en altta odadakiler (sıralamayla birleşik, açılır). Liste kapasiteyle uzadığı için kapalı başlar.
   const panel = (
     <>
       <div className="stage-card stage-card--head">
@@ -127,83 +131,73 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
             </p>
           )}
         </div>
-        <FocusModeButton onClick={() => onFocusModeChange(true)} />
-      </div>
-
-      <div className="stage-card">{timerCard}</div>
-
-      <div className="stage-card">
-        <span className="field__label">Durumun</span>
-        <div className="choice-row" role="group" aria-label="Durumun">
-          {MY_STATUSES.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              aria-pressed={myStatus === s.id}
-              onClick={() => {
-                setMyStatus(s.id)
-                if (s.id !== 'break') setSpot(null)
-              }}
-            >
-              {s.label}
+        <div className="stage-card__status">
+          <span className="field__label">Durumun</span>
+          <div className="choice-row" role="group" aria-label="Durumun">
+            {MY_STATUSES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={myStatus === s.id}
+                onClick={() => {
+                  setMyStatus(s.id)
+                  if (s.id !== 'break') setSpot(null)
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+            <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
+              İsimler
             </button>
-          ))}
-          <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
-            İsimler
+          </div>
+        </div>
+        <div className="stage-card__actions">
+          <FocusModeButton onClick={() => onFocusModeChange(true)} />
+          <button type="button" className="site-btn" onClick={onLeave}>
+            Odadan çık
           </button>
         </div>
       </div>
 
-      <div className="stage-card rank">
-        <button type="button" className="rank__toggle" aria-expanded={rankOpen} aria-controls="rankList" onClick={() => setRankOpen((v) => !v)}>
+      <div className="stage-card">{timerCard}</div>
+
+      <div className="stage-card fold">
+        <button type="button" className="fold__toggle" aria-expanded={peopleOpen} aria-controls="peopleList" onClick={() => setPeopleOpen((v) => !v)}>
           <span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3" />
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            Sıralama
+            Odadakiler
+            <span className="fold__count">{occupants.length}</span>
           </span>
-          <svg className="rank__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg className="fold__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
-        <div id="rankList" className="rank__body" hidden={!rankOpen}>
-          <p className="site-muted rank__note">Bugünkü odak süresi</p>
-          <ol className="rank__list">
+        <div id="peopleList" className="fold__body" hidden={!peopleOpen}>
+          <p className="site-muted rank__note">Bugünkü odak süresine göre</p>
+          <ol className="rank__list" aria-label="Odadakiler">
             {ranking.map((r, i) => (
-              <li key={r.id} className={`rank__row${r.me ? ' rank__row--me' : ''}`}>
+              <li
+                key={r.id}
+                className={`rank__row roster__item--${r.status}${r.me ? ' rank__row--me' : ''}`}
+                onPointerEnter={() => setPicked(r.id)}
+                onPointerLeave={() => setPicked(null)}
+              >
                 <span className={`rank__no rank__no--${i + 1}`}>{i + 1}</span>
+                <span className="roster__dot" aria-hidden="true" />
                 <span className="rank__name">{r.name}</span>
+                <span className="rank__status site-muted">
+                  {STATUS_LABELS[r.status]}
+                  {r.status === 'away' && r.since && now - r.since >= 60000 ? ` · ${Math.floor((now - r.since) / 60000)} dk` : ''}
+                </span>
                 <span className="rank__min">{formatMinutes(r.minutes)}</span>
               </li>
             ))}
           </ol>
         </div>
       </div>
-
-      <div className="stage-card">
-        <span className="field__label">Odadakiler</span>
-        <ul className="roster" aria-label="Odadakiler">
-          {occupants.map((o) => (
-            <li
-              key={o.id}
-              className={`roster__item roster__item--${o.status}`}
-              onPointerEnter={() => setPicked(o.id)}
-              onPointerLeave={() => setPicked(null)}
-            >
-              <span className="roster__dot" aria-hidden="true" />
-              {o.me ? 'Sen' : o.name}
-              <span className="site-muted">
-                {STATUS_LABELS[o.status]}
-                {o.status === 'away' && o.since && now - o.since >= 60000 ? ` · ${Math.floor((now - o.since) / 60000)} dk` : ''}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <button type="button" className="site-btn site-btn--wide" onClick={onLeave}>
-        Odadan çık
-      </button>
     </>
   )
 
@@ -211,10 +205,11 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     <RoomStage
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
-      renderRoom={(canvasStyle) => (
+      timer={timer}
+      renderRoom={(canvasStyle, canvasProps) => (
         <Room
           capacity={room.capacity}
-          canvasStyle={canvasStyle}
+          canvasStyle={canvasStyle} {...canvasProps}
           onSpotClick={(s) => {
             setSpot(s)
             setMyStatus('break', s.id)
