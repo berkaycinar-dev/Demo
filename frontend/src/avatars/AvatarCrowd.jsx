@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { BoxGeometry, Color, Euler, Matrix4, Quaternion, Sphere, Vector3 } from 'three'
 import { FLAT_PLANE, getGlowTexture } from '../rooms/core/glow'
 import { useRoom } from '../rooms/core/roomContext'
@@ -56,7 +56,14 @@ const TENT_CAPACITY = 3
 const ZZZ_PER_AVATAR = 3
 const STATUS_LABELS = { focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
 
-const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+// Sistem ayarı oturum sırasında değişirse (odadan çıkmadan) kalabalık hemen yürümeyi bırakır ya da sürdürür.
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
+const subscribeReducedMotion = (cb) => {
+  const m = window.matchMedia?.(REDUCED_MOTION)
+  m?.addEventListener('change', cb)
+  return () => m?.removeEventListener('change', cb)
+}
+const prefersReducedMotion = () => window.matchMedia?.(REDUCED_MOTION).matches ?? false
 const angleTo = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from))
 const lerp = (a, b, k) => a + (b - a) * k
 const frac = (v) => v - Math.floor(v)
@@ -104,7 +111,8 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
   const room = useRoom()
   const invalidate = useThree((s) => s.invalidate)
   const gl = useThree((s) => s.gl)
-  const animated = !(reducedMotion ?? prefersReducedMotion())
+  const systemReduced = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion)
+  const animated = !(reducedMotion ?? systemReduced)
 
   const world = useMemo(() => {
     const nav = buildNav(room)

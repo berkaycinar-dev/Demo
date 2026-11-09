@@ -154,9 +154,10 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
   )
 }
 
+// İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır.
 export function FocusModeButton({ onClick }) {
   return (
-    <button type="button" className="site-btn site-btn--primary site-btn--wide focus-btn" onClick={onClick}>
+    <button type="button" className="site-btn focus-btn" onClick={onClick} title="Tam ekran: yalnızca oda ve sayaç (Esc ile çık)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
       </svg>

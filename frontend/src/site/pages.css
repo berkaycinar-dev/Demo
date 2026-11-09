@@ -1004,8 +1004,6 @@
 
 .stage-card__actions > .site-btn:not(.focus-btn) {
   flex: none;
-  min-height: 54px;
-  border-radius: 14px;
 }
 
 .site .stage-card__h2 {
@@ -1021,8 +1019,15 @@
   flex: none;
 }
 
-.focus-btn {
+/* İkincil düğme: panelin tek terracotta eylemi sayacın Başlat'ı. Yanındaki ikincil düğmelerle aynı
+   yükseklik; Odam başlık kartında içeriği kadar geniş, sola yaslı. */
+.focus-btn,
+.stage-card__actions > .site-btn {
   min-height: 48px;
+}
+
+.stage-card--head .focus-btn {
+  align-self: flex-start;
 }
 
 .invite-code {

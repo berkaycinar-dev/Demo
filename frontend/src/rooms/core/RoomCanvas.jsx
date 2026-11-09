@@ -254,7 +254,7 @@ export default function RoomCanvas({
   style,
   canvasStyle,
   toolbar = 'full',
-  hint = 'Sürükle: döndür · Çift tık: sıfırla',
+  hint = 'Sürükle: döndür · Çift tık: görünümü sıfırla',
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
@@ -345,7 +345,7 @@ export default function RoomCanvas({
               <ZoomGlyph sign="out" />
             </button>
             <button type="button" onClick={resetView}>
-              Sıfırla
+              Görünümü sıfırla
             </button>
           </div>
           <TimeMenu mode={mode} onChange={setMode} />
@@ -360,7 +360,7 @@ export default function RoomCanvas({
               −
             </button>
             <button type="button" onClick={resetView}>
-              Sıfırla
+              Görünümü sıfırla
             </button>
           </div>
           <div className="room-canvas__group" role="group" aria-label="Gün zamanı">
