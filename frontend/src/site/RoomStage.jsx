@@ -100,7 +100,7 @@ function StageBar({ timer }) {
   )
 }
 
-// Oda sayfalarının düzeni: oda sahnesi header ile footer arasındaki alanın tamamını kaplar (arka plan
+// Oda sayfalarının düzeni: oda sahnesi header'ın altındaki alanın tamamını kaplar, sayfa kaymaz (arka plan
 // odanın kendi rengi), sağda yüzen bir panel durur. Odak modunda sayfa tam ekran olur; header,
 // footer ve panelin geri kalanı gizlenir, yalnızca oda ve focusPanel kalır.
 //

@@ -398,3 +398,15 @@
     scrollbar-width: thin;
   }
 }
+
+/* sekmeli düzen anahtarı: ikincil, metin düğmesi; dokunma hedefi 44 px */
+.avatar-workshop .avatar-workshop__layout {
+  min-height: 44px;
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.avatar-workshop .avatar-workshop__layout:hover {
+  color: var(--text);
+}

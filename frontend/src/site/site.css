@@ -194,7 +194,17 @@
   font-weight: 700;
 }
 
-.site-btn--primary:hover {
+/* pasif birincil: soluk terakota bozuk gibi okunur; nötr zemin ve soluk metin alır */
+.site-btn--primary:disabled {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  box-shadow: none;
+  opacity: 1;
+  filter: none;
+}
+
+.site-btn--primary:hover:not(:disabled) {
   background: var(--primary-fill);
   /* koyulaşır: açılırsa krem yazının karşıtlığı 4.5:1'in altına düşer */
   filter: brightness(0.94);

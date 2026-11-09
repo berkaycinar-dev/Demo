@@ -56,7 +56,7 @@ function RoomCard({ room, onAction }) {
               Kodla gir
             </button>
           ) : (
-            <button type="button" className="site-btn site-btn--primary" onClick={onAction}>
+            <button type="button" className="site-btn" onClick={onAction}>
               Gir
             </button>
           )}
@@ -338,7 +338,7 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
                       </strong>
                       <span className="site-muted">{sinceText(at)}</span>
                     </span>
-                    <button type="button" className="site-btn site-btn--small site-btn--primary" onClick={() => onEnter(room)}>
+                    <button type="button" className="site-btn site-btn--small" onClick={() => onEnter(room)}>
                       Gir
                     </button>
                     <button

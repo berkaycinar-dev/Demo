@@ -817,13 +817,22 @@
   line-height: 1.6;
 }
 
-.home__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+/* tek birincil eylem ve yanında sayacın durumu (eylem değil, bilgi) */
+.home__go {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
 }
 
-.stat {
+.home__timer {
+  color: var(--text-2);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+
+.home__today {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -836,11 +845,6 @@
   font-size: 34px;
   font-weight: 700;
   line-height: 1.1;
-}
-
-.stat__value--text {
-  font-family: var(--font-display);
-  font-size: 26px;
 }
 
 .home__rooms .section-head {
@@ -2416,9 +2420,9 @@
     grid-template-columns: 1fr;
   }
 
+  /* dar ekranda "Odama git" ilk ekranda kalır; avatar ardından gelir */
   .home__avatar {
     position: static;
-    order: -1;
   }
 
   .home__avatar-stage {

@@ -195,7 +195,9 @@ export default function Site() {
         {(page === 'kosullar' || page === 'gizlilik') && <LegalPage kind={page} onGo={go} />}
       </main>
 
-      {!focusMode && <SiteFooter onGo={go} />}
+      {/* Oda sayfalarında alt bilgi yok: oda header'ın altındaki alanın tamamını kaplar, sayfa kaymaz
+          (oda geri planda durur). Yasal bağlantılar diğer bütün sayfaların altında. */}
+      {!focusMode && !roomPage && <SiteFooter onGo={go} />}
     </div>
   )
 }
