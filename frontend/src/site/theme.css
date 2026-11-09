@@ -46,6 +46,14 @@
   /* sayılar (sayaç, istatistik, sıralama): düz sıfır, eşit genişlikte rakamlar */
   --font-numeric: 'Space Grotesk', Inter, system-ui, sans-serif;
 
+  /* sayfa kabı: tek içerik genişliği. Header, sayfa gövdesi, tanıtım bölümleri ve footer aynı kenara
+     hizalanır; --page-inline tam genişlikli şeritlerin (header, footer) iç boşluğudur. Metin sayfaları
+     (koşullar, gizlilik) aynı kabın içinde okuma ölçüsüyle daralır (--measure-text). */
+  --page-max: 1216px;
+  --page-gutter: 32px;
+  --page-inline: max(var(--page-gutter), calc((100% - var(--page-max)) / 2));
+  --measure-text: 720px;
+
   /* düğme dolgusu: düz renk yerine üstten hafif aydınlanan geçiş */
   --button-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.06));
 
@@ -127,6 +135,12 @@
 /* sayfa sınırının ötesine kaydırınca görünen zemin de temaya uyar */
 :root {
   background-color: var(--page-base);
+}
+
+@media (max-width: 560px) {
+  :root {
+    --page-gutter: 16px;
+  }
 }
 
 :root[data-mode='dark'] {

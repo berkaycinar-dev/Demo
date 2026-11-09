@@ -400,12 +400,8 @@ function PoseSheet({ open, onClose, mode, setMode, activity, setActivity, childr
   )
 }
 
-// Düzenleyici düzeni: sekmeler (asıl) ya da karakter menüsü (DENEME, CharacterMenu). Seçim bu tarayıcıda
-// hatırlanır. Deneme beğenilmezse: bu blok, başlıktaki "Düzen" anahtarı ve layout === 'menu' dalı silinir.
-const LAYOUTS = [
-  { id: 'tabs', label: 'Sekmeler' },
-  { id: 'menu', label: 'Menü' },
-]
+// Düzenleyici düzeni: karakter menüsü (varsayılan, CharacterMenu) ya da sekmeler. Sekmeli düzen başlıkta
+// küçük bir ikincil anahtarla açılır; seçim bu tarayıcıda hatırlanır.
 const LAYOUT_KEY = 'odakhane:avatar-layout'
 const loadLayout = () => {
   try {
@@ -607,13 +603,15 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
         </div>
         <div className="avatar-workshop__tools">
-          <div className="segmented" role="group" aria-label="Düzen">
-            {LAYOUTS.map((l) => (
-              <button key={l.id} type="button" aria-pressed={layout === l.id} onClick={() => setLayout(l.id)}>
-                {l.label}
-              </button>
-            ))}
-          </div>
+          {/* Menü varsayılan; sekmeli düzen küçük bir ikincil anahtar (ilk gelen kişiye seçim sorulmaz) */}
+          <button
+            type="button"
+            className="link-btn avatar-workshop__layout"
+            aria-pressed={layout === 'tabs'}
+            onClick={() => setLayout(layout === 'tabs' ? 'menu' : 'tabs')}
+          >
+            {layout === 'tabs' ? 'Menü düzenine dön' : 'Sekmeli düzen'}
+          </button>
           {onEnterRoom && (
             <button type="button" className="site-btn avatar-workshop__enter" onClick={onEnterRoom}>
               Bu hâliyle odama gir

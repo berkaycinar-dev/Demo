@@ -5,9 +5,13 @@
 
 export const LEGAL_UPDATED = '5 Kasım 2026'
 
+// TODO(iletişim): gerçek iletişim adresi gelince bu satırı değiştir. Adres uydurulmaz; kişisel
+// e-posta kullanılmaz. Yayına çıkmadan önce doldurulmalı.
+const CONTACT_EMAIL = '[TODO: iletişim e-posta adresi]'
+
 export const LEGAL_DOCS = {
   kosullar: {
-    title: 'Kullanım Koşulları',
+    title: 'Kullanım koşulları',
     intro: 'Odakhane’yi kullanarak aşağıdaki koşulları kabul etmiş olursun. Kısa ve anlaşılır tutmaya çalıştık.',
     sections: [
       {
@@ -50,14 +54,14 @@ export const LEGAL_DOCS = {
         heading: 'Değişiklikler',
         body: [
           'Bu koşulları güncelleyebiliriz. Önemli değişikliklerde sitede duyururuz; güncellemeden sonra kullanmaya devam etmen yeni koşulları kabul ettiğin anlamına gelir.',
-          'Sorular için: [iletişim e-posta adresi]',
+          `Sorular için: ${CONTACT_EMAIL}`,
         ],
       },
     ],
   },
 
   gizlilik: {
-    title: 'Gizlilik Politikası',
+    title: 'Gizlilik politikası',
     intro:
       'Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) kapsamında hangi verileri neden işlediğimizi ve haklarını anlatır.',
     sections: [
@@ -97,7 +101,7 @@ export const LEGAL_DOCS = {
         heading: 'Hakların',
         body: [
           'KVKK’nın 11. maddesi uyarınca verilerinin işlenip işlenmediğini öğrenme, bilgi isteme, düzeltilmesini ya da silinmesini isteme ve itiraz etme hakların vardır.',
-          'Bilgilerini Hesap ayarları sayfasından kendin düzeltebilirsin. Diğer talepler için: [iletişim e-posta adresi]',
+          `Bilgilerini Hesap ayarları sayfasından kendin düzeltebilirsin. Diğer talepler için: ${CONTACT_EMAIL}`,
           'Veri sorumlusu: [şirket / kişi adı ve adresi]',
         ],
       },

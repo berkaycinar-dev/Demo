@@ -6,6 +6,7 @@ import { nameStatus, textLength } from './nameRules'
 import { normalizeCode } from './roomStore'
 import { thumbOf } from './roomThumbs'
 import useImageState from './useImageState'
+import Dotted from './Dotted'
 
 const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
@@ -175,7 +176,7 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
           <div className="room-frame create-room__stage">
             {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
             <div key={`${theme}-${capacity}`} className="create-preview__scene">
-              <Room capacity={capacity} onSpotClick={setSpot} toolbar="compact" hint="Zemindeki halkalar mola noktaları · Sürükle: döndür" />
+              <Room capacity={capacity} onSpotClick={setSpot} hint="Zemindeki halkalar mola noktaları · Sürükle: döndür" />
             </div>
           </div>
         </section>
@@ -254,7 +255,7 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             <p className="create-room__summary">
               <span className="create-room__summary-name">{roomName}</span>
               <span className="create-room__summary-meta">
-                {label} · {capacity} kişilik · {ACCESS_OPTIONS.find((o) => o.id === access).label}
+                <Dotted parts={[label, `${capacity} kişilik`, ACCESS_OPTIONS.find((o) => o.id === access).label]} keep />
               </span>
               {spot && <span className="create-room__spot">Seçilen mola noktası: {spot.label}</span>}
             </p>

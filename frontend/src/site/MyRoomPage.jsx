@@ -6,6 +6,7 @@ import { ACCESS_LABELS } from './access'
 import RoomStage, { FocusModeButton } from './RoomStage'
 import TimerCard from './TimerCard'
 import { formatMinutes } from './usePomodoro'
+import Dotted from './Dotted'
 
 const MY_STATUSES = [
   { id: 'focus', label: 'Odakta' },
@@ -49,7 +50,19 @@ export default function MyRoomPage({ room, onBrowse, ...rest }) {
 // Durum düğmeleri: Molada'ya basınca en yakın boş mola yerine yürürsün; zemindeki bir halkaya
 // tıklayınca o mola yerine gidersin (doluysa sıradakine). Avatarların üstünde yalnızca durum
 // noktası durur (kalabalıkta isimler üst üste binmesin); isimler paneldeki listede. Listede
-// bir kişinin üstüne gelince odadaki avatarının adı açılır; "İsimler" herkesinkini açar.
+// bir kişinin üstüne gelince odadaki avatarının adı açılır; sahne araç çubuğundaki "İsimler"
+// herkesinkini açar. Durum işaretleri şekille de ayrılır (daire, elmas, içi boş halka) ve her durum
+// düğmesi kendi işaretini taşır: düğmeler işaretlerin lejantıdır, anlam yalnızca renkle verilmez.
+// Zemindeki mola halkaları düğmelerin altındaki tek satırda açıklanır.
+function RoomLegend() {
+  return (
+    <p className="room-legend">
+      <span className="room-legend__ring" aria-hidden="true" />
+      Zemindeki halkalar: mola yerleri
+    </p>
+  )
+}
+
 function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }) {
   const [spot, setSpot] = useState(null)
   const [names, setNames] = useState(false)
@@ -113,9 +126,11 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     <>
       <div className="stage-card stage-card--head">
         <div>
-          <h1 className="stage-card__title">{room.name}</h1>
+          <h1 className="stage-card__title">
+            <Dotted text={room.name} />
+          </h1>
           <p className="site-muted">
-            {label} · {room.capacity} kişilik · {ACCESS_LABELS[room.access]}
+            <Dotted parts={[label, `${room.capacity} kişilik`, ACCESS_LABELS[room.access]]} keep />
           </p>
           {spot && <p className="site-muted">Mola yeri: {spot.label}</p>}
           {room.code && (
@@ -138,19 +153,19 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
               <button
                 key={s.id}
                 type="button"
+                className={`status-chip roster__item--${s.id}`}
                 aria-pressed={myStatus === s.id}
                 onClick={() => {
                   setMyStatus(s.id)
                   if (s.id !== 'break') setSpot(null)
                 }}
               >
+                <span className="roster__dot" aria-hidden="true" />
                 {s.label}
               </button>
             ))}
-            <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
-              İsimler
-            </button>
           </div>
+          <RoomLegend />
         </div>
         <div className="stage-card__actions">
           <FocusModeButton onClick={() => onFocusModeChange(true)} />
@@ -206,10 +221,16 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
       timer={timer}
-      renderRoom={(canvasStyle, canvasProps) => (
+      renderRoom={(canvasStyle) => (
         <Room
           capacity={room.capacity}
-          canvasStyle={canvasStyle} {...canvasProps}
+          canvasStyle={canvasStyle}
+          hint="Halkaya tıkla: mola yerine git · Sürükle: döndür"
+          controls={
+            <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
+              İsimler
+            </button>
+          }
           onSpotClick={(s) => {
             setSpot(s)
             setMyStatus('break', s.id)

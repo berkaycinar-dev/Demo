@@ -153,13 +153,13 @@ export default function Site() {
 
   return (
     <div className={`site${focusMode ? ' site--focus' : ''}`}>
-      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} />}
+      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} wide={Boolean(roomPage)} />}
 
       <main className={mainClass}>
         {page === 'anasayfa' && <LandingPage user={user} rooms={rooms} onGo={go} onEnter={enter} />}
         {page === 'giris' && <LoginPage onDone={(u) => signedIn(u, false)} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={(u) => signedIn(u, true)} onGo={go} />}
-        {page === 'sayfam' && <HomePage user={user} avatar={avatar} timer={timer} rooms={rooms} onGo={go} onEnter={enter} />}
+        {page === 'sayfam' && <HomePage user={user} avatar={avatar} timer={timer} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}
         {page === 'odam' && <SoloRoomPage user={user} avatar={avatar} timer={timer} focusMode={focusMode} onFocusModeChange={setFocusMode} />}
         {page === 'oda' && (
           <MyRoomPage
@@ -195,7 +195,9 @@ export default function Site() {
         {(page === 'kosullar' || page === 'gizlilik') && <LegalPage kind={page} onGo={go} />}
       </main>
 
-      {!focusMode && <SiteFooter onGo={go} />}
+      {/* Oda sayfalarında alt bilgi yok: oda header'ın altındaki alanın tamamını kaplar, sayfa kaymaz
+          (oda geri planda durur). Yasal bağlantılar diğer bütün sayfaların altında. */}
+      {!focusMode && !roomPage && <SiteFooter onGo={go} />}
     </div>
   )
 }

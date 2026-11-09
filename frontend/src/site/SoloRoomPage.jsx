@@ -7,6 +7,7 @@ import { SOUNDS, playAmbient, setAmbientVolume, stopAmbient } from './ambient'
 import RoomStage, { FocusModeButton } from './RoomStage'
 import TimerCard from './TimerCard'
 import { swatchOf } from './themeLook'
+import Dotted from './Dotted'
 
 // Odam: tek kişilik kişisel oda. Sağda sayaç ve oda ayarları (tasarım, ortam sesi).
 export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusModeChange }) {
@@ -61,7 +62,7 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
               Oda ayarları
             </span>
             <span className="fold__summary">
-              {label} · {playing ? playing.label : 'Sessiz'}
+              <Dotted parts={[label, playing ? playing.label : 'Sessiz']} keep />
               <svg className="fold__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6 9l6 6 6-6" />
               </svg>
@@ -125,8 +126,8 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
       timer={timer}
-      renderRoom={(canvasStyle, canvasProps) => (
-        <Room capacity={1} canvasStyle={canvasStyle} {...canvasProps}>
+      renderRoom={(canvasStyle) => (
+        <Room capacity={1} canvasStyle={canvasStyle}>
           <AvatarCrowd occupants={occupants} theme={settings.theme} />
         </Room>
       )}

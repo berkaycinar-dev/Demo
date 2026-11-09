@@ -11,14 +11,31 @@
   cursor: grab;
 }
 
-.room-canvas__toolbar {
+/* sahnenin alt şeridi, her sayfada tek düzen: araç çubuğu sağ altta, ipucu sol altta. Satıra sığmazsa
+   ipucu araç çubuğunun üstüne sarar (row-reverse + wrap-reverse: ilk öğe sağ altta kalır). Sağ kenar
+   --scene-ui-right ile kayar (oda sayfasında yüzen panelin solunda kalsın diye). Şerit tıklamayı geçirir;
+   sahne sürüklenebilir kalır. */
+.room-canvas__bar {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  left: 12px;
+  right: var(--scene-ui-right, 12px);
+  bottom: 12px;
+  display: flex;
+  flex-flow: row-reverse wrap-reverse;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* araç çubuğu: dolgusuz; gün zamanı tek düğmede, menü yukarı açılır. Sayfanın asıl eylemiyle yarışmasın
+   diye seçili öğe dolguyla değil onay işaretiyle belli olur. */
+.room-canvas__toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: flex-end;
   gap: 8px;
+  pointer-events: auto;
   cursor: default;
 }
 
@@ -26,28 +43,33 @@
   display: flex;
   overflow: hidden;
   border-radius: 10px;
-  background: #fffaf3;
-  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.15);
+  background: color-mix(in srgb, var(--surface, #fffaf3) 88%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line, #ece3d6);
 }
 
 .room-canvas__group button {
-  min-width: 36px;
-  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 10px;
   border: 0;
   background: transparent;
-  color: #2b2622;
+  color: var(--text-2, #3d362f);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.2;
   cursor: pointer;
 }
 
 .room-canvas__group button + button {
-  border-left: 1px solid #ece3d6;
+  border-left: 1px solid var(--line, #ece3d6);
 }
 
 .room-canvas__group button:hover {
-  background: #f3ebdf;
+  background: var(--surface-2, #f3ebdf);
+  color: var(--text, #2b2622);
 }
 
 /* seçili: sitenin seçim dili (--chip-on-*, --sel-ring); token yoksa eski yeşil */
@@ -63,10 +85,7 @@
 }
 
 .room-canvas__hint {
-  position: absolute;
-  left: 16px;
-  bottom: 10px;
-  margin: 0;
+  margin: 0 auto 0 0;
   /* her tema ve gün zamanı zemininde AA: yarı saydam yüzey hapı üstünde ikincil yazı */
   padding: 3px 9px;
   border-radius: 999px;
@@ -74,47 +93,6 @@
   color: var(--text-2, #3d362f);
   font-size: 12px;
   pointer-events: none;
-}
-
-@media (max-width: 600px) {
-  .room-canvas__toolbar {
-    top: 8px;
-    right: 8px;
-    gap: 6px;
-  }
-
-  /* dokunma hedefi ≥ 44 px (10 temanın hepsinde ortak araç çubuğu) */
-  .room-canvas__group button {
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0 10px;
-    font-size: 13px;
-  }
-}
-
-/* kompakt araç çubuğu (toolbar="compact"): sağ altta, dolgusuz; gün zamanı tek düğmede, menü yukarı
-   açılır. Sayfanın asıl eylemiyle yarışmasın diye seçili öğe dolguyla değil onay işaretiyle belli olur. */
-.room-canvas__toolbar--compact {
-  top: auto;
-  bottom: 12px;
-  right: 12px;
-  align-items: flex-end;
-}
-
-.room-canvas__toolbar--compact .room-canvas__group {
-  background: color-mix(in srgb, var(--surface, #fffaf3) 88%, transparent);
-  box-shadow: inset 0 0 0 1px var(--line, #ece3d6);
-}
-
-.room-canvas__toolbar--compact .room-canvas__group button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 34px;
-  min-height: 34px;
-  padding: 0 10px;
-  color: var(--text-2, #3d362f);
-  font-size: 13px;
 }
 
 .room-canvas__time {
@@ -223,13 +201,20 @@
   }
 }
 
+/* dokunma hedefi ≥ 44 px (10 temanın hepsinde ortak araç çubuğu) */
 @media (max-width: 600px) {
-  .room-canvas__toolbar--compact {
+  .room-canvas__bar {
+    left: 8px;
+    right: var(--scene-ui-right, 8px);
     bottom: 8px;
-    right: 8px;
+    gap: 6px;
   }
 
-  .room-canvas__toolbar--compact .room-canvas__group button,
+  .room-canvas__toolbar {
+    gap: 6px;
+  }
+
+  .room-canvas__group button,
   .room-canvas__time-btn,
   .room-canvas__time-menu button {
     min-width: 44px;

@@ -127,7 +127,10 @@
 /* ---------- header ekleri ---------- */
 
 .header-link {
-  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
   border: none;
   border-radius: 10px;
   background: none;
@@ -142,16 +145,10 @@
 }
 
 .header-cta {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 18px;
   font-size: 15px;
   font-weight: 600;
-}
-
-.mode-btn--icon {
-  justify-content: center;
-  width: 40px;
-  padding: 0;
 }
 
 .user-chip {
@@ -193,11 +190,11 @@
 }
 
 .lp-section {
-  padding: 56px 32px;
+  padding: 56px var(--page-gutter);
 }
 
 .lp-inner {
-  max-width: 1180px;
+  max-width: var(--page-max);
   margin: 0 auto;
 }
 
@@ -214,7 +211,7 @@
   grid-template-areas: 'text room';
   gap: 24px 48px;
   align-items: center;
-  max-width: 1180px;
+  max-width: var(--page-max);
   margin: 0 auto;
 }
 
@@ -261,6 +258,7 @@
 
 .lp-lead {
   max-width: 34em;
+  text-wrap: pretty;
   margin: 0 !important;
   color: var(--text-2);
   font-size: 19px;
@@ -273,7 +271,7 @@
 
 /* lobideki açık odalar: landing lobinin kapısı; satır başına oda görseli, ad, kapasite, Otur */
 .lp-open {
-  max-width: 1180px;
+  max-width: var(--page-max);
   margin: 40px auto 0;
   padding-top: 20px;
   border-top: 1px solid var(--line);
@@ -356,8 +354,8 @@
 }
 
 .lp-themes .lp-inner {
-  max-width: calc(1180px + 64px);
-  padding: 0 32px;
+  max-width: calc(var(--page-max) + 2 * var(--page-gutter));
+  padding: 0 var(--page-gutter);
 }
 
 .lp-themes .section-head {
@@ -370,10 +368,10 @@
   grid-auto-flow: column;
   gap: 16px;
   margin: 0;
-  padding: 4px max(32px, calc((100vw - 1180px) / 2)) 16px;
+  padding: 4px var(--page-inline) 16px;
   overflow-x: auto;
   list-style: none;
-  scroll-padding-inline: max(32px, calc((100vw - 1180px) / 2));
+  scroll-padding-inline: var(--page-inline);
   scroll-snap-type: x mandatory;
   scrollbar-color: var(--line-strong) transparent;
   scrollbar-width: thin;
@@ -498,7 +496,7 @@
 }
 
 .lp-quote-wrap {
-  padding: 24px 32px 40px;
+  padding: 24px var(--page-gutter) 40px;
 }
 
 .lp-quote {
@@ -506,7 +504,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 16px;
-  max-width: 1180px;
+  max-width: var(--page-max);
   margin: 0 auto;
 }
 
@@ -549,7 +547,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  max-width: 1180px;
+  max-width: var(--page-max);
   margin: 0 auto;
   padding: 44px 48px;
   border-radius: 28px;
@@ -606,7 +604,7 @@
   flex-wrap: wrap;
   gap: 24px;
   width: 100%;
-  max-width: 980px;
+  max-width: var(--page-max);
 }
 
 /* marka paneli: odanın görseli ve tek cümle; düz terakota blok değil */
@@ -657,12 +655,14 @@
 
 .site .auth__brand h2 {
   margin: 0;
+  text-wrap: balance;
   font-size: 28px;
   line-height: 1.15;
 }
 
 .auth__brand p {
   max-width: 40ch;
+  text-wrap: pretty;
   margin: 0;
   color: var(--text-2);
   font-size: 16px;
@@ -683,10 +683,12 @@
 
 .auth__head h1 {
   margin: 0 0 6px;
+  text-wrap: balance;
 }
 
 .auth__head p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 .auth__form {
@@ -715,6 +717,7 @@
 
 .auth-field__hint {
   font-size: 14px;
+  text-wrap: pretty;
 }
 
 .auth-field input {
@@ -811,19 +814,29 @@
 
 .home__lead {
   max-width: 34em;
+  text-wrap: pretty;
   margin: 0 !important;
   color: var(--text-2);
   font-size: 17px;
   line-height: 1.6;
 }
 
-.home__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+/* tek birincil eylem ve yanında sayacın durumu (eylem değil, bilgi) */
+.home__go {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
 }
 
-.stat {
+.home__timer {
+  color: var(--text-2);
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+
+.home__today {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -838,17 +851,19 @@
   line-height: 1.1;
 }
 
-.stat__value--text {
-  font-family: var(--font-display);
-  font-size: 26px;
-}
-
 .home__rooms .section-head {
   margin-bottom: 10px;
 }
 
 .home__rooms p {
   margin: 0;
+  text-wrap: pretty;
+}
+
+.home__rooms .home__first {
+  max-width: 40em;
+  margin-bottom: 8px;
+  color: var(--text-2);
 }
 
 .home__avatar {
@@ -913,11 +928,9 @@
   min-height: 0;
 }
 
-/* sahne kontrolleri panelin altında kalmasın: sol üste */
-.stage .room-canvas__toolbar {
-  right: auto;
-  left: 16px;
-  justify-content: flex-start;
+/* sahnenin alt şeridi (araçlar ve ipucu) yüzen panelin altında kalmasın: panelin solunda biter */
+.stage {
+  --scene-ui-right: calc(var(--panel-w) + 48px);
 }
 
 .stage__panel {
@@ -940,8 +953,7 @@
 
 /* Odak modu tek işe iner: sayaç ve duraklat / devam. Sahne araçları, ipucu, sıfırla ve atla gizli;
    çıkış düğmesi sessiz bir metin düğmesi (Esc de çıkarır). */
-.stage--focus .room-canvas__toolbar,
-.stage--focus .room-canvas__hint,
+.stage--focus .room-canvas__bar,
 .stage--focus .timer-card__actions .site-btn:not(.timer-card__main) {
   display: none;
 }
@@ -1059,6 +1071,35 @@
 
 .stage-card__status .choice-row {
   flex-wrap: wrap;
+}
+
+/* durum düğmeleri odadaki işaretin aynısını taşır (lejant); altında tek satırda mola halkaları */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-chip .roster__dot {
+  flex: none;
+}
+
+.room-legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0 0 !important;
+  color: var(--text-2);
+  font-size: 13px;
+  text-wrap: pretty;
+}
+
+.room-legend__ring {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--text-2);
 }
 
 .stage-card__actions {
@@ -1682,20 +1723,6 @@
   font-size: 14px;
 }
 
-.lobby-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 28px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 18px;
-}
-
-.lobby-empty p {
-  margin: 0 !important;
-}
-
 .lobby__side {
   display: flex;
   flex-direction: column;
@@ -2143,6 +2170,7 @@
 
 /* kullanım koşulları onayı */
 .auth-terms {
+  text-wrap: pretty;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -2199,9 +2227,11 @@
 /* ---------- kullanım koşulları / gizlilik ---------- */
 
 .legal {
-  max-width: 780px;
+  --legal-pad: 40px;
+  /* okuma ölçüsü: metin sütunu --measure-text, kart onun iki yanındaki iç boşlukla */
+  max-width: calc(var(--measure-text) + 2 * var(--legal-pad));
   margin: 0 auto;
-  padding: 40px;
+  padding: var(--legal-pad);
 }
 
 .legal__head {
@@ -2326,7 +2356,8 @@
 
 @media (max-width: 560px) {
   .legal {
-    padding: 28px 20px;
+    --legal-pad: 20px;
+    padding-block: 28px;
   }
 
   .legal-dialog__scroll {
@@ -2341,7 +2372,7 @@
 /* ---------- hesap ayarları ---------- */
 
 .account {
-  max-width: 1080px;
+  max-width: var(--page-max);
   margin: 0 auto;
 }
 
@@ -2416,9 +2447,9 @@
     grid-template-columns: 1fr;
   }
 
+  /* dar ekranda "Odama git" ilk ekranda kalır; avatar ardından gelir */
   .home__avatar {
     position: static;
-    order: -1;
   }
 
   .home__avatar-stage {
@@ -2555,18 +2586,9 @@
     background: linear-gradient(to bottom, transparent 55%, var(--room-paint)), var(--room-wash);
   }
 
-  .stage .room-canvas__toolbar {
-    top: 10px;
-    left: 10px;
-  }
-
-  /* kompakt araç çubuğu (RoomStage dar ekranda verir) sağ altta kalır; ipucu dokunmatikte yanıltıcı
-     ("çift tık") ve araç çubuğuyla çakışır */
-  .stage .room-canvas__toolbar--compact {
-    top: auto;
-    left: auto;
-    right: 10px;
-    bottom: 10px;
+  /* panel sahnenin altına iner: şerit tam genişlik. İpucu dokunmatikte yanıltıcı ("çift tık") */
+  .stage {
+    --scene-ui-right: 8px;
   }
 
   .stage .room-canvas__hint {
@@ -2590,12 +2612,6 @@
 }
 
 @media (max-width: 560px) {
-  .lp-section,
-  .lp-hero-wrap,
-  .lp-quote-wrap {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
 
   .lp-hero-wrap {
     padding-top: 16px;
@@ -2648,9 +2664,6 @@
     margin-left: 0;
   }
 
-  .lp-themes .lp-inner {
-    padding: 0 16px;
-  }
 
   .lp-strip {
     grid-auto-columns: 168px;

@@ -5,11 +5,23 @@ import { formatClock, formatMinutes } from './usePomodoro'
 
 const dateText = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
 
-// Sayfam: giriş yapınca açılan ilk sayfa. Solda selam, bugünkü odak ve kısayollar; sağda avatar.
-export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) {
-  const myTheme = loadMyRoom(user).theme
+// Sayfam: giriş yapınca açılan ilk sayfa. Tek birincil eylem "Odama git"; yanında sayacın o anki
+// durumu ve odanın adı yazar, böylece ilk gelen kişi masasının ve sayacının hazır olduğunu görür.
+// Bugünkü odak kartı ancak sayılacak bir şey olunca çıkar (ilk gün "0 dk" gösterilmez).
+// İlk kez gelen (henüz hiçbir ortak odaya girmemiş) kişide Odalar kartı ilk odayı seçmeye yönlendirir.
+export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo, onEnter }) {
+  const roomLabel = THEMES[loadMyRoom(user).theme]?.label ?? 'Kütüphane'
   const firstName = user.displayName.split(' ')[0]
-  const quick = rooms.find((r) => r.access === 'public')
+  const open = rooms.filter((r) => r.access === 'public')
+  const quick = open[0]
+  const { minutes, pomodoros } = timer.stats
+  const hasToday = minutes > 0 || pomodoros > 0
+  const firstRoom = joined.length === 0
+  const timerText = timer.running
+    ? `${timer.phase === 'focus' ? 'Odaktasın' : 'Moladasın'} · ${formatClock(timer.remaining)}`
+    : timer.fresh
+      ? `Sayaç hazır · ${formatClock(timer.remaining)}`
+      : `Duraklatıldı · ${formatClock(timer.remaining)}`
 
   return (
     <div className="home">
@@ -19,50 +31,44 @@ export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) 
           <h1>
             Merhaba <span className="accent">{firstName}</span>.
           </h1>
-          <p className="home__lead">Bugün de birlikte odaklanalım. Odana geç, sayacını başlat; avatarın masanda seni bekliyor.</p>
-          <div className="site-actions">
+          <p className="home__lead">Avatarın {roomLabel} odasında, masanda seni bekliyor.</p>
+          <div className="home__go">
             <button type="button" className="site-btn site-btn--primary site-btn--lg" onClick={() => onGo('odam')}>
               Odama git
             </button>
-            <button type="button" className="site-btn site-btn--lg" disabled={!quick} onClick={() => onEnter(quick)}>
-              Hızlı odaya katıl
-            </button>
+            <span className="home__timer" role="status">
+              {timerText}
+            </span>
           </div>
         </section>
 
-        <div className="home__stats">
-          <div className="site-card stat">
+        {hasToday && (
+          <section className="site-card home__today" aria-label="Bugünkü odak">
             <span className="site-muted">Bugünkü odak</span>
-            <span className="stat__value">{formatMinutes(timer.stats.minutes)}</span>
-            <span className="site-muted">{timer.stats.pomodoros} pomodoro tamamlandı</span>
-          </div>
-          <div className="site-card stat">
-            <span className="site-muted">Sayaç</span>
-            <span className="stat__value">{formatClock(timer.remaining)}</span>
-            <span className="site-muted">
-              {timer.running ? (timer.phase === 'focus' ? 'Odaktasın' : 'Moladasın') : timer.fresh ? 'Hazır' : 'Duraklatıldı'}
-            </span>
-          </div>
-          <div className="site-card stat">
-            <span className="site-muted">Senin odan</span>
-            <span className="stat__value stat__value--text">{THEMES[myTheme]?.label ?? 'Kütüphane'}</span>
-            <button type="button" className="link-btn" onClick={() => onGo('odam')}>
-              Tasarımını değiştir
-            </button>
-          </div>
-        </div>
+            <span className="stat__value">{formatMinutes(minutes)}</span>
+            <span className="site-muted">{pomodoros} pomodoro tamamlandı</span>
+          </section>
+        )}
 
         <section className="site-card home__rooms">
           <div className="section-head section-head--row">
-            <div>
-              <h2>Odalar</h2>
-            </div>
+            <h2>{firstRoom ? 'İlk odanı seç' : 'Odalar'}</h2>
             <button type="button" className="site-btn" onClick={() => onGo('lobi')}>
               Lobiye git
             </button>
           </div>
+          {firstRoom && (
+            <p className="home__first">
+              Lobideki herkese açık odalardan birine otur; avatarın boş bir masaya geçer, sayacın seninle gelir. Davet kodun varsa gizli odaya da Lobi’den katılırsın.
+            </p>
+          )}
           <p className="site-muted">
-            Şu an {rooms.filter((r) => r.access === 'public').length} herkese açık oda var. Davet kodun varsa gizli odalara da Lobi'den girebilirsin.
+            Şu an {open.length} herkese açık oda var.{' '}
+            {quick && (
+              <button type="button" className="link-btn" onClick={() => onEnter(quick)}>
+                Birine hemen katıl
+              </button>
+            )}
           </p>
         </section>
       </div>
@@ -76,7 +82,7 @@ export default function HomePage({ user, avatar, timer, rooms, onGo, onEnter }) 
             <span className="home__avatar-name">{avatar.name}</span>
             <span className="site-muted">@{user.username}</span>
           </div>
-          <button type="button" className="site-btn site-btn--primary" onClick={() => onGo('avatar')}>
+          <button type="button" className="site-btn" onClick={() => onGo('avatar')}>
             Avatarı düzenle
           </button>
         </div>

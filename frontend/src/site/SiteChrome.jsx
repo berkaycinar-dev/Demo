@@ -2,19 +2,24 @@ import { useEffect, useRef } from 'react'
 
 // Sitenin çerçevesi: marka, üst menü, açık/koyu mod düğmesi ve alt bilgi.
 
+// Marka işareti: izometrik tek voxel blok, sol yüzünde ışığı yanan bir kapı. Odalar gibi kil/terakota
+// tonlarında üç yüz; kapı içeride birinin çalıştığını söyler. public/favicon.svg ile aynı çizim.
 export function BrandMark({ size = 28 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="14" r="11" stroke="var(--header-accent)" strokeWidth="2.5" />
-      <path d="M14 7v7l5 3" stroke="var(--header-accent)" strokeWidth="2.5" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 28 28" aria-hidden="true">
+      <path d="M14 2.5 25 8.5 14 14.5 3 8.5Z" fill="#e3a47f" />
+      <path d="M3 8.5 14 14.5V26.5L3 20.5Z" fill="#b5502d" />
+      <path d="M25 8.5 14 14.5V26.5L25 20.5Z" fill="#7d3519" />
+      <path d="M6.5 14.4 10.5 16.6V24.6L6.5 22.4Z" fill="#ffd89a" />
     </svg>
   )
 }
 
-export function ModeToggle({ isDark, onToggle, iconOnly = false }) {
+// Header'da tek biçim: 44 px yuvarlak ikon düğmesi (misafir de oturumlu da, her sayfada aynı).
+export function ModeToggle({ isDark, onToggle }) {
   const label = isDark ? 'Açık moda geç' : 'Koyu moda geç'
   return (
-    <button type="button" className={`mode-btn${iconOnly ? ' mode-btn--icon' : ''}`} aria-pressed={isDark} aria-label={label} title={label} onClick={onToggle}>
+    <button type="button" className="mode-btn" aria-pressed={isDark} aria-label={label} title={label} onClick={onToggle}>
       {isDark ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4" />
@@ -25,7 +30,6 @@ export function ModeToggle({ isDark, onToggle, iconOnly = false }) {
           <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
         </svg>
       )}
-      {!iconOnly && <span className="mode-btn__text">{isDark ? 'Açık mod' : 'Koyu mod'}</span>}
     </button>
   )
 }
@@ -54,18 +58,20 @@ function useHeaderHeight() {
   return ref
 }
 
-export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, isDark, onToggleMode }) {
+// Tek yapı: marka · (oturumluysa) sayfa menüsü · araçlar [mod, sonra hesap ya da giriş/kayıt].
+// Hangi sayfada olunursa olunsun aynı öğeler aynı yerde durur.
+// wide: oda sayfalarında sahne tam genişlik; header da sayfa kabına değil sahnenin kenarına hizalanır.
+export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, isDark, onToggleMode, wide = false }) {
   const ref = useHeaderHeight()
-  const onLanding = page === 'anasayfa'
 
   return (
-    <header className="site-header" ref={ref}>
+    <header className={`site-header${wide ? ' site-header--wide' : ''}`} ref={ref}>
       <button type="button" className="site-brand" onClick={() => onGo(user ? 'sayfam' : 'anasayfa')}>
         <BrandMark />
         <span className="site-brand__text">Odakhane</span>
       </button>
 
-      {user && !onLanding && (
+      {user && (
         <nav className="site-nav" aria-label="Ana menü">
           {pages.map((p) => (
             <button key={p.id} type="button" aria-current={navPage === p.id ? 'page' : undefined} onClick={() => onGo(p.id)}>
@@ -75,16 +81,11 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
         </nav>
       )}
       <div className="site-header__tools">
-        <span className={user && !onLanding ? 'site-header__mode' : undefined}>
-          <ModeToggle isDark={isDark} onToggle={onToggleMode} iconOnly={!user || onLanding} />
+        <span className={user ? 'site-header__mode' : undefined}>
+          <ModeToggle isDark={isDark} onToggle={onToggleMode} />
         </span>
         {user ? (
           <>
-            {onLanding && (
-              <button type="button" className="site-btn site-btn--primary header-cta" onClick={() => onGo('sayfam')}>
-                Sayfama git
-              </button>
-            )}
             <button
               type="button"
               className="user-chip"
@@ -99,7 +100,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
               <span className="user-chip__name">{user.displayName}</span>
             </button>
             {/* telefonda üst menü tek satır: mod ve çıkış hesap sayfasında (AccountPage SessionCard) */}
-            <button type="button" className="header-link" onClick={onLogout}>
+            <button type="button" className="header-link header-link--logout" onClick={onLogout}>
               Çıkış yap
             </button>
           </>
@@ -139,7 +140,7 @@ export function SiteFooter({ onGo }) {
             Gizlilik politikası
           </button>
         </nav>
-        <span className="site-footer__copy">© 2026 Odakhane (çalışma adı)</span>
+        <span className="site-footer__copy">© 2026 Odakhane</span>
       </div>
     </footer>
   )
