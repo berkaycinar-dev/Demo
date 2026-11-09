@@ -72,7 +72,7 @@ com.demo.backend
 ├── ping/            H1 örneği: Controller → Service → DTO
 ├── auth/            H2: kayıt, giriş, JWT, refresh token, güvenlik ayarı
 ├── user/            H2: User entity, UserRepository, UserResponse
-├── room/            H3
+├── room/            H3: oda, üyelik ve roller, RoomAccessChecker
 └── ...
 ```
 
@@ -113,3 +113,14 @@ Her özellik paketi aynı kalıbı izler:
 - Herkese açık uçlar: `ping`, `auth/register`, `auth/login`, `auth/refresh`, `auth/logout`, `actuator/health`. Gerisi token ister.
 - `JwtDecoder` bean'i ortaktır. STOMP CONNECT kontrolü (D) aynı bean'i enjekte edip `Authorization` başlığındaki token'ı doğrular.
 - Bruno: `bruno/auth/` altında sırayla Register → Login → Me → Refresh → Logout. Token'lar ortam değişkenine otomatik yazılır.
+| `RoomServiceTest` | Oda kuralları: varsayılanlar, özel oda gizleme, davet kodu, doluluk, tekrar katılma | Hiçbir şey |
+| `RoomControllerTest` | Oda uçlarının durum kodu ve JSON alanları | Hiçbir şey (standalone MockMvc) |
+
+## Odalar (H3)
+
+- **Roller:** `OWNER` (odayı oluşturan, odada tek) ve `MEMBER`. Roller JWT'de değil, `room_members` tablosunda durur ve her denetimde veritabanından okunur.
+- **Görünürlük:** `PUBLIC` odalar listelenir, `PRIVATE` odalar listelenmez ve davet kodu ister. Üye olmayan biri için özel oda "yok" gibi görünür (404 `ROOM_NOT_FOUND`).
+- **Kapasite:** `maxMembers` 2 ile 10 arası, varsayılan 8. Dolu odaya katılmak 409 `ROOM_FULL` verir. Son koltuk iki kişiye birden verilmesin diye oda satırı kilitlenir.
+- **Olay:** İlk katılmada `RoomEventPublisher` ile `MEMBER_JOINED` yayınlanır. Gövde: `{roomId, userId, username, role}`.
+- **`RoomAccessChecker`:** `isMember(userId, roomId)` ve `roleOf(userId, roomId)`. D'nin STOMP SUBSCRIBE/SEND denetimi bunu çağırır. Üyelik kuralının tek sahibi budur.
+- Bruno: `bruno/rooms/` altında. Önce `auth/Login` çalıştır.

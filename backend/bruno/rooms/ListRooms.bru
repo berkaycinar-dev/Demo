@@ -1,0 +1,23 @@
+meta {
+  name: List public rooms
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/rooms
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Varsayılan scope=PUBLIC. Özel odalar burada görünmez.
+}

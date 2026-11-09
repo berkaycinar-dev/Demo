@@ -1,0 +1,31 @@
+meta {
+  name: Join private room with code
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/rooms/{{privateRoomId}}/join
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "inviteCode": "{{inviteCode}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Odayı oluşturan kişi zaten sahiptir, bu yüzden 200 döner ve rol OWNER kalır (değişiklik yok).
+  Gerçek katılma için: başka bir kullanıcıyla (Register ile ikinci hesap) Login yapıp bu isteği çalıştır;
+  rol MEMBER, memberCount 2 olmalı. Kodu yanlış yazarsan 404 ROOM_NOT_FOUND gelir.
+}

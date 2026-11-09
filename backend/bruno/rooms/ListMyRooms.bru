@@ -1,0 +1,23 @@
+meta {
+  name: List my rooms
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/rooms?scope=MINE
+  body: none
+  auth: bearer
+}
+
+params:query {
+  scope: MINE
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
