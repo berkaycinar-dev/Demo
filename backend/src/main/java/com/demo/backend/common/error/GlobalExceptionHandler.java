@@ -24,7 +24,7 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleNotFound(NotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle("Not found");
-        problem.setProperty("code", "NOT_FOUND");
+        problem.setProperty("code", ex.getCode());
         return problem;
     }
 

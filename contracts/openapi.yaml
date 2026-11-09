@@ -42,6 +42,22 @@ tags:
       **Validation on the server.** One Spring app, so D's STOMP interceptor uses the same `JwtDecoder`
       bean that C exposes; there is no second auth system. The signing key comes from the `JWT_SECRET`
       environment variable (at least 32 bytes).
+  - name: rooms
+    description: |
+      Study rooms and who belongs to them. DRAFT for review by D and A.
+
+      **Visibility.** `PUBLIC` rooms are listed for everyone who is signed in. `PRIVATE` rooms are not
+      listed and need the invite code to join. For a user who is not a member, a private room looks
+      like it does not exist (404 `ROOM_NOT_FOUND`), so ids cannot be probed.
+
+      **Roles (room membership, not in the JWT).** `OWNER` (exactly one per room, the creator) and `MEMBER`.
+      The owner sees the invite code; members do not. Roles are read from the database on every check,
+      so a change applies at once. D's STOMP checks call `RoomAccessChecker` (`isMember`, `roleOf`).
+
+      **Capacity.** `maxMembers` is 2 to 10 (default 8). Joining a full room gives 409 `ROOM_FULL`.
+
+      **Events.** On a first join the server publishes `MEMBER_JOINED` through `RoomEventPublisher`
+      with payload `{roomId, userId, username, role}`. `MEMBER_LEFT` comes with leave in H4.
 
 paths:
   /api/v1/ping:
@@ -194,6 +210,124 @@ paths:
         "204":
           description: Refresh token revoked (or it never existed)
 
+  /api/v1/rooms:
+    get:
+      tags: [rooms]
+      operationId: listRooms
+      summary: List rooms
+      description: |
+        `scope=PUBLIC` (default): all public rooms, newest first.
+        `scope=MINE`: rooms the signed-in user belongs to (public and private).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PUBLIC, MINE]
+            default: PUBLIC
+      responses:
+        "200":
+          description: Rooms (empty array if none)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RoomResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [rooms]
+      operationId: createRoom
+      summary: Create a room
+      description: The caller becomes the `OWNER` and the first member. A private room gets an invite code.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /api/v1/rooms/{roomId}:
+    get:
+      tags: [rooms]
+      operationId: getRoom
+      summary: Get one room
+      description: Public rooms are visible to everyone signed in. Private rooms only to their members.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "200":
+          description: The room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+
+  /api/v1/rooms/{roomId}/join:
+    post:
+      tags: [rooms]
+      operationId: joinRoom
+      summary: Join a room
+      description: |
+        Public room: no body needed. Private room: send the invite code. Joining a room you already
+        belong to is allowed and changes nothing (200). A wrong or missing invite code gives 404,
+        the same as an unknown room.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomRequest"
+      responses:
+        "200":
+          description: The caller is now a member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+        "409":
+          description: Room is full (`code` is ROOM_FULL).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: Room is full
+                code: ROOM_FULL
+
 components:
   securitySchemes:
     bearerAuth:
@@ -202,7 +336,27 @@ components:
       bearerFormat: JWT
       description: Access token from register, login or refresh.
 
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   responses:
+    RoomNotFound:
+      description: Room does not exist, or it is private and the caller is not a member (`code` is ROOM_NOT_FOUND).
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            status: 404
+            title: Not found
+            detail: Room not found
+            code: ROOM_NOT_FOUND
     ValidationError:
       description: Request body failed validation (`code` is VALIDATION_ERROR, see `fieldErrors`).
       content:
@@ -345,3 +499,73 @@ components:
           type: integer
           description: Access token lifetime in seconds.
           example: 900
+
+    RoomVisibility:
+      type: string
+      enum: [PUBLIC, PRIVATE]
+
+    RoomRole:
+      type: string
+      enum: [OWNER, MEMBER]
+
+    CreateRoomRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+          example: Algoritma çalışma odası
+        description:
+          type: string
+          maxLength: 200
+        visibility:
+          $ref: "#/components/schemas/RoomVisibility"
+          default: PUBLIC
+        maxMembers:
+          type: integer
+          minimum: 2
+          maximum: 10
+          default: 8
+
+    JoinRoomRequest:
+      type: object
+      properties:
+        inviteCode:
+          type: string
+          description: Needed only for private rooms.
+
+    RoomResponse:
+      type: object
+      required: [id, name, visibility, maxMembers, memberCount, ownerId, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        visibility:
+          $ref: "#/components/schemas/RoomVisibility"
+        maxMembers:
+          type: integer
+        memberCount:
+          type: integer
+        ownerId:
+          type: string
+          format: uuid
+        myRole:
+          allOf:
+            - $ref: "#/components/schemas/RoomRole"
+          nullable: true
+          description: The caller's role, or null if the caller is not a member.
+        inviteCode:
+          type: string
+          nullable: true
+          description: Only for the OWNER of a private room, otherwise null.
+        createdAt:
+          type: string
+          format: date-time

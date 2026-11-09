@@ -1,0 +1,20 @@
+meta {
+  name: Get room
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/rooms/{{roomId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{roomId}}
+}
