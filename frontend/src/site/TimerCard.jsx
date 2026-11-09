@@ -1,7 +1,30 @@
+import { useEffect, useRef } from 'react'
 import { PRESETS, formatClock, formatMinutes } from './usePomodoro'
 
 const R = 104
 const CIRC = 2 * Math.PI * R
+
+// Boşluk tuşu metin alanlarında yazar, düğme ve bağlantılarda kendi işini yapar; orada kısayol yok.
+const OWNS_SPACE = 'input, textarea, select, button, a[href], summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="slider"], [role="textbox"], [role="combobox"]'
+
+// Odadayken Boşluk sayacı duraklatır / sürdürür.
+function useSpaceToggle(toggle) {
+  const ref = useRef(toggle)
+  useEffect(() => {
+    ref.current = toggle
+  })
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code !== 'Space' && e.key !== ' ') return
+      if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
+      if (e.target instanceof Element && e.target.closest(OWNS_SPACE)) return
+      e.preventDefault()
+      ref.current()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+}
 
 // Halkalı pomodoro sayacı. timer: usePomodoro() dönüşü. compact: odak modunda süre seçimi ve
 // istatistik gizlenir. title / note: kartın üst satırı.
@@ -9,6 +32,16 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
   const isFocus = timer.phase === 'focus'
   const color = isFocus ? 'var(--timer)' : 'var(--break)'
   const offset = CIRC * (1 - timer.remaining / timer.total)
+  const locked = !timer.fresh
+  const { notice } = timer
+  useSpaceToggle(timer.toggle)
+
+  const hold = {
+    onPointerEnter: () => timer.holdNotice(true),
+    onPointerLeave: () => timer.holdNotice(false),
+    onFocus: () => timer.holdNotice(true),
+    onBlur: () => timer.holdNotice(false),
+  }
 
   return (
     <div className="timer-card">
@@ -43,8 +76,13 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
         </div>
       </div>
 
+      {/* Saniyeler duyurulmaz; yalnızca aşama değişimi ve sıfırlama. */}
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {timer.announcement?.text}
+      </span>
+
       <div className="timer-card__actions">
-        <button type="button" className="site-btn site-btn--primary timer-card__main" onClick={timer.toggle}>
+        <button type="button" className="site-btn site-btn--primary timer-card__main" onClick={timer.toggle} aria-keyshortcuts="Space">
           {timer.running ? 'Duraklat' : timer.fresh ? 'Başlat' : 'Devam et'}
         </button>
         <button type="button" className="site-btn" onClick={timer.reset}>
@@ -55,13 +93,35 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
         </button>
       </div>
 
-      {!compact && (
-        <div className="choice-row timer-card__presets" role="group" aria-label="Süre">
-          {PRESETS.map((p) => (
-            <button key={p.id} type="button" aria-pressed={timer.preset === p.id} onClick={() => timer.setPreset(p.id)}>
-              {p.label}
+      {notice && (
+        <div className="timer-toast" key={notice.id} {...hold}>
+          <span>{notice.text}</span>
+          {notice.undo ? (
+            <button type="button" className="link-btn timer-toast__btn" onClick={notice.undo}>
+              Geri al
             </button>
-          ))}
+          ) : (
+            <button type="button" className="link-btn timer-toast__btn" onClick={timer.dismissNotice}>
+              Tamam
+            </button>
+          )}
+        </div>
+      )}
+
+      {!compact && (
+        <div className="timer-card__presets-wrap">
+          <div className="choice-row timer-card__presets" role="group" aria-label="Süre" aria-describedby={locked ? 'timerPresetLock' : undefined}>
+            {PRESETS.map((p) => (
+              <button key={p.id} type="button" aria-pressed={timer.preset === p.id} disabled={locked && timer.preset !== p.id} onClick={() => timer.setPreset(p.id)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {locked && (
+            <p id="timerPresetLock" className="timer-card__lock">
+              Seans sürerken süre değişmez. Değiştirmek için önce sıfırla.
+            </p>
+          )}
         </div>
       )}
 

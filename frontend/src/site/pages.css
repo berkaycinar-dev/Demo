@@ -1197,6 +1197,71 @@
   color: var(--text);
 }
 
+/* Seans sürerken ön ayarlar kilitli: seçili olan okunur kalır, nedeni altında yazar. */
+.timer-card__presets-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.timer-card__presets button[aria-pressed='true'] {
+  cursor: default;
+}
+
+.timer-card__lock {
+  max-width: 32ch;
+  margin: 0 !important;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* Kısa not: sıfırlamayı geri alma, sen yokken biten aşamalar. */
+.timer-toast {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--radius-block);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: center;
+  animation: timerToastIn 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timer-toast__btn.link-btn {
+  min-height: 40px;
+  padding: 0 4px;
+  font-weight: 700;
+}
+
+@keyframes timerToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-toast {
+    animation: none;
+  }
+}
+
+/* Davet kodu kopyalanamazsa: kod seçili kalır, elle kopyalanır. */
+.invite-code__msg {
+  flex-basis: 100%;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
 /* ---------- sıralama (açılır kart) ---------- */
 
 .rank {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AvatarCrowd from '../avatars/AvatarCrowd'
 import useRoomPeople from '../avatars/useRoomPeople'
 import { THEMES } from '../rooms/themes'
@@ -55,7 +55,10 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
   const [names, setNames] = useState(false)
   const [picked, setPicked] = useState(null)
   const [rankOpen, setRankOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  // null | 'ok' | 'failed'
+  const [copy, setCopy] = useState(null)
+  const codeRef = useRef(null)
+  const copyTimer = useRef(0)
   const now = useClock(30000)
   const { label, Room } = THEMES[room.theme]
   const { occupants, setMyStatus, myStatus } = useRoomPeople({ capacity: room.capacity, seed: seedOf(room.id), me: avatar, cheer: timer.completed })
@@ -77,14 +80,27 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     return list.sort((a, b) => b.minutes - a.minutes)
   }, [occupants, timer.stats.minutes, room.id])
 
+  useEffect(() => () => clearTimeout(copyTimer.current), [])
+  const flash = (state, ms) => {
+    clearTimeout(copyTimer.current)
+    setCopy(state)
+    copyTimer.current = setTimeout(() => setCopy(null), ms)
+  }
+  // Pano yoksa (güvensiz bağlam) ya da izin verilmezse kod seçilir; kullanıcı elle kopyalar.
+  const copyFailed = () => {
+    const el = codeRef.current
+    const sel = window.getSelection?.()
+    if (el && sel) {
+      const range = document.createRange()
+      range.selectNodeContents(el)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    }
+    flash('failed', 8000)
+  }
   const copyCode = () => {
-    navigator.clipboard?.writeText(room.code).then(
-      () => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1600)
-      },
-      () => {},
-    )
+    if (!navigator.clipboard?.writeText) return copyFailed()
+    navigator.clipboard.writeText(room.code).then(() => flash('ok', 1600), copyFailed)
   }
 
   const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} />
@@ -100,10 +116,14 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
           {spot && <p className="site-muted">Mola yeri: {spot.label}</p>}
           {room.code && (
             <p className="invite-code">
-              Davet kodu <code>{room.code}</code>
+              Davet kodu <code ref={codeRef}>{room.code}</code>
               <button type="button" className="link-btn" onClick={copyCode}>
-                {copied ? 'Kopyalandı' : 'Kopyala'}
+                {copy === 'ok' ? 'Kopyalandı' : 'Kopyala'}
               </button>
+              <span className={copy === 'failed' ? 'invite-code__msg' : 'sr-only'} role="status">
+                {copy === 'ok' && 'Davet kodu kopyalandı.'}
+                {copy === 'failed' && 'Kopyalanamadı. Kod seçili; elle kopyalayabilirsin.'}
+              </span>
             </p>
           )}
         </div>
