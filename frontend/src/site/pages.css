@@ -622,10 +622,26 @@
   box-shadow: inset 0 0 0 1px var(--line), var(--voxel-face);
 }
 
+.auth__rooms {
+  display: flex;
+  flex-direction: column;
+}
+
 .auth__room {
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
+}
+
+/* kayıt: iki oda üst üste biner, biri sola biri sağa; uzun panelin boşluğunu doldurur */
+.auth__rooms--pair .auth__room {
+  max-width: 380px;
+  margin: 0;
+}
+
+.auth__rooms--pair .auth__room + .auth__room {
+  align-self: flex-end;
+  margin-top: -40px;
 }
 
 .auth__room img {
@@ -718,7 +734,7 @@
 
 .auth-field input::placeholder {
   color: var(--muted);
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .pass {
@@ -733,8 +749,11 @@
 .pass__toggle {
   position: absolute;
   top: 50%;
-  right: 8px;
-  padding: 6px;
+  right: 2px;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 10px;
   border: none;
   background: none;
   color: var(--muted);
@@ -748,6 +767,14 @@
   color: var(--muted);
   font-size: 14px;
   text-align: center;
+}
+
+.auth__switch .link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  vertical-align: middle;
 }
 
 /* ---------- Sayfam ---------- */
@@ -1637,9 +1664,15 @@
   pointer-events: none;
 }
 
+.lobby-search input::placeholder,
+.lobby-code input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
 .lobby-search input {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 14px 0 38px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -1694,7 +1727,7 @@
 .lobby-code input {
   flex: 1 1 160px;
   min-width: 0;
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
@@ -1715,7 +1748,7 @@
 }
 
 .lobby-code .site-btn {
-  min-height: 42px;
+  min-height: 44px;
 }
 
 .lobby-code__error {
@@ -1779,12 +1812,13 @@
 
 .lobby-list .site-btn {
   flex: none;
+  min-height: 44px;
 }
 
 .lobby-list__remove {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: none;
   border-radius: 8px;
@@ -1804,8 +1838,8 @@
 .back-link {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  margin-bottom: 10px;
+  min-height: 44px;
+  margin-bottom: 4px;
   color: var(--primary-hover);
   font-weight: 600;
 }
@@ -2044,9 +2078,11 @@
 /* giriş: şifre etiketi + "Şifremi unuttum" aynı satırda */
 .auth-field__label-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
+  /* "Şifremi unuttum" 44px'lik hedef; satır yüksekliği alanlar arası boşluğu şişirmesin */
+  margin: -12px 0 -8px;
 }
 
 .auth-field__label-row label {
@@ -2055,6 +2091,11 @@
 }
 
 .auth-field__label-row .link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
+  margin-right: -4px;
   font-size: 14px;
 }
 
@@ -2063,6 +2104,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  align-self: flex-start;
+  min-height: 44px;
+  margin: -6px 0;
+  padding-right: 8px;
   color: var(--text-2);
   font-size: 14px;
   font-weight: 600;
@@ -2101,12 +2146,23 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: 4px;
+}
+
+/* satır içi koşul bağlantıları: düğme inline-block davrandığı için dolgu satırı açar; dokunma alanı
+   görünmez bir katmanla 44px'e çıkar. Çoğu yukarı taşar, alttaki satırın tıklamasını çalmasın. */
+.auth-terms .inline-link::after {
+  content: '';
+  position: absolute;
+  inset: -20px 0 -4px;
 }
 
 .auth-terms label {
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  min-height: 44px;
+  padding: 2px 0;
   color: var(--text-2);
   font-size: 14px;
   line-height: 1.45;
@@ -2124,6 +2180,7 @@
 /* metin içi bağlantı düğmesi (onay kutusu yazısı) */
 .inline-link {
   display: inline;
+  position: relative;
   padding: 0;
   border: none;
   background: none;
@@ -2549,9 +2606,42 @@
     padding-right: 0;
   }
 
-  /* telefonda form önce: marka paneli formu ilk ekranın altına itmesin */
+  /* telefonda form önce: marka paneli formun üstünde ince bir başlık satırı (küçük oda + tek cümle) */
+  .site-main--auth {
+    align-items: flex-start;
+    padding-top: 16px;
+  }
+
+  .auth {
+    gap: 12px;
+  }
+
   .auth__brand {
+    flex: 1 1 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px 8px 8px;
+    border-radius: 16px;
+  }
+
+  .auth__rooms {
+    flex: none;
+    width: 64px;
+  }
+
+  .auth__room + .auth__room,
+  .auth__brand p {
     display: none;
+  }
+
+  .auth__rooms--pair .auth__room {
+    max-width: none;
+  }
+
+  .site .auth__brand h2 {
+    font-size: 16px;
+    line-height: 1.3;
   }
 
   .site-footer__nav {
@@ -2582,7 +2672,6 @@
   }
 
   .lp-cta,
-  .auth__brand,
   .auth__card {
     padding: 28px 22px;
   }

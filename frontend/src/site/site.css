@@ -1960,19 +1960,37 @@
   }
 }
 
-/* telefonda üst menü tek satır: logo yalnızca işaret, dört sayfa, hesap avatarı. Koyu mod ve çıkış
-   hesap sayfasında (Görünüm ve oturum). */
+/* telefonda üst menü tek biçim, oturum açık da kapalı da: tek satır, 44px hedefler, logo yalnızca
+   işaret (ad ekran okuyucuya kalır). Oturumluyken dört sayfa ve hesap avatarı; koyu mod ve çıkış
+   hesap sayfasında (Görünüm ve oturum). Oturumsuzken koyu mod ve "Kayıt ol". */
 @media (max-width: 560px) {
-  .site-header:has(.site-nav:not(.site-nav--sections)) {
+  .site-header {
     flex-wrap: nowrap;
     gap: 6px;
     padding: 6px 12px;
   }
 
-  .site-header:has(.site-nav:not(.site-nav--sections)) .site-brand__text,
+  .site-header .site-brand__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   .site-header__mode,
   .site-header .header-link {
     display: none;
+  }
+
+  .site-header .mode-btn--icon {
+    width: 44px;
+    min-height: 44px;
+  }
+
+  .site-header .header-cta {
+    min-height: 44px;
   }
 
   .site-header .site-nav:not(.site-nav--sections) {
@@ -2003,9 +2021,10 @@
     padding: 3px;
   }
 
+  /* 3 + 36 + 3 + 2 kenar = 44px: oturumsuz header'daki 44px düğmelerle aynı yükseklik */
   .site-header .user-chip__avatar {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
   }
 }
 

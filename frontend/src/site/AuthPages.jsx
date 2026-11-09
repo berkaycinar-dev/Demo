@@ -3,12 +3,17 @@ import { PASSWORD_RULES, lastLoginId, login, register, requestPasswordReset, val
 import { LegalDialog } from './LegalPages'
 import RoomShot from './RoomShot'
 
-// Marka paneli: madde listesi yerine odanın kendisi. Görsel süstür.
-function AuthShell({ children }) {
+// Marka paneli: madde listesi yerine odanın kendisi. Görsel süstür. Uzun formda (kayıt) panel de
+// uzar; boş kalmasın diye ikinci bir oda eklenir. Telefonda panel formun üstünde ince bir satırdır.
+function AuthShell({ rooms = ['cabin'], children }) {
   return (
     <div className="auth">
       <section className="auth__brand" aria-label="Odakhane hakkında">
-        <RoomShot theme="cabin" className="auth__room" eager />
+        <div className={`auth__rooms${rooms.length > 1 ? ' auth__rooms--pair' : ''}`}>
+          {rooms.map((theme, i) => (
+            <RoomShot key={theme} theme={theme} className="auth__room" eager={i === 0} />
+          ))}
+        </div>
         <div className="auth__brand-top">
           <h2>Kamerasız, sessiz, birlikte.</h2>
           <p>Başkalarının da çalıştığını görmek odaklanmayı kolaylaştırır. Odana gir, sayacını başlat, gerisini birlikte hallederiz.</p>
@@ -283,7 +288,7 @@ export function RegisterPage({ onDone, onGo }) {
   )
 
   return (
-    <AuthShell>
+    <AuthShell rooms={['cabin', 'library']}>
       <div className="auth__head">
         <h1>Hesap oluştur</h1>
         <p className="site-muted">Bir dakikanı alır. Avatarını kayıttan sonra hazırlarsın.</p>
