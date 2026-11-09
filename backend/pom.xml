@@ -64,6 +64,22 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Security filter chain and BCrypt password hashing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <!-- Bearer token check on REST endpoints, JWT encode/decode (HS256).
+             The JwtDecoder bean is also what D's STOMP CONNECT check uses. -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-resource-server</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-oauth2-jose</artifactId>
+        </dependency>
+
         <!-- Tests: JUnit 5, AssertJ, Mockito -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

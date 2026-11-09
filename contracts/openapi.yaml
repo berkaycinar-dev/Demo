@@ -82,7 +82,7 @@ paths:
         "400":
           $ref: "#/components/responses/ValidationError"
         "409":
-          description: Email or username is already taken (`code` is EMAIL_TAKEN or USERNAME_TAKEN).
+          description: Email or username is already taken, or the password is longer than 72 bytes (`code` is EMAIL_TAKEN, USERNAME_TAKEN or PASSWORD_TOO_LONG).
           content:
             application/problem+json:
               schema:
@@ -149,9 +149,8 @@ paths:
     post:
       tags: [auth]
       operationId: refreshToken
-      x-status: planned
       summary: Exchange a refresh token for a new token pair
-      description: Planned for the second half of H2. The old refresh token stops working after this call.
+      description: The old refresh token stops working after this call. Using an already-used token again revokes all refresh tokens of that user.
       security: []
       requestBody:
         required: true
@@ -182,9 +181,8 @@ paths:
     post:
       tags: [auth]
       operationId: logout
-      x-status: planned
       summary: Revoke a refresh token
-      description: Planned for the second half of H2. Always answers 204, even for an unknown token.
+      description: Always answers 204, even for an unknown token.
       security: []
       requestBody:
         required: true

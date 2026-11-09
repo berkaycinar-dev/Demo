@@ -1,0 +1,36 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ada@example.com",
+    "username": "ada_l",
+    "password": "password123"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.tokenType: eq Bearer
+  res.body.user.email: eq ada@example.com
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("accessToken", res.body.accessToken);
+    bru.setEnvVar("refreshToken", res.body.refreshToken);
+  }
+}
+
+docs {
+  Run once. A second run returns 409 EMAIL_TAKEN (expected).
+}

@@ -32,3 +32,9 @@ app:
   cors:
     # Vite dev server. Add more origins comma-separated, e.g. via CORS_ORIGINS env var.
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  jwt:
+    # On a server, set JWT_SECRET (at least 32 bytes). The default is for local development only.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    issuer: demo-backend
+    access-ttl-seconds: 900
+    refresh-ttl-days: 14

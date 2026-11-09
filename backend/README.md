@@ -57,6 +57,7 @@ Bruno ile: Bruno'da **Open Collection** → `backend/bruno` → ortam olarak **l
 | `DB_PASSWORD` | `demo` | Sunucuda mutlaka değiştir |
 | `PORT` | `8080` | |
 | `CORS_ORIGINS` | `http://localhost:5173` | Frontend adresleri (virgülle ayrılır) |
+| `JWT_SECRET` | yerel geliştirme değeri | JWT imza anahtarı, **en az 32 bayt**. Sunucuda mutlaka değiştir; kısaysa uygulama açılmaz |
 
 ## Paket yapısı
 
@@ -66,10 +67,11 @@ Paketler özelliğe göre ayrılır, her özelliğin içinde katmanlar bulunur:
 com.demo.backend
 ├── common/
 │   ├── config/      Clock, CORS
-│   └── error/       GlobalExceptionHandler, NotFoundException, BusinessRuleException
+│   └── error/       GlobalExceptionHandler, NotFoundException, BusinessRuleException, UnauthorizedException (401)
 ├── realtime/        RoomEventPublisher (arayüz). STOMP uygulamasını D yazar
 ├── ping/            H1 örneği: Controller → Service → DTO
-├── auth/            H2
+├── auth/            H2: kayıt, giriş, JWT, refresh token, güvenlik ayarı
+├── user/            H2: User entity, UserRepository, UserResponse
 ├── room/            H3
 └── ...
 ```
@@ -99,3 +101,15 @@ Her özellik paketi aynı kalıbı izler:
 |---|---|---|
 | `PingServiceTest` | İş kuralı (saf birim testi) | Hiçbir şey |
 | `PingControllerTest` | HTTP sözleşmesi (yol, durum kodu, JSON alanları) | Hiçbir şey (`@WebMvcTest`, veritabanı yok) |
+| `TokenServiceTest` | JWT alanları, refresh token döndürme ve yeniden kullanım algılama | Hiçbir şey (repository sahte) |
+| `AuthServiceTest` | Kayıt/giriş iş kuralları (e-posta küçük harf, tekrar eden kayıt, 72 bayt sınırı) | Hiçbir şey |
+| `AuthControllerTest` | Auth uçlarının durum kodu ve JSON alanları | Hiçbir şey (standalone MockMvc) |
+
+## Kimlik doğrulama (H2)
+
+- Korumalı uçlara `Authorization: Bearer <accessToken>` başlığı ile istek atılır. Token URL'ye yazılmaz.
+- **Access token:** JWT, HS256, 15 dakika. İçinde `sub` (kullanıcı id), `username`, `jti`, `iss`, `iat`, `exp` var. Rol yok; oda rolleri veritabanından okunur.
+- **Refresh token:** rastgele, 14 gün, **tek kullanımlık**. Veritabanında yalnızca SHA-256 özeti durur. Kullanılmış bir token tekrar gelirse o kullanıcının tüm refresh token'ları iptal edilir.
+- Herkese açık uçlar: `ping`, `auth/register`, `auth/login`, `auth/refresh`, `auth/logout`, `actuator/health`. Gerisi token ister.
+- `JwtDecoder` bean'i ortaktır. STOMP CONNECT kontrolü (D) aynı bean'i enjekte edip `Authorization` başlığındaki token'ı doğrular.
+- Bruno: `bruno/auth/` altında sırayla Register → Login → Me → Refresh → Logout. Token'lar ortam değişkenine otomatik yazılır.
