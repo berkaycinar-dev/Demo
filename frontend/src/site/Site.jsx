@@ -156,7 +156,7 @@ export default function Site() {
       {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} />}
 
       <main className={mainClass}>
-        {page === 'anasayfa' && <LandingPage user={user} onGo={go} />}
+        {page === 'anasayfa' && <LandingPage user={user} rooms={rooms} onGo={go} onEnter={enter} />}
         {page === 'giris' && <LoginPage onDone={(u) => signedIn(u, false)} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={(u) => signedIn(u, true)} onGo={go} />}
         {page === 'sayfam' && <HomePage user={user} avatar={avatar} timer={timer} rooms={rooms} onGo={go} onEnter={enter} />}
@@ -195,7 +195,7 @@ export default function Site() {
         {(page === 'kosullar' || page === 'gizlilik') && <LegalPage kind={page} onGo={go} />}
       </main>
 
-      {!focusMode && <SiteFooter user={user} pages={PAGES} onGo={go} isDark={isDark} />}
+      {!focusMode && <SiteFooter onGo={go} />}
     </div>
   )
 }

@@ -113,10 +113,10 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     <>
       <div className="stage-card stage-card--head">
         <div>
-          <span className="eyebrow">
-            {label} · {room.capacity} kişilik · {ACCESS_LABELS[room.access]}
-          </span>
           <h1 className="stage-card__title">{room.name}</h1>
+          <p className="site-muted">
+            {label} · {room.capacity} kişilik · {ACCESS_LABELS[room.access]}
+          </p>
           {spot && <p className="site-muted">Mola yeri: {spot.label}</p>}
           {room.code && (
             <p className="invite-code">

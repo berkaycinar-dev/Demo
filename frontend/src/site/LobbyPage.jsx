@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { THEMES } from '../rooms/themes'
 import { ACCESS_LABELS } from './access'
 import { codeMatches } from './roomStore'
-import { swatchOf } from './themeLook'
+import RoomShot from './RoomShot'
 
 const LockIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -20,17 +20,19 @@ function sinceText(at) {
   return new Date(at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
 }
 
-// Oda kartı: tema şeridi, ad, kapasite ve giriş düğmesi. Gizli odada "Gizli" etiketi ve kilitli
+// Oda kartı: temanın oda görseli, ad, kapasite ve giriş düğmesi. Gizli odada "Gizli" etiketi ve kilitli
 // "Kodla gir" düğmesi; tıklayınca kod sorulur.
 function RoomCard({ room, onAction }) {
   const locked = room.access === 'invite'
   const { label } = THEMES[room.theme]
   return (
     <li className="room-card">
-      <span className="room-card__swatch" style={{ background: swatchOf(room.theme) }} aria-hidden="true" />
+      <span className="room-card__shot">
+        <RoomShot theme={room.theme} />
+      </span>
       <div className="room-card__body">
         <div className="room-card__top">
-          <span className="eyebrow">{label}</span>
+          <span className="room-card__theme">{label}</span>
           {locked ? (
             <span className="tag tag--lock">
               <LockIcon />
@@ -239,7 +241,6 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
     <>
       <section className="site-card lobby-hero" aria-labelledby="lobiBaslik">
         <div className="lobby-hero__text">
-          <span className="eyebrow">Lobi</span>
           <h1 id="lobiBaslik">Birlikte çalışacak bir oda seç</h1>
           <p className="site-muted">Açık bir odaya hemen katıl, davet koduyla gizli bir odaya gir ya da kendi odanı kur.</p>
           <div className="lobby-hero__stats">
@@ -267,7 +268,6 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
         <section className="lobby__main" aria-labelledby="aktifBaslik">
           <div className="section-head section-head--row">
             <div>
-              <span className="eyebrow">Herkese açık</span>
               <h2 id="aktifBaslik">Aktif odalar</h2>
             </div>
             <div className="lobby-search">
@@ -298,7 +298,6 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
           )}
 
           <div className="section-head lobby__hidden-head">
-            <span className="eyebrow">Yalnızca davetle</span>
             <h2 id="gizliBaslik">Gizli odalar</h2>
           </div>
           {shownHidden.length === 0 ? (
@@ -327,7 +326,7 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
               <ul className="lobby-list">
                 {history.map(({ room, at }) => (
                   <li key={room.id}>
-                    <span className="lobby-list__swatch" style={{ background: swatchOf(room.theme) }} aria-hidden="true" />
+                    <RoomShot theme={room.theme} className="lobby-list__shot" />
                     <span className="lobby-list__text">
                       <strong>
                         {room.name}

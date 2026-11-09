@@ -5,8 +5,8 @@ function LegalBody({ doc, headingId }) {
   return (
     <>
       <div className="legal__head">
-        <span className="eyebrow">Son güncelleme: {LEGAL_UPDATED}</span>
         <h1 id={headingId}>{doc.title}</h1>
+        <p className="legal__updated">Son güncelleme: {LEGAL_UPDATED}</p>
         <p className="legal__intro">{doc.intro}</p>
       </div>
       {doc.sections.map((s, i) => (

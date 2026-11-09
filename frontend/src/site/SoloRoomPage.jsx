@@ -41,7 +41,6 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
     <>
       <div className="stage-card stage-card--head">
         <div>
-          <span className="eyebrow">Odam</span>
           <h1 className="stage-card__title">{label}</h1>
           <p className="site-muted">Tek kişilik, yalnızca sana ait.</p>
         </div>
