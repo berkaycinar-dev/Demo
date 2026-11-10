@@ -1,0 +1,38 @@
+meta {
+  name: Set preset
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/v1/timer/commands
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "commandId": "{{$guid}}",
+    "expectedVersion": {{timerVersion}},
+    "type": "SET_PRESET",
+    "preset": "50-10"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("timerVersion", res.body.version);
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Ön ayarı değiştirir (25-5, 50-10, 90-15) ve sayacı sıfırlar.
+}

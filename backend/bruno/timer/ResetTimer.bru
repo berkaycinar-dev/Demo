@@ -1,0 +1,37 @@
+meta {
+  name: Reset timer
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/v1/timer/commands
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "commandId": "{{$guid}}",
+    "expectedVersion": {{timerVersion}},
+    "type": "RESET"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("timerVersion", res.body.version);
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Sayacı boşta odak aşamasına döndürür.
+}

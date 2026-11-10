@@ -69,6 +69,38 @@ tags:
       Every session is kept as a row; time spent and points are computed from them.
       `RoomAccessChecker.hasActiveSession` tells D's real-time side whether a user is inside a room.
 
+  - name: timer
+    description: |
+      The signed-in user's personal Pomodoro timer. The server is the source of truth; clients show it and
+      send commands. The server does not tick: it stores the end time (`endsAt`) and works out the rest
+      when the timer is read or a command arrives.
+
+      **State.** `status` is `IDLE`, `RUNNING` or `PAUSED`. `phase` is `FOCUS` or `BREAK`. `IDLE` always means
+      a fresh `FOCUS` block is ready. `remainingSeconds` is the time left now. `endsAt` is set only while
+      `RUNNING`. `serverTime` lets a client correct clock drift. Presets: `25-5`, `50-10`, `90-15`
+      (focus minutes - break minutes).
+
+      **Phases follow each other.** While the user is around, a finished `FOCUS` starts the `BREAK` and a
+      finished `BREAK` starts the next `FOCUS`, counted from the exact end time (no drift). If the next phase
+      has also ended already (nobody was there), the timer goes back to `IDLE` and waits for a new start.
+      Each `FOCUS` that ends by running out increments `completedFocusBlocks`. A skipped block does not count.
+
+      **Commands.** `START` (from `IDLE`), `PAUSE` (from `RUNNING`), `RESUME` (from `PAUSED`), `SKIP`
+      (from `RUNNING` or `PAUSED`; the next phase starts at once, nothing is counted), `RESET` (from anywhere,
+      back to `IDLE`), `SET_PRESET` (from anywhere; also resets to `IDLE`). Every command carries:
+      `commandId`, a new UUID per user action, and `expectedVersion`, the `version` the client last saw.
+      A wrong `expectedVersion` gives 409 `STALE_VERSION`: read the timer again and decide. Sending the same
+      `commandId` again (a retry after a lost response) changes nothing and returns the result of the first
+      time; no event is published twice. Command ids are remembered for 24 hours.
+
+      **Events.** Published through `RoomEventPublisher`, after the database commit, to every room where the
+      user has an open session (none if the user is in no room). Payload:
+      `{userId, preset, phase, endsAt, remainingSeconds, version, occurredAt}`.
+      `TIMER_STARTED` (start, resume, skip; `phase` is the phase now running), `TIMER_PAUSED`,
+      `TIMER_RESET` (reset, set preset), `TIMER_FINISHED` (a phase ran out; `phase` is the phase that ended,
+      `endsAt` is when it ended, `remainingSeconds` is 0). A client can compare `endsAt` with the time it
+      received the event to tell a live finish from one found late.
+
 paths:
   /api/v1/ping:
     get:
@@ -489,6 +521,66 @@ paths:
                 detail: Join the room before entering it.
                 code: NOT_A_MEMBER
 
+  /api/v1/timer:
+    get:
+      tags: [timer]
+      operationId: getTimer
+      summary: Read the caller's timer
+      description: |
+        Creates an idle timer (preset `25-5`) the first time. If a phase has run out since the last
+        call, it is settled first (phase change, `completedFocusBlocks`, events).
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The current timer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimerStateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /api/v1/timer/commands:
+    post:
+      tags: [timer]
+      operationId: sendTimerCommand
+      summary: Change the caller's timer
+      description: See the "timer" tag for the commands, `commandId` and `expectedVersion`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimerCommandRequest"
+      responses:
+        "200":
+          description: The timer after the command (or the first result, for a repeated `commandId`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimerStateResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          description: |
+            `code` is `STALE_VERSION` (the timer changed; read it again), `INVALID_TIMER_TRANSITION`
+            (the command does not fit the current status) or `INVALID_PRESET` (unknown preset, or
+            `SET_PRESET` without one).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: The timer changed. Read it again.
+                code: STALE_VERSION
+
 components:
   securitySchemes:
     bearerAuth:
@@ -764,3 +856,67 @@ components:
           type: string
           format: date-time
           description: When this person entered the room.
+
+    TimerPhase:
+      type: string
+      enum: [FOCUS, BREAK]
+
+    TimerStatus:
+      type: string
+      enum: [IDLE, RUNNING, PAUSED]
+
+    TimerCommandType:
+      type: string
+      enum: [START, PAUSE, RESUME, SKIP, RESET, SET_PRESET]
+
+    TimerStateResponse:
+      type: object
+      required: [preset, phase, status, remainingSeconds, totalSeconds, version, completedFocusBlocks, serverTime]
+      properties:
+        preset:
+          type: string
+          enum: ["25-5", "50-10", "90-15"]
+        phase:
+          $ref: "#/components/schemas/TimerPhase"
+        status:
+          $ref: "#/components/schemas/TimerStatus"
+        endsAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the running phase ends. Null unless `status` is RUNNING.
+        remainingSeconds:
+          type: integer
+          description: Seconds left in the current phase, as of `serverTime`.
+        totalSeconds:
+          type: integer
+          description: Length of the current phase.
+        version:
+          type: integer
+          format: int64
+          description: Goes up by one on every change. Send it back as `expectedVersion`.
+        completedFocusBlocks:
+          type: integer
+          description: Focus blocks that ended by running out, since the timer was created.
+        serverTime:
+          type: string
+          format: date-time
+
+    TimerCommandRequest:
+      type: object
+      required: [commandId, expectedVersion, type]
+      properties:
+        commandId:
+          type: string
+          format: uuid
+          description: A new UUID for every user action. Reuse it only to retry the same action.
+        expectedVersion:
+          type: integer
+          format: int64
+          minimum: 0
+        type:
+          $ref: "#/components/schemas/TimerCommandType"
+        preset:
+          type: string
+          enum: ["25-5", "50-10", "90-15"]
+          description: Needed only for SET_PRESET.

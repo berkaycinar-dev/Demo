@@ -15,6 +15,10 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
 
     boolean existsByRoomIdAndUserIdAndEndedAtIsNull(UUID roomId, UUID userId);
 
+    /** Rooms where the user is inside right now (open sessions). Used to decide where a user's events go. */
+    @Query("select s.roomId from RoomSession s where s.userId = :userId and s.endedAt is null")
+    List<UUID> findOpenRoomIds(@Param("userId") UUID userId);
+
     /** Everyone with an open session in the room, longest-inside first. */
     @Query("""
             select s.userId as userId, u.username as username, m.role as role, s.startedAt as startedAt
