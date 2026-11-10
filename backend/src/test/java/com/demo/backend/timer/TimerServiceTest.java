@@ -3,6 +3,7 @@ package com.demo.backend.timer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.demo.backend.common.error.BusinessRuleException;
+import com.demo.backend.point.PointService;
 import com.demo.backend.realtime.RoomEventPublisher;
 import com.demo.backend.room.RoomSessionRepository;
 import java.time.Clock;
@@ -36,8 +38,9 @@ class TimerServiceTest {
     private final TimerCommandRepository commands = mock(TimerCommandRepository.class);
     private final RoomSessionRepository sessions = mock(RoomSessionRepository.class);
     private final RoomEventPublisher events = mock(RoomEventPublisher.class);
+    private final PointService points = mock(PointService.class);
     private final TimerService service =
-            new TimerService(states, commands, sessions, events, Clock.fixed(NOW, ZoneOffset.UTC));
+            new TimerService(states, commands, sessions, events, points, Clock.fixed(NOW, ZoneOffset.UTC));
 
     private TimerState stubState(TimerState state) {
         when(states.findByUserIdForUpdate(ME)).thenReturn(Optional.of(state));
@@ -201,6 +204,84 @@ class TimerServiceTest {
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
+    }
+
+    // ---------- points ----------
+
+    @Test
+    void finishedFocusBlockIsCreditedWithItsEndTimeAndPresetLength() {
+        TimerState state = TimerState.idle(ME);
+        state.apply(TimerCommandType.START, null, NOW.minusSeconds(1600)); // focus ended 100 s ago
+        stubState(state);
+
+        service.get(ME);
+
+        verify(points).awardFocusBlock(ME, "25-5", 1500, NOW.minusSeconds(100));
+    }
+
+    @Test
+    void whenFocusAndBreakBothRanOutOnlyTheFocusBlockEarnsPoints() {
+        TimerState state = TimerState.idle(ME);
+        state.apply(TimerCommandType.START, null, NOW.minusSeconds(1500 + 300 + 50));
+        stubState(state);
+
+        service.get(ME);
+
+        verify(points, times(1)).awardFocusBlock(any(), any(), anyInt(), any());
+        verify(points).awardFocusBlock(ME, "25-5", 1500, NOW.minusSeconds(350));
+    }
+
+    @Test
+    void runningBlockEarnsNothingYet() {
+        TimerState state = TimerState.idle(ME);
+        state.apply(TimerCommandType.START, null, NOW.minusSeconds(10));
+        stubState(state);
+
+        service.get(ME);
+
+        verify(points, never()).awardFocusBlock(any(), any(), anyInt(), any());
+    }
+
+    @Test
+    void commandCreditsTheBlockThatRanOutUnderTheOldPresetEvenWhenItChangesThePreset() {
+        TimerState state = TimerState.idle(ME);
+        state.apply(TimerCommandType.START, null, NOW.minusSeconds(1600)); // 25-5 focus ended 100 s ago
+        stubState(state);
+        when(sessions.findOpenRoomIds(ME)).thenReturn(List.of(ROOM_A));
+
+        // START made it version 1; settling the finished block makes it version 2, which is what the client reads
+        service.execute(ME, new TimerCommandRequest(UUID.randomUUID(), 2L, TimerCommandType.SET_PRESET, "90-15"));
+
+        verify(points).awardFocusBlock(ME, "25-5", 1500, NOW.minusSeconds(100));
+        ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
+        verify(events).publish(eq(ROOM_A.toString()), eq("TIMER_FINISHED"), payload.capture());
+        assertThat(((TimerEvent) payload.getValue()).preset()).isEqualTo("25-5");
+    }
+
+    @Test
+    void staleCommandCreditsNothing() {
+        TimerState state = TimerState.idle(ME);
+        state.apply(TimerCommandType.START, null, NOW.minusSeconds(1600));
+        stubState(state);
+
+        assertThatThrownBy(() -> service.execute(ME, request(TimerCommandType.PAUSE, 99)))
+                .isInstanceOf(BusinessRuleException.class);
+
+        verify(points, never()).awardFocusBlock(any(), any(), anyInt(), any());
+    }
+
+    @Test
+    void repeatedCommandIdCreditsNothing() {
+        TimerState after = TimerState.idle(ME);
+        after.apply(TimerCommandType.START, null, NOW.minusSeconds(2));
+        UUID commandId = UUID.randomUUID();
+        stubState(TimerState.idle(ME));
+        when(commands.findByUserIdAndCommandId(ME, commandId))
+                .thenReturn(Optional.of(new TimerCommand(commandId, TimerCommandType.START, after, NOW)));
+
+        service.execute(ME, new TimerCommandRequest(commandId, 0L, TimerCommandType.START, null));
+
+        verify(points, never()).awardFocusBlock(any(), any(), anyInt(), any());
     }
 
     // ---------- clean-up ----------

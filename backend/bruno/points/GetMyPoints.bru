@@ -1,0 +1,33 @@
+meta {
+  name: Get my points
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/points/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Önce auth/Login çalıştır. Toplam puan, bugünkü puan, puan getiren blok sayısı ve odak süresi döner.
+  Hiç puan yoksa hepsi 0 gelir.
+
+  Hızlı deneme (25 dakika beklemeden):
+  1. rooms/ altında Create public room ve Enter room (open session) çalıştır (puan için odada olmak şart).
+  2. timer/ altında Get timer ve Start timer çalıştır.
+  3. Veritabanında süreyi geçmişe çek:
+     UPDATE timer_states SET ends_at = now() - interval '1 second' WHERE status = 'RUNNING';
+  4. timer/Get timer çalıştır: blok biter, mola başlar.
+  5. Bu isteği çalıştır: totalPoints 25 olmalı (25-5 ön ayarı).
+  Aynı blok bir daha puan vermez.
+}

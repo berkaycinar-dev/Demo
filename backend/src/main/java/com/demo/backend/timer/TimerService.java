@@ -1,6 +1,7 @@
 package com.demo.backend.timer;
 
 import com.demo.backend.common.error.BusinessRuleException;
+import com.demo.backend.point.PointService;
 import com.demo.backend.realtime.AfterCommit;
 import com.demo.backend.realtime.RoomEventPublisher;
 import com.demo.backend.room.RoomSessionRepository;
@@ -26,14 +27,17 @@ public class TimerService {
     private final TimerCommandRepository commands;
     private final RoomSessionRepository sessions;
     private final RoomEventPublisher events;
+    private final PointService points;
     private final Clock clock;
 
     public TimerService(TimerStateRepository states, TimerCommandRepository commands,
-                        RoomSessionRepository sessions, RoomEventPublisher events, Clock clock) {
+                        RoomSessionRepository sessions, RoomEventPublisher events, PointService points,
+                        Clock clock) {
         this.states = states;
         this.commands = commands;
         this.sessions = sessions;
         this.events = events;
+        this.points = points;
         this.clock = clock;
     }
 
@@ -43,7 +47,8 @@ public class TimerService {
         Instant now = clock.instant();
         TimerState state = lockOrCreate(userId);
         List<TimerState.Finished> finished = state.settle(now);
-        publishFinished(state, finished, now);
+        awardPoints(state, finished);
+        publishFinished(state, state.getPreset(), finished, now);
         return TimerStateResponse.of(state, now);
     }
 
@@ -65,10 +70,14 @@ public class TimerService {
         if (state.getVersion() != request.expectedVersion()) {
             throw new BusinessRuleException(STALE_VERSION, "The timer changed. Read it again.");
         }
+        // The blocks that just ran out belong to the preset they ran under, so they are credited and
+        // announced before the command (which may be SET_PRESET) is applied.
+        String settledPreset = state.getPreset();
+        awardPoints(state, finished);
         TimerState.Change change = state.apply(request.type(), request.preset(), now);
         commands.save(new TimerCommand(request.commandId(), request.type(), state, now));
 
-        publishFinished(state, finished, now);
+        publishFinished(state, settledPreset, finished, now);
         publish(userId, eventTypeOf(change), new TimerEvent(userId, state.getPreset(), state.getPhase(),
                 state.getEndsAt(), state.remainingAt(now), state.getVersion(), now));
         return TimerStateResponse.of(state, now);
@@ -86,9 +95,19 @@ public class TimerService {
                 .orElseThrow(() -> new IllegalStateException("Timer row missing after insert"));
     }
 
-    private void publishFinished(TimerState state, List<TimerState.Finished> finished, Instant now) {
+    /** Every focus block that ran out by itself earns points (if the user was inside a room, see PointService). */
+    private void awardPoints(TimerState state, List<TimerState.Finished> finished) {
+        int focusSeconds = TimerPreset.of(state.getPreset()).focusSeconds();
         for (TimerState.Finished f : finished) {
-            publish(state.getUserId(), TimerEvent.FINISHED, new TimerEvent(state.getUserId(), state.getPreset(),
+            if (f.phase() == TimerPhase.FOCUS) {
+                points.awardFocusBlock(state.getUserId(), state.getPreset(), focusSeconds, f.endedAt());
+            }
+        }
+    }
+
+    private void publishFinished(TimerState state, String preset, List<TimerState.Finished> finished, Instant now) {
+        for (TimerState.Finished f : finished) {
+            publish(state.getUserId(), TimerEvent.FINISHED, new TimerEvent(state.getUserId(), preset,
                     f.phase(), f.endedAt(), 0, state.getVersion(), now));
         }
     }

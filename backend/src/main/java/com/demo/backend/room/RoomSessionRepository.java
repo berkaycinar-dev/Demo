@@ -19,6 +19,17 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
     @Query("select s.roomId from RoomSession s where s.userId = :userId and s.endedAt is null")
     List<UUID> findOpenRoomIds(@Param("userId") UUID userId);
 
+    /**
+     * Was the user inside any room at that moment? True when a session started at or before it
+     * and ended at or after it (or is still open). Used to decide whether a finished focus block earns points.
+     */
+    @Query("""
+            select case when count(s) > 0 then true else false end
+            from RoomSession s
+            where s.userId = :userId and s.startedAt <= :at and (s.endedAt is null or s.endedAt >= :at)
+            """)
+    boolean existsActiveAt(@Param("userId") UUID userId, @Param("at") Instant at);
+
     /** Everyone with an open session in the room, longest-inside first. */
     @Query("""
             select s.userId as userId, u.username as username, m.role as role, s.startedAt as startedAt
