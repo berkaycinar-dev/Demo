@@ -1,0 +1,31 @@
+meta {
+  name: Get timer
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/timer
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("timerVersion", res.body.version);
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Önce auth/Login çalıştır. İlk çağrıda sayaç oluşur (IDLE, 25-5, 1500 sn).
+  Dönen version değeri timerVersion değişkenine yazılır; diğer istekler bunu kullanır.
+  Süre dolmuşsa sunucu burada bir sonraki aşamaya geçirir.
+}

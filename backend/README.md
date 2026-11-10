@@ -73,6 +73,7 @@ com.demo.backend
 ├── auth/            H2: kayıt, giriş, JWT, refresh token, güvenlik ayarı
 ├── user/            H2: User entity, UserRepository, UserResponse
 ├── room/            H3: oda, üyelik ve roller, RoomAccessChecker. H4: oturumlar (room_sessions), ayrılma
+├── timer/           H5: kişisel pomodoro sayacı (timer_states), komutlar ve olaylar
 └── ...
 ```
 
@@ -119,6 +120,9 @@ Her özellik paketi aynı kalıbı izler:
 | `RoomSessionControllerTest` | Oturum uçlarının durum kodu ve JSON alanları | Hiçbir şey (standalone MockMvc) |
 | `RoomSessionSweeperTest`, `RoomSessionTest` | Zaman aşımı temizleyicisi ve oturum nesnesinin kuralları | Hiçbir şey |
 | `AfterCommitTest` | Olay yalnızca commit'ten sonra çıkar, geri alınırsa çıkmaz | Hiçbir şey |
+| `TimerStateTest` | Sayaç kuralları: başlat, duraklat, devam, atla, sıfırla, ön ayar, süre dolunca geçiş | Hiçbir şey |
+| `TimerServiceTest` | Tekrar eden komut, eski sürüm, olayın yalnızca açık oturumlu odalara ve commit'ten sonra gitmesi | Hiçbir şey |
+| `TimerControllerTest`, `TimerCommandCleanupTest` | Sayaç uçlarının durum kodu ve JSON alanları, eski komut temizliği | Hiçbir şey (standalone MockMvc) |
 
 ## Odalar (H3)
 
@@ -140,3 +144,15 @@ Her özellik paketi aynı kalıbı izler:
 - **`RoomAccessChecker.hasActiveSession(userId, roomId)`:** Kullanıcının odada açık oturumu var mı. D'nin gerçek zamanlı tarafı bunu kullanabilir.
 - **Süre ve puan:** Hiçbir oturum satırı silinmez. Süre ve puan ileride bu satırlardan hesaplanır.
 - Bruno: `bruno/rooms/` altında `EnterRoom`, `Heartbeat`, `ListActiveMembers`, `ExitRoom`, `LeaveRoom`.
+
+## Kişisel sayaç (H5)
+
+- **Sayaç tiklemez.** Sunucu yalnızca bitiş anını (`endsAt`) saklar. İstemci kalan süreyi `endsAt` ve `serverTime` farkından kendi çizer. Süre dolduysa sunucu bunu bir sonraki okumada veya komutta işler.
+- **Durum:** Kullanıcı başına tek satır (`timer_states`). `phase` (`FOCUS`, `BREAK`) ve `status` (`IDLE`, `RUNNING`, `PAUSED`). Ön ayarlar: `25-5` (varsayılan), `50-10`, `90-15`.
+- **Uçlar:** `GET /api/v1/timer` (durumu oku) ve `POST /api/v1/timer/commands` (komut gönder). Komutlar: `START`, `PAUSE`, `RESUME`, `SKIP`, `RESET`, `SET_PRESET`.
+- **Geçişler:** Odak bitince mola, mola bitince yeni odak otomatik başlar. Süre dolarken kimse yoksa sayaç, biten aşamalar hesaplandıktan sonra `IDLE` olur. Biten her odak `completedFocusBlocks` değerini artırır. `SKIP` ile atlanan odak sayılmaz.
+- **Komut kimliği (`commandId`):** Her komut yeni bir UUID taşır. Aynı kimlik tekrar gelirse komut yeniden uygulanmaz, ilk sonuç döner. Ağ yeniden denemesi bu yüzden güvenlidir. Kimlikler 24 saat tutulur (`app.timer.command-retention-hours`), temizleme işi saatte bir çalışır.
+- **Sürüm (`expectedVersion`):** Her değişiklik `version` değerini bir artırır. İstemcinin bildiği sürüm eskiyse 409 `STALE_VERSION` gelir. Çözüm: `GET /timer` ile oku, sonra yeni kimlikle tekrar dene. Geçersiz geçişte 409 `INVALID_TIMER_TRANSITION`, bilinmeyen ön ayarda 409 `INVALID_PRESET`.
+- **Olaylar:** `TIMER_STARTED`, `TIMER_PAUSED`, `TIMER_RESET`, `TIMER_FINISHED`. Kullanıcının açık oturumu olan her odaya, commit'ten sonra `RoomEventPublisher` ile gider. Hiçbir odada değilse olay çıkmaz. Gövde: `{userId, preset, phase, endsAt, remainingSeconds, version, occurredAt}`.
+- **Eşzamanlılık:** Komutlar sayaç satırını kilitler. Aynı kullanıcının iki komutu sırayla işlenir.
+- Bruno: `bruno/timer/` altında `GetTimer`, `StartTimer`, `PauseTimer`, `ResumeTimer`, `SkipTimer`, `ResetTimer`, `SetPreset`. `timerVersion` çalışma anı değişkenidir, ortam dosyasını değiştirmez.

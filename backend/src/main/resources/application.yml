@@ -44,3 +44,8 @@ app:
     timeout-seconds: ${ROOM_SESSION_TIMEOUT_SECONDS:60}
     # How often the background job looks for timed-out sessions.
     sweep-interval-ms: 15000
+  timer:
+    # How long a timer command id is remembered, so a retried command is not applied twice.
+    command-retention-hours: 24
+    # How often old command ids are deleted.
+    cleanup-interval-ms: 3600000

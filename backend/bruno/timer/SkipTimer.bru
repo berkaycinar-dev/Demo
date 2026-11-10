@@ -1,0 +1,37 @@
+meta {
+  name: Skip phase
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/timer/commands
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "commandId": "{{$guid}}",
+    "expectedVersion": {{timerVersion}},
+    "type": "SKIP"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar("timerVersion", res.body.version);
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Aşamayı atlar: odak molaya, mola odağa geçer. Atlanan odak blok sayılmaz.
+}
