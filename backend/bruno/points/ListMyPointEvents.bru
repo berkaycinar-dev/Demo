@@ -1,0 +1,30 @@
+meta {
+  name: List my point events
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/points/me/events?page=0&size=20
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 20
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Puan geçmişi, en yeni en üstte. Her satırda points = basePoints + bonusPoints, blok süresi ve preset var.
+  earnedAt, odak bloğunun bittiği andır (sunucunun fark ettiği an değil).
+  size 1 ile 100 arasına sıkıştırılır, page 0'dan küçükse 0 olur.
+}

@@ -74,6 +74,7 @@ com.demo.backend
 ├── user/            H2: User entity, UserRepository, UserResponse
 ├── room/            H3: oda, üyelik ve roller, RoomAccessChecker. H4: oturumlar (room_sessions), ayrılma
 ├── timer/           H5: kişisel pomodoro sayacı (timer_states), komutlar ve olaylar
+├── point/           H6: puan servisi (point_events), toplam ve geçmiş uçları
 └── ...
 ```
 
@@ -123,6 +124,9 @@ Her özellik paketi aynı kalıbı izler:
 | `TimerStateTest` | Sayaç kuralları: başlat, duraklat, devam, atla, sıfırla, ön ayar, süre dolunca geçiş | Hiçbir şey |
 | `TimerServiceTest` | Tekrar eden komut, eski sürüm, olayın yalnızca açık oturumlu odalara ve commit'ten sonra gitmesi | Hiçbir şey |
 | `TimerControllerTest`, `TimerCommandCleanupTest` | Sayaç uçlarının durum kodu ve JSON alanları, eski komut temizliği | Hiçbir şey (standalone MockMvc) |
+| `PointRulesTest` | Puan hesabı: dakika başına puan, blok bonusu, ayar boşken davranış | Hiçbir şey |
+| `PointServiceTest` | Puan yazma (uygunluk, tekrar, sıfır puan), özet ve "bugün" sınırı, geçmiş sayfalama | Hiçbir şey |
+| `PointControllerTest`, `RoomSessionPointEligibilityTest` | Puan uçlarının durum kodu ve JSON alanları, odada olma kontrolü | Hiçbir şey (standalone MockMvc) |
 
 ## Odalar (H3)
 
@@ -156,3 +160,17 @@ Her özellik paketi aynı kalıbı izler:
 - **Olaylar:** `TIMER_STARTED`, `TIMER_PAUSED`, `TIMER_RESET`, `TIMER_FINISHED`. Kullanıcının açık oturumu olan her odaya, commit'ten sonra `RoomEventPublisher` ile gider. Hiçbir odada değilse olay çıkmaz. Gövde: `{userId, preset, phase, endsAt, remainingSeconds, version, occurredAt}`.
 - **Eşzamanlılık:** Komutlar sayaç satırını kilitler. Aynı kullanıcının iki komutu sırayla işlenir.
 - Bruno: `bruno/timer/` altında `GetTimer`, `StartTimer`, `PauseTimer`, `ResumeTimer`, `SkipTimer`, `ResetTimer`, `SetPreset`. `timerVersion` çalışma anı değişkenidir, ortam dosyasını değiştirmez.
+
+## Puanlar (H6)
+
+- **Puanı sayaç verir.** İstemci puan yazamaz. Odak aşaması kendi kendine bitince (`TimerService` bunu okuma veya komut sırasında fark eder) `PointService.awardFocusBlock` çağrılır. Blok ve puanı aynı veritabanı işleminde yazılır: ikisi birden kaydolur ya da hiçbiri (`STALE_VERSION` geri almasında puan da geri alınır).
+- **Ne puan getirmez:** `SKIP`, `RESET`, `SET_PRESET` ile yarıda bırakılan blok ve biten mola.
+- **Formül (`PointRules`):** blok başına tam odak dakikası x `app.points.per-focus-minute` (1) + ön ayara göre bonus (`app.points.block-bonus`: `25-5` 0, `50-10` 10, `90-15` 25). Yani 25, 60 ve 115 puan. Sayılar `application.yml`'den değişir, sözleşmede sabit değildir.
+- **Odada olma şartı:** Blok bittiği anda kullanıcının açık oturumu (`room_sessions`) varsa puan yazılır. Kontrol "geç fark edilen" bloklarda da bitiş anına göre yapılır (`RoomSessionRepository.existsActiveAt`). Odada değilse puan yok, ama sayaç yine de `completedFocusBlocks` değerini artırır.
+- **Uygunluk arayüzü:** `PointEligibility`. Şimdiki uygulama `RoomSessionPointEligibility`. D'nin masada mı kuralı (H8) bu arayüzün yeni bir uygulaması olarak bağlanır, `PointService` ve API değişmez.
+- **Bir blok bir kez:** `point_events` tablosunda `(user_id, kind, source_key)` benzersizdir. `source_key` = `timer:` + bloğun bitiş anı (epoch milisaniye). Tekrar denemeler ve geç okumalar çift puan yazmaz.
+- **Uçlar:** `GET /api/v1/points/me` (toplam, bugün, blok sayısı, odak süresi) ve `GET /api/v1/points/me/events?page&size` (geçmiş, en yeni üstte; `size` 1 ile 100 arasına sıkıştırılır).
+- **"Bugün":** `app.points.day-zone` saat diliminin gece yarısından başlar (varsayılan `Europe/Istanbul`).
+- **Satırlar silinmez.** Toplamlar `point_events` satırlarından toplanır. Lig ve sıralama sonraki haftalarda bu satırlardan hesaplanır.
+- **Bu hafta olay yayınlanmaz.** Puan yazıldığında `RoomEventPublisher` ile bir şey gitmez. Canlı "puan kazandı" bildirimi gerekirse yeni olay türü olarak sonra eklenir.
+- Bruno: `bruno/points/` altında `GetMyPoints` ve `ListMyPointEvents`. Puanı 25 dakika beklemeden görmek için `GetMyPoints` açıklamasındaki SQL ile süreyi geçmişe çek.

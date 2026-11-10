@@ -101,6 +101,27 @@ tags:
       `endsAt` is when it ended, `remainingSeconds` is 0). A client can compare `endsAt` with the time it
       received the event to tell a live finish from one found late.
 
+  - name: points
+    description: |
+      Points the signed-in user has earned. Points come from the timer and are never edited by clients.
+
+      **What earns points.** A `FOCUS` block that runs out by itself. A skipped or reset block earns nothing.
+      One finished block is credited exactly once, even if it is found late (the timer settles it when it is
+      next read) or a request is retried.
+
+      **How many.** `basePoints` = focus minutes x 1. `bonusPoints` depends on the preset: `25-5` gives 0,
+      `50-10` gives 10, `90-15` gives 25. So one block earns 25, 60 or 115 points. The numbers are server
+      settings (`app.points`), not part of the contract; clients read `points`, `basePoints` and `bonusPoints`
+      from the responses.
+
+      **Who is eligible.** The user must have had an open room session at the moment the block ended (inside
+      a room, see `rooms`). A block that ended while the user was in no room earns nothing; the timer still
+      counts it in `completedFocusBlocks`. Eligibility sits behind one interface on the server, so the
+      later "at the desk" rule can replace it without changing this contract.
+
+      **Today.** `todayPoints` counts the current day in the server's time zone (default `Europe/Istanbul`).
+      Points are kept for good; no row is deleted.
+
 paths:
   /api/v1/ping:
     get:
@@ -581,6 +602,62 @@ paths:
                 detail: The timer changed. Read it again.
                 code: STALE_VERSION
 
+  /api/v1/points/me:
+    get:
+      tags: [points]
+      operationId: getMyPoints
+      summary: Totals of the caller's points
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Totals (zero for a user who has earned nothing yet)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PointSummaryResponse"
+              example:
+                totalPoints: 170
+                todayPoints: 60
+                completedBlocks: 3
+                focusSeconds: 6000
+                serverTime: "2026-11-10T13:00:55Z"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /api/v1/points/me/events:
+    get:
+      tags: [points]
+      operationId: listMyPointEvents
+      summary: History of the caller's points, newest first
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page number. Below 0 is treated as 0.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Items per page. Out-of-range values are clamped into 1 to 100.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: One page of point events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PointEventPage"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -920,3 +997,76 @@ components:
           type: string
           enum: ["25-5", "50-10", "90-15"]
           description: Needed only for SET_PRESET.
+
+    PointKind:
+      type: string
+      enum: [FOCUS_BLOCK]
+      description: Why the points were given. Only a finished focus block for now.
+
+    PointSummaryResponse:
+      type: object
+      required: [totalPoints, todayPoints, completedBlocks, focusSeconds, serverTime]
+      properties:
+        totalPoints:
+          type: integer
+          format: int64
+        todayPoints:
+          type: integer
+          format: int64
+          description: Points earned today, in the server's time zone.
+        completedBlocks:
+          type: integer
+          format: int64
+          description: Focus blocks that earned points (not the same as the timer's `completedFocusBlocks`).
+        focusSeconds:
+          type: integer
+          format: int64
+          description: Total focus time of the blocks that earned points.
+        serverTime:
+          type: string
+          format: date-time
+
+    PointEventResponse:
+      type: object
+      required: [id, kind, points, basePoints, bonusPoints, focusSeconds, preset, earnedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/PointKind"
+        points:
+          type: integer
+          description: basePoints + bonusPoints
+        basePoints:
+          type: integer
+        bonusPoints:
+          type: integer
+        focusSeconds:
+          type: integer
+          description: Length of the focus block.
+        preset:
+          type: string
+          enum: ["25-5", "50-10", "90-15"]
+        earnedAt:
+          type: string
+          format: date-time
+          description: When the focus block ended (not when the server found out).
+
+    PointEventPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PointEventResponse"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer

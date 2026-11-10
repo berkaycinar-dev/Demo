@@ -49,3 +49,13 @@ app:
     command-retention-hours: 24
     # How often old command ids are deleted.
     cleanup-interval-ms: 3600000
+  points:
+    # Points for every minute of a focus block that runs out by itself.
+    per-focus-minute: 1
+    # Extra points for a finished block, by preset. 25-5 = 25 points, 50-10 = 60, 90-15 = 115.
+    block-bonus:
+      "25-5": 0
+      "50-10": 10
+      "90-15": 25
+    # Time zone that decides where "today" starts in GET /points/me.
+    day-zone: Europe/Istanbul
