@@ -4,19 +4,15 @@ import Icon from './AvatarIcons'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
 import { normalizeCode } from './roomStore'
-import { thumbOf } from './roomThumbs'
-import useImageState from './useImageState'
+// tema görseli: yüklenirken iskelet, yüklenemezse temanın renginde kutu ve tema adı
+import { ThemeShot } from './RoomShot'
 import Dotted from './Dotted'
+import { ACCESS, ACCESS_IDS } from './access'
 
 const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
 const FORM_ID = 'create-room-form'
 const NAME_MAX = 60
-// Kimler girebilir: düğme etiketi ve seçilince altında çıkan açıklama
-const ACCESS_OPTIONS = [
-  { id: 'public', label: 'Herkese açık', hint: 'Oda lobide listelenir, herkes girebilir.' },
-  { id: 'invite', label: 'Davetle', hint: 'Bir davet kodu üretilir; yalnızca kodu bilenler girebilir.' },
-]
 // Tabela piksel yazıyla çizilir; emoji renkli sistem emojisi olarak çıkıp levhayı bozar. Yazılan emoji
 // (birleştiriciler, ten tonu ve bayrak harfleriyle) alınmaz, altta not çıkar.
 const EMOJI_PARTS = /\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣/gu
@@ -36,16 +32,6 @@ function inviteCode(name) {
       .replace(/[^A-Z]/g, '')
       .slice(0, 5) || 'ODA'
   return `${prefix}-${String(Math.floor(1000 + Math.random() * 9000))}`
-}
-
-// Tema kartı görseli: yüklenirken iskelet, yüklenemezse çizgi ikonlu yer tutucu (kırık resim simgesi yok).
-function ThemeShot({ src, className = '' }) {
-  const [state, imgProps] = useImageState()
-  return (
-    <span className={`theme-option__img ${className}`} data-state={state}>
-      {state === 'error' ? <Icon name="image" size={28} /> : <img src={src} alt="" width="480" height="360" loading="lazy" decoding="async" {...imgProps} />}
-    </span>
-  )
 }
 
 // Kapasite adım seçici: − / + ve kişi ikonları (dolu: oda kapasitesi, soluk: temanın üst sınırına kadar).
@@ -176,43 +162,14 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
           <div className="room-frame create-room__stage">
             {/* tema ya da kapasite değişince yeni sahne yumuşakça belirir */}
             <div key={`${theme}-${capacity}`} className="create-preview__scene">
-              <Room capacity={capacity} onSpotClick={setSpot} hint="Zemindeki halkalar mola noktaları · Sürükle: döndür" />
+              <Room capacity={capacity} onSpotClick={setSpot} hint="Halkalar mola yerleri · Sürükle: döndür" />
             </div>
           </div>
         </section>
 
-        <fieldset className="field create-room__themes">
-          <legend className="field__label">Tema</legend>
-          <div className="theme-grid">
-            {LISTED_THEMES.map(([key, t]) => (
-              <button
-                key={key}
-                type="button"
-                className="theme-option"
-                aria-pressed={theme === key}
-                aria-labelledby={`theme-${key}-name`}
-                aria-describedby={`theme-${key}-desc`}
-                onClick={() => {
-                  setTheme(key)
-                  setCapacity((c) => Math.min(c, t.max))
-                  setSpot(null)
-                }}
-              >
-                <span className="theme-option__shot">
-                  <ThemeShot key={isDark ? 'dark' : 'light'} src={thumbOf(key, isDark)} />
-                  <span className="theme-option__check" aria-hidden="true">
-                    <Icon name="check" size={14} />
-                  </span>
-                </span>
-                {/* ad ve açıklama ayrı: ekran okuyucu adı düğme adı, açıklamayı ek bilgi olarak okur */}
-                <span id={`theme-${key}-name`} className="theme-option__name">{t.label}</span>
-                <span id={`theme-${key}-desc`} className="theme-option__desc">{t.description}</span>
-              </button>
-            ))}
-          </div>
-        </fieldset>
 
-        {/* masaüstünde yapışkan raf; telefonda display: contents ile ayarlar akışta, eylem alta yapışır */}
+        {/* masaüstünde sahnenin yanında raf; telefonda display: contents ile ayarlar sahnenin hemen altında
+            akar, eylem çubuğu (order) en sona geçip ekranın altına yapışır */}
         <div className="create-room__rail">
           {/* geniş ekranda kartlar tek satır ve açıklamasız; seçili temanın açıklaması rafın başında */}
           <p className="create-room__theme-note">
@@ -230,23 +187,23 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             <fieldset className="field create-room__last" aria-describedby="access-hint">
               <legend className="field__label">Kimler girebilir</legend>
               <div className="choice-row">
-                {ACCESS_OPTIONS.map((o) => (
-                  <button key={o.id} type="button" aria-pressed={access === o.id} onClick={() => setAccess(o.id)}>
-                    {o.label}
+                {ACCESS_IDS.map((id) => (
+                  <button key={id} type="button" aria-pressed={access === id} onClick={() => setAccess(id)}>
+                    {ACCESS[id].label}
                   </button>
                 ))}
               </div>
               <p id="access-hint" className="field__note create-room__access-hint">
-                {ACCESS_OPTIONS.find((o) => o.id === access).hint}
+                {ACCESS[access].hint}
               </p>
             </fieldset>
           </div>
 
-          {/* telefonda yapışkan çubuk: mini önizleme (seçili tema + kişi sayısı, seçim değişince yeniden
-              belirir; dokununca canlı sahneye çıkar) ve kırpılmadan iki satıra sarılan özet */}
+          {/* telefonda yapışkan tek satırlık çubuk: mini önizleme (seçili tema + kişi sayısı, seçim değişince
+              yeniden belirir; dokununca canlı sahneye çıkar), tek satırlık özet ve düğme */}
           <div className="create-room__cta">
             <button type="button" key={`${theme}-${capacity}`} className="create-room__mini" onClick={showStage} aria-label={`Canlı önizlemeye git: ${label}, ${capacity} kişilik`}>
-              <ThemeShot key={isDark ? 'dark' : 'light'} src={thumbOf(theme, isDark)} className="create-room__mini-img" />
+              <ThemeShot theme={theme} dark={isDark} className="create-room__mini-img" />
               <span className="create-room__mini-count" aria-hidden="true">
                 <Icon name="body" size={12} />
                 {capacity}
@@ -255,7 +212,7 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             <p className="create-room__summary">
               <span className="create-room__summary-name">{roomName}</span>
               <span className="create-room__summary-meta">
-                <Dotted parts={[label, `${capacity} kişilik`, ACCESS_OPTIONS.find((o) => o.id === access).label]} keep />
+                <Dotted parts={[label, `${capacity} kişilik`, ACCESS[access].label]} keep />
               </span>
               {spot && <span className="create-room__spot">Seçilen mola noktası: {spot.label}</span>}
             </p>
@@ -276,6 +233,39 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             </button>
           </div>
         </div>
+
+        {/* temalar en sonda: okuma ve sekme sırası ad, kapasite, erişim, tema; masaüstünde ızgara alanıyla
+            sahnenin altında tam genişlik, telefonda kapasite ve erişimin altında */}
+        <fieldset className="field create-room__themes">
+          <legend className="field__label">Tema</legend>
+          <div className="theme-grid">
+            {LISTED_THEMES.map(([key, t]) => (
+              <button
+                key={key}
+                type="button"
+                className="theme-option"
+                aria-pressed={theme === key}
+                aria-labelledby={`theme-${key}-name`}
+                aria-describedby={`theme-${key}-desc`}
+                onClick={() => {
+                  setTheme(key)
+                  setCapacity((c) => Math.min(c, t.max))
+                  setSpot(null)
+                }}
+              >
+                <span className="theme-option__shot">
+                  <ThemeShot theme={key} dark={isDark} />
+                  <span className="theme-option__check" aria-hidden="true">
+                    <Icon name="check" size={14} />
+                  </span>
+                </span>
+                {/* ad ve açıklama ayrı: ekran okuyucu adı düğme adı, açıklamayı ek bilgi olarak okur */}
+                <span id={`theme-${key}-name`} className="theme-option__name">{t.label}</span>
+                <span id={`theme-${key}-desc`} className="theme-option__desc">{t.description}</span>
+              </button>
+            ))}
+          </div>
+        </fieldset>
       </form>
     </div>
   )

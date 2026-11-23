@@ -1,6 +1,6 @@
-/* DENEME: karakter menüsü (CharacterMenu.jsx). Oyunlardaki karakter yaratma ekranı: her kategori bir satır,
-   ◀ seçili öğe ▶. Seçili durum dili sekme düzeniyle aynı (chip-on, voxel yüz); seçili öğenin adı piksel
-   fontta (22 px, ızgaraya oturan boyut). Bu dosya CharacterMenu ile birlikte silinebilir. */
+/* Karakter menüsü (CharacterMenu.jsx): avatar atölyesinin düzenleyicisi. Her kategori bir satır: üstte ad,
+   seçili değer ve not; altta seçeneklerin yatay şeridi. Seçili dil sitenin geri kalanıyla aynı (chip-on
+   dolgu + --sel-ring halkası). */
 
 .cmenu {
   container: cmenu / inline-size;
@@ -63,17 +63,38 @@
   list-style: none;
 }
 
-/* satır: ad | ◀ değer ▶ | Hepsi. Açık ızgara satırın altında tam genişlikte. */
+/* bölüm içi alt başlık (Aksesuar: Başta / Boyun ve bilek / Renkler): sessiz, çizgiyle uzar */
+.site .cmenu__group h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 2px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: var(--type-caption, 14px);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.site .cmenu__group:first-child h3 {
+  margin-top: 0;
+}
+
+.site .cmenu__group h3::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+/* satır: ad satırı, altında ◀ şerit ▶. Geniş panelde ad solda, şerit sağda (bkz. @container). */
 .cmenu__row {
   display: grid;
-  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr) auto;
-  grid-template-areas:
-    'label picker all'
-    'panel panel panel';
   align-items: center;
-  column-gap: 12px;
+  gap: 6px 12px;
   margin: 0 -8px;
-  padding: 6px 8px;
+  padding: 8px;
   border-radius: calc(var(--radius-block) + 4px);
   transition: background-color 150ms ease;
 }
@@ -84,9 +105,9 @@
 
 .cmenu__label {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  grid-area: label;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
   min-width: 0;
 }
 
@@ -101,7 +122,15 @@
   color: var(--primary);
 }
 
+/* görsel ve renk şeritlerinde seçili seçeneğin adı */
+.cmenu__current {
+  color: var(--text-2);
+  font-size: var(--type-label, 14px);
+  line-height: 1.25;
+}
+
 .cmenu__note {
+  flex-basis: 100%;
   color: var(--muted);
   font-size: var(--type-caption, 14px);
   line-height: 1.35;
@@ -109,13 +138,19 @@
 
 .cmenu__picker {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  grid-area: picker;
+  /* şerit kısaysa oklar ona yaslanır, uzunsa şerit kalan genişliği doldurup kayar */
+  grid-template-columns: 44px minmax(0, max-content) 44px;
+  justify-content: start;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
 }
 
-/* oklar: 44 px dokunma hedefi; basınca kısa ve hızlı çökme */
+.cmenu__row[data-off] .cmenu__picker {
+  opacity: 0.5;
+}
+
+/* oklar: fare ve klavye için (dokunmatikte şerit parmakla kayar, oklar yer kaplamaz) */
 .cmenu__arrow {
   display: grid;
   place-items: center;
@@ -145,228 +180,186 @@
   cursor: not-allowed;
 }
 
-.cmenu__ico {
-  display: grid;
+@media (pointer: coarse) {
+  .cmenu__picker {
+    grid-template-columns: minmax(0, max-content);
+  }
+
+  .cmenu__arrow {
+    display: none;
+  }
 }
 
-/* klavyeyle ya da kaydırarak değişince ilgili ok da kısa bir itmeyle cevap verir */
-.cmenu__ico[data-hit] {
-  animation: cmenuNudge 160ms var(--ease-out, ease-out);
+/* geniş panel: ad, seçili değer ve not solda dar sütunda; şerit sağda */
+@container cmenu (min-width: 600px) {
+  .cmenu__row {
+    grid-template-columns: 9.5rem minmax(0, 1fr);
+  }
+
+  .cmenu__label {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
-.cmenu__arrow:first-child .cmenu__ico {
-  --nudge: -3px;
-}
-
-.cmenu__arrow:last-child .cmenu__ico {
-  --nudge: 3px;
-}
-
-/* değer alanı: seçili öğe. Gömük kuyu; etkin satırda seçili dilinde (chip-on) */
-.cmenu__well {
+/* ---------- seçenek şeridi: yatay kayar; kenarlarda solarak devamı olduğunu gösterir ---------- */
+.cstrip {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  min-height: 52px;
-  padding: 4px 10px;
-  overflow: hidden;
-  border-radius: calc(var(--radius-block) + 2px);
-  background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 1px var(--line), inset 0 2px 0 rgba(60, 40, 20, 0.06);
-  color: var(--text-2);
-  cursor: default;
-  touch-action: pan-y;
-  user-select: none;
-  transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
-}
-
-.cmenu__row[data-active] .cmenu__well {
-  background: var(--chip-on-bg);
-  box-shadow: inset 0 0 0 1px var(--chip-on-edge), var(--voxel-face);
-  color: var(--chip-on-fg);
-}
-
-.cmenu__well:focus-visible {
-  outline-offset: 2px;
-}
-
-.cmenu__row[data-off] .cmenu__picker {
-  opacity: 0.5;
-}
-
-.cmenu__value {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.cmenu__value[data-dir='1'] {
-  animation: cmenuIn 160ms var(--ease-out, ease-out);
-  --from: 10px;
-}
-
-.cmenu__value[data-dir='-1'] {
-  animation: cmenuIn 160ms var(--ease-out, ease-out);
-  --from: -10px;
-}
-
-.cmenu__chip {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(60, 40, 20, 0.15);
-}
-
-.cmenu__chip--none {
-  background: repeating-linear-gradient(135deg, transparent 0 5px, var(--line-strong) 5px 6px);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-
-.cmenu__thumb {
-  flex: none;
-}
-
-.cmenu__thumb .tile__thumb {
-  width: 40px;
-  height: 40px;
-}
-
-.cmenu__thumb .tile__thumb img {
-  width: 100%;
-  height: 100%;
-}
-
-.cmenu__text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-/* seçili öğenin adı: piksel rol, 22 px (ızgara boyutu), tek ağırlık */
-.cmenu__label-value {
-  overflow: hidden;
-  font-family: var(--font-pixel);
-  font-size: var(--pixel-l);
-  font-weight: 500;
-  font-synthesis: none;
-  letter-spacing: 0;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* sıra: "3/21". Okunması gereken bilgi: 11 px piksel okunmadığı, 22 px piksel de değerle yarıştığı için
-   okunur fontta (Inter 14 px), eşit genişlikte rakamlarla */
-.cmenu__count {
-  color: var(--muted);
-  font-family: var(--font-body);
-  font-size: 14px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-.cmenu__row[data-active] .cmenu__count {
-  color: color-mix(in srgb, var(--chip-on-fg) 72%, transparent);
-}
-
-.cmenu__all {
-  display: inline-flex;
   align-items: center;
   gap: 6px;
-  grid-area: all;
+  min-width: 0;
+  padding: 4px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 24px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
+}
+
+.cstrip::-webkit-scrollbar {
+  display: none;
+}
+
+.cstrip__opt {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 44px;
   min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--line);
+  padding: 0;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-block);
-  background: transparent;
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
   color: var(--text-2);
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  scroll-snap-align: start;
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 90ms var(--ease-out, ease-out);
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 120ms var(--ease-out, ease-out);
 }
 
-.cmenu__all:hover:not(:disabled) {
+.cstrip__opt:hover {
   border-color: var(--muted);
-  color: var(--text);
+  background: var(--surface-2);
 }
 
-.cmenu__all:active:not(:disabled) {
+.cstrip__opt:active:not([aria-disabled]) {
   transform: scale(0.95);
 }
 
-.cmenu__all[aria-expanded='true'] {
-  border-color: var(--chip-on-edge);
-  background: var(--chip-on-bg);
-  color: var(--chip-on-fg);
-}
-
-.cmenu__all:disabled {
-  opacity: 0.4;
+.cstrip__opt[aria-disabled] {
   cursor: not-allowed;
 }
 
-.cmenu__panel {
-  grid-area: panel;
-  margin-top: 8px;
-  padding: 12px 12px 4px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-block);
-  background: var(--surface-2);
-  container: options / inline-size;
-  animation: avatarRise 200ms var(--ease-out, ease-out);
+/* seçili: dolgu + 2 px halka; görsel ve yazı şeritlerinde aynı */
+.cstrip__opt[aria-checked='true'] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+  box-shadow: inset 0 0 0 1px var(--sel-ring), var(--voxel-face);
+  color: var(--chip-on-fg);
 }
 
-.avatar-page .cmenu__panel .field {
-  margin-bottom: 8px;
+/* yazı şeridi: ad düğmenin içinde */
+.cstrip--text .cstrip__opt {
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-/* dar panel (telefon, dar kart): ad ve Hepsi üstte, seçici tam genişlikte altta */
-@container cmenu (max-width: 460px) {
-  .cmenu__row {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'label all'
-      'picker picker'
-      'panel panel';
-    row-gap: 6px;
-    padding: 10px 8px;
-  }
+.cstrip--text .cstrip__opt--none {
+  border-style: dashed;
+  box-shadow: none;
+  color: var(--muted);
 }
 
-@keyframes cmenuIn {
-  from {
-    opacity: 0;
-    transform: translateX(var(--from, 0));
-  }
+.cstrip--text .cstrip__opt--none[aria-checked='true'] {
+  border-style: solid;
+  color: var(--chip-on-fg);
 }
 
-@keyframes cmenuNudge {
-  50% {
-    transform: translateX(var(--nudge, 0));
-  }
+/* görsel şeridi: 48 px voxel görsel */
+.cstrip--thumb .cstrip__opt {
+  padding: 3px;
+}
+
+.cstrip__thumb {
+  display: grid;
+}
+
+.cstrip__thumb .tile__thumb {
+  width: 48px;
+  height: 48px;
+}
+
+.cstrip__opt[aria-checked='true'] .tile__thumb {
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.15));
+}
+
+/* "Yok": neredeyse boş kafa görseli yerine ikon; kesik çerçeve */
+.cstrip__thumb .cstrip__none {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.cstrip--thumb .cstrip__opt--none:not([aria-checked='true']) {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.cstrip__opt[aria-checked='true'] .cstrip__none {
+  color: var(--chip-on-fg);
+}
+
+/* renk şeridi: 44 px dokunma hedefi, 30 px nokta. Noktanın 2 px kenarı (--glyph-off) her iki modda zemine
+   karşı ≥ 3:1: koyu modda koyu kahverengi göz gibi zeminle aynı tondaki renkler de görünür. Seçili nokta
+   zemin boşluğu ve --sel-ring halkası alır. */
+.cstrip--color {
+  gap: 2px;
+}
+
+.cstrip--color .cstrip__opt,
+.cstrip--color .cstrip__opt:hover,
+.cstrip--color .cstrip__opt[aria-checked='true'] {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cstrip__dot {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--glyph-off);
+  border-radius: 50%;
+  transition: box-shadow 200ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
+}
+
+.cstrip--color .cstrip__opt:hover .cstrip__dot {
+  transform: scale(1.08);
+}
+
+.cstrip--color .cstrip__opt[aria-checked='true'] .cstrip__dot {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--sel-ring);
+}
+
+/* "Yok" rengi: çapraz çizgili */
+.cstrip__dot--none {
+  background: linear-gradient(135deg, var(--surface-sunken) 45%, var(--none-mark) 45%, var(--none-mark) 55%, var(--surface-sunken) 55%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cmenu__value[data-dir],
-  .cmenu__ico[data-hit],
-  .cmenu__panel {
-    animation: none;
-  }
-
   .cmenu__arrow:active:not(:disabled),
-  .cmenu__all:active:not(:disabled) {
+  .cstrip__opt:active:not([aria-disabled]),
+  .cstrip--color .cstrip__opt:hover .cstrip__dot {
     transform: none;
   }
 }
 
-/* atölye başlığındaki "Düzen" anahtarı (Sekmeler / Menü) ve odaya gir düğmesi */
+/* atölye başlığındaki odaya gir düğmesi */
 .avatar-workshop__tools {
   display: flex;
   flex-wrap: wrap;
@@ -382,8 +375,8 @@
   margin-bottom: 4px;
 }
 
-/* geniş ekranda kart sol sütunun yüksekliğinde (site.css, contain: size): menü sekme paneli gibi kartın
-   içinde kayar, "Varsayılana dön" altta sabit kalır */
+/* geniş ekranda kart sol sütunun yüksekliğinde (site.css, contain: size): menü kartın içinde kayar,
+   "Varsayılana dön" altta sabit kalır */
 @media (min-width: 901px) {
   .avatar-page__editor--menu .cmenu {
     position: relative;
@@ -397,16 +390,4 @@
     scrollbar-gutter: stable;
     scrollbar-width: thin;
   }
-}
-
-/* sekmeli düzen anahtarı: ikincil, metin düğmesi; dokunma hedefi 44 px */
-.avatar-workshop .avatar-workshop__layout {
-  min-height: 44px;
-  padding: 0 4px;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.avatar-workshop .avatar-workshop__layout:hover {
-  color: var(--text);
 }

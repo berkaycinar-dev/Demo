@@ -4,7 +4,7 @@ import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { loadMyRoom, saveMyRoom } from './myRoom'
 import { SOUNDS, playAmbient, setAmbientVolume, stopAmbient } from './ambient'
-import RoomStage, { FocusModeButton } from './RoomStage'
+import RoomStage, { FocusModeButton, FocusModeNote } from './RoomStage'
 import TimerCard from './TimerCard'
 import { swatchOf } from './themeLook'
 import Dotted from './Dotted'
@@ -45,7 +45,10 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
           <h1 className="stage-card__title">{label}</h1>
           <p className="site-muted">Tek kişilik, yalnızca sana ait.</p>
         </div>
-        <FocusModeButton onClick={() => onFocusModeChange(true)} />
+        <div>
+          <FocusModeButton onClick={() => onFocusModeChange(true)} />
+          <FocusModeNote />
+        </div>
       </div>
 
       <div className="stage-card">{timerCard}</div>

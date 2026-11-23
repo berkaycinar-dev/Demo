@@ -12,11 +12,13 @@ export function loadAvatar() {
   }
 }
 
+// Yazılabildiyse true; depolama kapalı ya da doluysa false (avatar yalnızca bu oturumda kalır).
 export function saveAvatar(avatar) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(avatar))
+    return true
   } catch {
-    // depolama kapalıysa avatar yalnızca bu oturumda kalır
+    return false
   }
 }
 

@@ -72,15 +72,17 @@ function useRoomTone(roomRef) {
   return room
 }
 
-// Telefonda odanın hemen altındaki sayaç çubuğu: kalan süre, aşama ve tek eylem. Tam sayaç kartı
-// paneldedir; çubuk, sayfa kaydırılmadan sayacın görünmesi içindir (masaüstünde gizli).
+// Telefonda ekranın altına yapışan sayaç çubuğu: kalan süre, aşama ve tek eylem (Başlat / Duraklat).
+// Panel kaydırılsa da sayaç görünür; paneldeki sayaç kartı bu yüzden kendi Başlat'ını göstermez.
+// Masaüstünde gizli. Sahnenin son öğesidir: yapışkan çubuk sahnenin sonunda kendi yerini ayırır, panelin
+// son satırı çubuğun altında kalmaz ve alt bilgiye gelince çubuk sahneyle birlikte yukarı kayar.
 function StageBar({ timer }) {
   const isFocus = timer.phase === 'focus'
   return (
     <div className="stage-bar" data-phase={timer.phase} role="group" aria-label="Sayaç özeti">
       <span className="stage-bar__phase">{isFocus ? 'Odak' : 'Mola'}</span>
       <span className="stage-bar__clock">{formatClock(timer.remaining)}</span>
-      <button type="button" className="site-btn site-btn--primary stage-bar__toggle" onClick={timer.toggle}>
+      <button type="button" className="site-btn site-btn--primary stage-bar__toggle" onClick={timer.toggle} aria-keyshortcuts="Space">
         {timer.running ? 'Duraklat' : timer.fresh ? 'Başlat' : 'Devam et'}
       </button>
     </div>
@@ -92,7 +94,7 @@ function StageBar({ timer }) {
 // footer ve panelin geri kalanı gizlenir, yalnızca oda ve focusPanel kalır.
 //
 // renderRoom(canvasStyle): odayı çizer; canvasStyle, 3D sahneyi panelin solunda kalan alana sığdırır.
-// timer verilirse telefonda odanın altında sayaç çubuğu çıkar (odak modunda panelin kendisi sayaçtır).
+// timer verilirse telefonda ekranın altında sayaç çubuğu çıkar (odak modunda panelin kendisi sayaçtır).
 export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, onFocusModeChange, timer }) {
   const roomRef = useRef(null)
   const { tone, color } = useRoomTone(roomRef)
@@ -122,7 +124,6 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
       <div className="stage__room" ref={roomRef}>
         {renderRoom({ width: 'var(--stage-canvas-w, 100%)' })}
       </div>
-      {timer && !focusMode && <StageBar timer={timer} />}
       <aside className="stage__panel" data-tone={focusMode ? tone : undefined} aria-label={focusMode ? 'Sayaç' : 'Oda paneli'}>
         {focusMode ? (
           <>
@@ -135,18 +136,36 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
           panel
         )}
       </aside>
+      {timer && !focusMode && <StageBar timer={timer} />}
     </div>
   )
 }
 
-// İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır.
+// Odak modu düğmesinin metinleri: düğme adı ve altında görünen kısa açıklama (ilk ziyarette de okunur,
+// title'a saklanmaz). Tam cümleler; çeviride birleştirilmez.
+const FOCUS_MODE_COPY = {
+  button: 'Odak modu',
+  note: 'Tam ekran: yalnızca oda ve sayaç kalır. Esc ile çık.',
+}
+const FOCUS_NOTE_ID = 'focusModeNote'
+
+// İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır. Açıklaması FocusModeNote'ta.
 export function FocusModeButton({ onClick }) {
   return (
-    <button type="button" className="site-btn focus-btn" onClick={onClick} title="Tam ekran: yalnızca oda ve sayaç (Esc ile çık)">
+    <button type="button" className="site-btn focus-btn" onClick={onClick} aria-describedby={FOCUS_NOTE_ID}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
       </svg>
-      Odak modu
+      {FOCUS_MODE_COPY.button}
     </button>
+  )
+}
+
+// Odak modu düğmesinin altındaki görünür açıklama; sayfada bir FocusModeButton ile birlikte bir kez.
+export function FocusModeNote() {
+  return (
+    <p id={FOCUS_NOTE_ID} className="stage-note">
+      {FOCUS_MODE_COPY.note}
+    </p>
   )
 }

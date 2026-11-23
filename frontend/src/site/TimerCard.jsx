@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { PRESETS, formatClock, formatMinutes } from './usePomodoro'
 
 const R = 104
@@ -26,6 +26,15 @@ function useSpaceToggle(toggle) {
   }, [])
 }
 
+// Atla'nın görünür açıklaması (title'a saklanmaz): aşamaya göre ne olacağını söyler.
+// Seans sürerken süre seçimi kilitli; kısa tek satır (panel 1440×900'de kaydırmadan sığsın).
+const LOCK_NOTE = 'Süreyi değiştirmek için önce sıfırla.'
+
+const SKIP_COPY = {
+  focus: 'Atla: molaya geç. Geçen dakikalar sayılır.',
+  break: 'Atla: molayı bitir, odağa dön.',
+}
+
 // Halkalı pomodoro sayacı. timer: usePomodoro() dönüşü. compact: odak modunda süre seçimi ve
 // istatistik gizlenir. title / note: kartın üst satırı.
 export default function TimerCard({ timer, title = 'Sayaç', note, compact = false, showStats = true, children }) {
@@ -35,6 +44,7 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
   const locked = !timer.fresh
   const { notice } = timer
   useSpaceToggle(timer.toggle)
+  const skipNoteId = useId()
 
   const hold = {
     onPointerEnter: () => timer.holdNotice(true),
@@ -88,10 +98,14 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
         <button type="button" className="site-btn" onClick={timer.reset}>
           Sıfırla
         </button>
-        <button type="button" className="site-btn" onClick={timer.skip} title={isFocus ? 'Molaya geç' : 'Odağa geç'}>
+        <button type="button" className="site-btn" onClick={timer.skip} aria-describedby={skipNoteId}>
           Atla
         </button>
       </div>
+      {/* odak modunda sayaç sade kalır; açıklama yalnızca ekran okuyucuya */}
+      <p id={skipNoteId} className={compact ? 'sr-only' : 'timer-card__note'}>
+        {isFocus ? SKIP_COPY.focus : SKIP_COPY.break}
+      </p>
 
       {notice && (
         <div className="timer-toast" key={notice.id} {...hold}>
@@ -119,7 +133,7 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
           </div>
           {locked && (
             <p id="timerPresetLock" className="timer-card__lock">
-              Seans sürerken süre değişmez. Değiştirmek için önce sıfırla.
+              {LOCK_NOTE}
             </p>
           )}
         </div>

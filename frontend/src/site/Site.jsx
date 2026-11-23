@@ -32,8 +32,9 @@ const PAGES = [
 ]
 // Oturum isteyen sayfalar: menüdekiler, Lobi'nin alt sayfaları (oda oluştur, girilen oda) ve hesap.
 const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'olustur', 'oda', 'hesap'])
-// Menüde hangi sekmenin seçili görüneceği: alt sayfalarda Lobi.
-const NAV_OF = { olustur: 'lobi', oda: 'lobi' }
+// Menüde hangi sekmenin seçili görüneceği: oda oluşturma Lobi'nin alt sayfası. Girilen ortak oda (#oda)
+// menüdeki hiçbir sekme değildir; orada hiçbiri seçili görünmez ("Lobi" ya da "Odam" sanılmasın).
+const NAV_OF = { olustur: 'lobi' }
 // Eski adresler: Odaya katıl sayfası Lobi'ye taşındı.
 const MOVED = { katil: 'lobi' }
 const GUEST_PAGES = new Set(['giris', 'kayit'])
@@ -131,7 +132,7 @@ export default function Site() {
   }
   const changeAvatar = (next) => {
     setAvatar(next)
-    saveAvatar(next)
+    return saveAvatar(next)
   }
   const signedIn = (u, isNew) => {
     // Yeni hesapta avatar hâlâ varsayılan adı taşıyorsa görünen adı alır.

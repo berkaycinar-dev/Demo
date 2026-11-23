@@ -123,6 +123,13 @@
   --break: #245f58;
   --success: #1e6650;
   --success-soft: #ddede5;
+  /* durum noktası (oda listesi, sahnedeki avatar etiketi, lobi canlı işareti): odakta dolu yuvarlak, molada
+     baklava, uzakta içi boş halka; biçim de ayırır. Açık zeminde (--surface ve beyaz halka) ≥ 3:1.
+     --status-ring sahnedeki noktayı 3D zeminden ayıran halka; nokta halkaya karşı da ≥ 3:1. */
+  --status-focus: #1f8a4c;
+  --status-break: #b86e00;
+  --status-away: #7f776e;
+  --status-ring: rgba(255, 255, 255, 0.92);
   /* header ve footer: kırık beyaz */
   --header-bg: #fffdf9;
   --header-text: #221e1a;
@@ -189,6 +196,11 @@
   --break: #9ad9ce;
   --success: #8fdcc6;
   --success-soft: #163029;
+  /* durum noktası: koyu yüzeyde (#302c28) ve koyu halkada ≥ 4.9:1 */
+  --status-focus: #3ddc84;
+  --status-break: #f5a623;
+  --status-away: #9a9a9a;
+  --status-ring: rgba(29, 26, 23, 0.92);
   /* header ve footer: sıcak koyu (siyah değil) */
   --header-bg: #2c2824;
   --header-text: #efe9e1;
