@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { THEMES } from '../rooms/themes'
-import { ACCESS_LABELS } from './access'
+import { accessLabel } from './access'
 import { codeMatches } from './roomStore'
 import RoomShot from './RoomShot'
 import Dotted from './Dotted'
@@ -50,7 +50,7 @@ function RoomCard({ room, onAction }) {
           <Dotted text={room.name} />
         </h3>
         <p className="site-muted">
-          <Dotted parts={[`${room.capacity} kişilik`, ACCESS_LABELS[room.access]]} keep />
+          <Dotted parts={[`${room.capacity} kişilik`, accessLabel(room.access)]} keep />
         </p>
         <div className="room-card__actions">
           {locked ? (

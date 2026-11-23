@@ -1,9 +1,12 @@
 /* Odakhane sitesi: gri zemin + çelik mavisi tasarımı. Renkler theme.css'teki token'lardan gelir. */
 
+/* viewport-fit=cover (index.html): yatay telefonda çentik payı yanlarda; alt pay (ev göstergesi) altta
+   yapışan öğelerin kendisinde (sayaç çubuğu, oda oluştur eylem çubuğu, odak modu paneli) */
 .site {
   display: flex;
   flex-direction: column;
   min-height: 100svh;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   background: var(--bg-page);
   color: var(--text);
   font-family: var(--font-body);
@@ -710,20 +713,20 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #3ddc84;
+  background: var(--status-focus);
 }
 
 .roster__item--break .roster__dot {
   width: 8px;
   height: 8px;
   border-radius: 2px;
-  background: #f5a623;
+  background: var(--status-break);
   transform: rotate(45deg);
 }
 
 .roster__item--away .roster__dot {
   background: transparent;
-  box-shadow: inset 0 0 0 3px #9a9a9a;
+  box-shadow: inset 0 0 0 3px var(--status-away);
 }
 
 /* avatar atölyesi */
@@ -1017,20 +1020,6 @@
   font-weight: 600;
 }
 
-/* o anki seçimde geçersiz alan (bu saç modelinde kahkül yok): ad ve düğmeler soluk, not okunur */
-.field--off .segmented,
-.field--off .option-grid {
-  opacity: 0.5;
-}
-
-.field--off button {
-  cursor: not-allowed;
-}
-
-.field--off .segmented button:hover {
-  color: var(--text-2);
-}
-
 /* kombinler şeridi: başlık + kayıt onayı tek satırda, altında üç eşit slot. Slotun gövdesi giyer,
    köşedeki ikon kaydeder. */
 .wardrobe {
@@ -1190,91 +1179,6 @@
   padding-top: 0;
 }
 
-.avatar-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 0 -24px 4px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--line);
-  border-radius: 20px 20px 0 0;
-  background: var(--surface);
-}
-
-.avatar-tabs button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 56px;
-  padding: 8px 6px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.avatar-tabs button::after {
-  content: '';
-  position: absolute;
-  right: 18%;
-  bottom: -1px;
-  left: 18%;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--primary);
-  transform: scaleX(0);
-  transition: transform 220ms var(--ease-out);
-}
-
-.avatar-tabs button:hover {
-  color: var(--text);
-}
-
-.avatar-tabs button[aria-selected='true'] {
-  color: var(--text);
-}
-
-.avatar-tabs button[aria-selected='true'] .icon {
-  color: var(--primary);
-}
-
-.avatar-tabs button[aria-selected='true']::after {
-  transform: scaleX(1);
-}
-
-/* odak halkası sekmenin içinde ve yuvarlak: yapışkan çubuğun ve kartın kenarında kırpılmaz */
-.avatar-tabs button:focus-visible {
-  border-radius: 12px;
-  outline-offset: -4px;
-}
-
-/* dar ekranda sekme ikonu etiketin üstünde: dört sekme tek satıra sığar */
-@media (max-width: 560px) {
-  .avatar-tabs {
-    padding: 0 6px;
-  }
-
-  .avatar-tabs button {
-    flex-direction: column;
-    gap: 3px;
-    min-height: 60px;
-    font-size: 14px;
-    line-height: 1.2;
-  }
-}
-
-/* sekme içi bölümler: başlık + alanlar; çizgiyle ayrılır, kart yok */
-.avatar-page__panel {
-  container: options / inline-size;
-}
-
 /* atölye tip ölçeği: bölüm başlığı 20 / alan etiketi ve seçenek 14 / grup notu ve açıklama 12.
    Hiyerarşi iki katman: belirgin bölüm başlığı, sessiz grup notu; tek seçicili bölümde alan adı yalnızca
    ekran okuyucuda (.field__label--bare). */
@@ -1282,16 +1186,6 @@
   --type-section: 20px;
   --type-label: 15px;
   --type-caption: 14px;
-}
-
-.opt-section {
-  padding: 24px 0 4px;
-  border-top: 1px solid var(--line);
-}
-
-.avatar-page__panel > .opt-section:first-child,
-.avatar-page__panel > :first-child > .opt-section {
-  border-top: 0;
 }
 
 .site .opt-section__title {
@@ -1318,29 +1212,10 @@
   font-weight: 600;
 }
 
-/* adı gizli etiket: yalnızca not / değer kalır; ikisi de yoksa yer kaplamaz */
-.avatar-page .field__label--bare {
-  margin-bottom: 8px;
-}
-
-.avatar-page .field__label--bare:not(:has(.field__note, .field__value)) {
-  margin-bottom: 0;
-}
-
-.field__value {
-  color: var(--text-2);
-  font-weight: 500;
-}
-
 .field__note {
   color: var(--muted);
   font-size: var(--type-caption, 14px);
   font-weight: 400;
-}
-
-.field__action {
-  margin-left: auto;
-  font-size: var(--type-caption, 14px);
 }
 
 .visually-hidden {
@@ -1352,232 +1227,12 @@
   white-space: nowrap;
 }
 
-/* katlı alan: "+ İkinci renk" */
-.add-btn {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  min-height: 44px;
-  margin-bottom: 20px;
-  padding: 0 16px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-block);
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--type-label);
-  font-weight: 600;
-  line-height: 44px;
-  cursor: pointer;
-}
-
-.add-btn:hover {
-  border-style: solid;
-  background: var(--surface-2);
-}
-
-.add-btn__hint {
-  color: var(--muted);
-  font-size: var(--type-caption);
-  font-weight: 400;
-}
-
-/* katlı renk satırı: ad, seçili renk ve "Değiştir"; yuvarlaklar düğmeyle açılır */
-.avatar-page .field--folded {
-  margin-bottom: 12px;
-}
-
-.color-toggle {
-  display: inline-flex;
-  align-items: center;
-  align-self: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 0 12px 0 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: var(--type-caption);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.color-toggle:hover {
-  border-color: var(--muted);
-  background: var(--surface-2);
-}
-
-.color-toggle[aria-expanded='true'] {
-  background: var(--surface-2);
-}
-
-.avatar-page .field__label:has(.color-toggle) .field__note {
-  flex-basis: 100%;
-  order: 1;
-}
-
-.color-toggle__chip {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--line-strong);
-  border-radius: 50%;
-}
-
-/* seçili seçeneğin ayrıntısı (başlık rengi): seçili düğmenin satırının hemen altında tam satır.
-   dense akış, seçili düğmeden sonraki seçenekleri o satırın boş hücrelerine geri doldurur. */
-.option-grid--detail {
-  grid-auto-flow: row dense;
-}
-
-.option-detail {
-  grid-column: 1 / -1;
-  padding: 12px 14px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-block);
-  background: var(--surface-2);
-  animation: avatarRise 200ms var(--ease-out);
-}
-
-.avatar-page .option-detail .field {
-  margin-bottom: 0;
-}
-
-/* seçenek ızgarası: eşit sütunlar, kısa etiket tek satır, uzun etiket iki satıra kırılır */
-.option-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 6px;
-}
-
-.option-group + .option-group {
-  margin-top: 16px;
-}
-
-/* görselli seçenekler: voxel küçük görsel üstte, ad altta */
-.option-grid--thumbs {
-  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-}
-
-.option-group__name {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  color: var(--muted);
-  font-size: var(--type-caption);
-  font-weight: 500;
-}
-
-.option-group__name::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-
-.tile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 42px;
-  padding: 6px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-block);
-  background: var(--surface);
-  box-shadow: var(--voxel-face);
-  color: var(--text-2);
-  font: inherit;
-  font-size: var(--type-label);
-  line-height: 1.25;
-  text-align: center;
-  text-wrap: balance;
-  cursor: pointer;
-}
-
-.tile:hover {
-  border-color: var(--muted);
-  background: var(--surface-2);
-}
-
-.tile__label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.tile--thumb {
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 6px 8px;
-}
-
 .tile__thumb {
   display: block;
   width: 56px;
   height: 56px;
   border-radius: calc(var(--radius-block) - 2px);
   background: radial-gradient(circle at 50% 40%, var(--surface), var(--surface-sunken));
-}
-
-.tile[aria-pressed='true'] .tile__thumb {
-  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.15));
-}
-
-.tile--thumb .tile__label {
-  font-size: 14px;
-}
-
-.tile--none {
-  border-style: dashed;
-  box-shadow: none;
-  color: var(--muted);
-}
-
-.tile[aria-pressed='true'] {
-  border-color: var(--chip-on-edge);
-  border-style: solid;
-  background: var(--chip-on-bg);
-  box-shadow: var(--voxel-face);
-  color: var(--chip-on-fg);
-  font-weight: 600;
-}
-
-/* renk yuvarlakları: geniş panelde tek satır; dar panelde eşit iki satır (tek renk alta düşmez) */
-.swatch-row {
-  --cols: var(--n);
-  display: grid;
-  grid-template-columns: repeat(var(--cols), minmax(0, 40px));
-  gap: 6px;
-}
-
-@container options (max-width: 560px) {
-  .swatch-row {
-    --cols: var(--half);
-  }
-}
-
-.swatch {
-  width: 100%;
-  aspect-ratio: 1;
-  padding: 0;
-  border: 2px solid var(--line-strong);
-  border-radius: 50%;
-  box-shadow: 0 0 0 0 var(--text);
-  cursor: pointer;
-}
-
-/* "yok" seçeneği: çapraz çizgili beyaz */
-.swatch--none {
-  background: linear-gradient(135deg, var(--surface-sunken) 45%, var(--none-mark) 45%, var(--none-mark) 55%, var(--surface-sunken) 55%);
-}
-
-.swatch[aria-pressed='true'] {
-  border-color: var(--surface);
-  box-shadow: 0 0 0 3px var(--text);
 }
 
 .avatar-page__actions {
@@ -1623,13 +1278,12 @@
   }
 }
 
-/* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, sekme içeriği
-   ve beliren satırlar yumuşakça gelir. Varsayılan hâl görünür; animasyon yalnızca "from" tanımlar. */
+/* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, beliren
+   öğeler yumuşakça gelir. Varsayılan hâl görünür; animasyon yalnızca "from" tanımlar. */
 .avatar-page {
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.avatar-page .tile,
 .avatar-page .segmented button,
 .avatar-page .wardrobe__slot,
 .avatar-page .wardrobe__wear,
@@ -1639,7 +1293,6 @@
     opacity 150ms ease, transform 120ms var(--ease-out);
 }
 
-.avatar-page .tile:active:not(:disabled),
 .avatar-page .segmented button:active:not(:disabled),
 .avatar-page .wardrobe__slot:has(.wardrobe__wear:active:not(:disabled)),
 .avatar-page .wardrobe__save:active,
@@ -1647,28 +1300,9 @@
   transform: scale(0.96);
 }
 
-.avatar-page .swatch {
-  transition: box-shadow 200ms var(--ease-out), border-color 150ms ease, transform 120ms var(--ease-out);
-}
-
-.avatar-page .swatch:active {
-  transform: scale(0.9);
-}
-
-.avatar-page__panel {
-  animation: avatarRise 220ms var(--ease-out);
-}
-
 .avatar-page .wardrobe__status > span,
 .avatar-page .wardrobe__save[data-done] .icon {
   animation: avatarFade 200ms ease-out;
-}
-
-@keyframes avatarRise {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
 }
 
 @keyframes avatarFade {
@@ -1752,34 +1386,22 @@
   }
 }
 
-
 @media (prefers-reduced-motion: reduce) {
   .site-btn {
     transition: none;
   }
 
   /* atölye: yer değiştirme ve ölçek yok; renk geçişleri ve solma kalır */
-  .avatar-page .tile:active,
   .avatar-page .segmented button:active,
   .avatar-page .wardrobe__slot:has(.wardrobe__wear:active),
   .avatar-page .wardrobe__save:active,
-  .avatar-page .hud button:active,
-  .avatar-page .swatch:active {
+  .avatar-page .hud button:active {
     transform: none;
-  }
-
-  .avatar-page__panel,
-  .option-detail {
-    animation-name: avatarFade;
   }
 
   .hud--sub,
   .hud--sub[data-off] {
     transform: none;
-  }
-
-  .avatar-tabs button::after {
-    transition: none;
   }
 
   .create-preview__scene {
@@ -1924,11 +1546,6 @@
   .avatar-page__editor {
     padding: 0 16px 16px;
   }
-  .avatar-page .avatar-tabs {
-    top: var(--pv-top);
-    margin: 0 -16px 4px;
-    border-radius: 0;
-  }
 
   /* dokunma hedefleri ≥ 44 px */
   .hud button {
@@ -1946,16 +1563,6 @@
 
   .segmented button {
     min-height: 44px;
-  }
-
-  .swatch-row {
-    grid-template-columns: repeat(var(--cols), 44px);
-    gap: 8px;
-  }
-
-  .color-toggle {
-    min-height: 44px;
-    padding: 0 16px 0 10px;
   }
 
   .wardrobe__save {
@@ -1985,10 +1592,49 @@
   }
 }
 
-/* dar seçenek paneli (telefon): 44 px yuvarlaklar en çok 6 sütunlu dengeli satırlarda */
-@container options (max-width: 400px) {
-  .swatch-row {
-    --cols: var(--fit, var(--half));
+/* tablette (561-900 px) üst menü tek satır kalır, iki satıra kırılmaz: "Çıkış yap" ve hesap adı
+   başlıktan iner (ikisi de hesap sayfasında; avatar düğmesi hesaba götürür). Dört sayfa adı, mod düğmesi
+   ve marka sığar; daralırsa önce marka adı gizlenir. */
+@media (max-width: 900px) {
+  .site-header {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .site-header .header-link--logout,
+  .site-header .user-chip__name {
+    display: none;
+  }
+
+  .site-header .user-chip {
+    padding: 3px;
+  }
+
+  .site-header .site-nav:not(.site-nav--sections) {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .site-nav:not(.site-nav--sections) button {
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .site-header .site-header__tools {
+    flex: none;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 680px) {
+  .site-header:has(.site-nav) .site-brand__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
@@ -2076,7 +1722,6 @@
    Seçili denetim: dolgu --chip-on-bg, yazı --chip-on-fg, 2 px --sel-ring halkası (koyu modda --primary).
    Görsel seçenekler (tema kartı, renk yuvarlağı) yalnızca halkayı alır. Seçilince yazı ağırlığı
    değişmez (genişlik oynamasın); renkli zeminde ikincil yazı --text-2. */
-.tile[aria-pressed='true'],
 .choice-row button[aria-pressed='true'],
 .choice-row button[aria-selected='true'] {
   border-color: var(--sel-ring);
@@ -2139,22 +1784,6 @@
 
 .theme-option[aria-pressed='true'] .theme-option__name {
   color: var(--text);
-}
-
-.swatch[aria-pressed='true'] {
-  border-color: var(--surface);
-  box-shadow: 0 0 0 2px var(--sel-ring);
-}
-
-/* o anki seçimde geçersiz alan: yalnızca denetim solar; ad ve not okunur kalır, tarayıcının gri
-   "disabled" yazısı ikinci kez soldurmaz */
-.field--off .field__label {
-  opacity: 1;
-  color: var(--text-2);
-}
-
-.field--off button:disabled {
-  color: var(--text-2);
 }
 
 /* ==========================================================================
@@ -2226,24 +1855,11 @@
 .create-room-page .door-sign__plate textarea,
 .create-room-page .stepper__count,
 .create-room-page .create-room__theme-name,
-.create-room-page .create-room__mini-count,
-.avatar-page .field__value {
+.create-room-page .create-room__mini-count {
   font-family: var(--font-pixel);
   font-weight: 500;
   font-synthesis: none;
   letter-spacing: 0;
-}
-
-/* seçili değer ("Kahverengi"): etiketin yanında okunan değer; 22 px piksel, etiketten 12 px açık,
-   ikincil renkte (bölüm başlığıyla karışmaz). Etiketle aynı taban çizgisi, dar ekranda alt satıra geçer. */
-.avatar-page .field__label:has(.field__value) {
-  column-gap: 12px;
-}
-
-.avatar-page .field__value {
-  color: var(--text-2);
-  font-size: var(--pixel-l);
-  line-height: 1;
 }
 
 /* kapasite sayacı: piksel rakamlar zaten eşit genişlikte; "kişilik" okunur fontta kalır */
@@ -2256,10 +1872,8 @@
   font-family: var(--font-body);
 }
 
-
 /* ---------- kâğıt yüzeyli paneller (köşeler ve kenarlar değişmez) */
-.avatar-page__editor,
-.avatar-page .avatar-tabs {
+.avatar-page__editor {
   background: var(--grain), var(--surface);
 }
 
@@ -2278,7 +1892,8 @@
 }
 
 /* Sahne + raf üst satırda, temalar altta tam genişlik. Sahne yüksekliği ekrandan kalan yer kadar:
-   başlık (~176) + tabela payı + tema satırı (~170) çıkınca 1440×900'de 528, en az 320, en çok 600. */
+   başlık (~176) + tabela payı + tema satırı adlarıyla (~170) + alt nefes çıkınca 1440×900'de 500;
+   tema adları ilk ekranda tam görünür. En az 320, en çok 600. */
 .create-room {
   --sign-room: 26px;
   display: grid;
@@ -2339,8 +1954,31 @@
 }
 
 .create-room__stage.room-frame {
-  height: clamp(320px, calc(100svh - 372px), 600px);
+  height: clamp(320px, calc(100svh - 400px), 600px);
   margin: 0;
+}
+
+/* masaüstünde sahne en az ekrandan kalan yer kadar, ama raftan kısa kalmaz: kahraman satır boyunca uzar,
+   sahne kalanı doldurur. Raf hiçbir yükseklikte sahnenin altına taşmaz. */
+@media (min-width: 901px) {
+  .create-room__hero {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+  }
+
+  .create-room__stage.room-frame {
+    flex: 1 1 0;
+    height: auto;
+    min-height: clamp(320px, calc(100svh - 400px), 600px);
+  }
+}
+
+/* dar masaüstünde (901-1063) tema kartları açıklamalı ve uzun; sahne kısalır, kart adları ilk ekranda kalır */
+@media (min-width: 901px) and (max-width: 1063.98px) {
+  .create-room__stage.room-frame {
+    min-height: clamp(300px, calc(100svh - 440px), 600px);
+  }
 }
 
 .create-room__themes.field {
@@ -2348,7 +1986,8 @@
   margin: 0;
 }
 
-/* raf sahneyle aynı hizada başlar ve biter; düğme sahnenin alt kenarına oturur */
+/* raf sahneyle aynı hizada başlar ve biter; düğme sahnenin alt kenarına oturur. Sahne raftan uzunsa
+   artan yükseklik düğmenin üstünde tek boşluk olarak birikmez: ayar grupları arasına eşit dağılır. */
 .create-room__rail {
   grid-area: rail;
   align-self: stretch;
@@ -2362,20 +2001,59 @@
   box-shadow: var(--card-edge);
 }
 
-.create-room__rail .create-room__cta {
-  margin-top: auto;
+@media (min-width: 901px) {
+  .create-room__rail .create-room__fields {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 16px;
+  }
+
+  /* en az aralık gap'te; kenar boşluğu dağılımı aşağı kaydırmasın */
+  .create-room__rail .create-room__fields .field {
+    margin-bottom: 0;
+  }
 }
 
-/* kısa dizüstü ekranı (1280×720): raf sahneden uzun kalıp temaları aşağı itmesin */
-@media (min-width: 901px) and (max-height: 760px) {
+/* kısa dizüstü ekranı (1280×720, 1024×768): sahne, raf ve üst boşluk birlikte sıkılaşır; raf sahneyle aynı
+   boyda biter, tema satırı adlarıyla ilk ekranda kalır. Sahne yüksekliği raftan (~355) az olmaz. */
+@media (min-width: 901px) and (max-height: 800px) {
+  .site-main:has(.create-room-page) {
+    padding-top: 12px;
+  }
+
+  .create-room {
+    row-gap: 12px;
+  }
+
+  .create-room__stage.room-frame {
+    min-height: clamp(300px, calc(100svh - 360px), 600px);
+  }
+
+  .create-room__themes .field__label {
+    margin-bottom: 6px;
+  }
+
   .create-room__rail {
     gap: 8px;
     padding: 14px 18px;
   }
 
+  .create-room__rail .stepper__btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .create-room__rail .create-room__cta .site-btn {
+    min-height: 48px;
+  }
+
+
   /* ad ve açıklama aynı paragrafta akar */
   .create-room__rail .create-room__theme-note {
     display: block;
+    margin-bottom: 0;
     padding-bottom: 10px;
   }
 
@@ -2383,8 +2061,8 @@
     margin-right: 6px;
   }
 
-  .create-room__fields .field {
-    margin-bottom: 10px;
+  .create-room__rail .create-room__fields {
+    gap: 10px;
   }
 
   .create-room__access-hint {
@@ -2393,6 +2071,13 @@
 
   .create-room__rail .create-room__cta {
     padding-top: 12px;
+  }
+}
+
+/* kısa ve dar masaüstü (1024×768): kartlar açıklamalı, sahne biraz daha kısa */
+@media (min-width: 901px) and (max-width: 1063.98px) and (max-height: 800px) {
+  .create-room__stage.room-frame {
+    min-height: clamp(300px, calc(100svh - 420px), 600px);
   }
 }
 
@@ -2467,6 +2152,13 @@
   .create-room-page .create-room__theme-note {
     display: none;
   }
+}
+
+/* kartlardaki açıklama tek yer olduğundan kırpılmaz; satır boyu en uzun açıklama kadar uzar */
+.create-room-page .theme-option__desc {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: none;
 }
 
 .create-room__fields .field {
@@ -2587,14 +2279,19 @@
     box-shadow: var(--card-edge);
   }
 
+  /* eylem çubuğu: akışta en son (tema listesinin altı), ekranın altına yapışır. Tek satır: mini önizleme,
+     tek satırlık özet, düğme. Hata iletisi çıkarsa altta ikinci satır olur. */
   .create-room__cta {
     position: sticky;
     bottom: 0;
     z-index: 3;
-    grid-template-columns: minmax(0, 1fr) auto;
+    order: 1;
+    container: room-cta / inline-size;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
+    gap: 0 12px;
     margin-bottom: calc(8px + env(safe-area-inset-bottom));
-    padding: 10px 10px 10px 16px;
+    padding: 8px;
     border-top: 0;
     border-radius: calc(var(--radius-block) + 6px);
     background: color-mix(in srgb, var(--surface) 94%, transparent);
@@ -2603,30 +2300,31 @@
     backdrop-filter: blur(8px);
   }
 
-  /* üst sıra: mini önizleme + özet; altta tam genişlik düğme. Boş hata kutusu yer kaplamaz. */
-  .create-room__cta {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 10px 12px;
-    padding: 10px;
-  }
-
-  .create-room__cta > .create-room__error,
   .create-room__cta > .site-btn {
-    grid-column: 1 / -1;
+    grid-row: 1;
+    grid-column: 3;
+    padding-inline: 16px;
   }
 
-  .create-room__cta .create-room__error {
+  /* boş uyarı kutusu yer kaplamaz ama DOM'da kalır (role=alert, içerik gelince duyurulsun) */
+  .create-room__cta > .create-room__error {
+    grid-row: 2;
+    grid-column: 1 / -1;
     margin: 0;
   }
 
+  .create-room__cta > .create-room__error:not(:empty) {
+    padding: 4px 4px 2px;
+  }
+
   .create-room__cta .site-btn--wide {
-    width: 100%;
+    width: auto;
   }
 
   .create-room__mini {
     position: relative;
     display: block;
-    width: 64px;
+    width: 56px;
     padding: 0;
     overflow: hidden;
     border: 0;
@@ -2662,18 +2360,39 @@
     line-height: 16px;
   }
 
+  /* özet: her satır tek satır, sığmayan yer üç noktayla kısalır (tam hâli sahnede ve alanlarda) */
   .create-room__summary {
     display: grid;
     gap: 1px;
     align-self: center;
-    font-size: 14px;
-    overflow-wrap: anywhere;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .create-room__summary > span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   .create-room__summary-name {
     color: var(--text);
     font-size: 14px;
     font-weight: 650;
+  }
+
+  /* telefonda (çubuk < 440 px) özet üç noktaya kırpılıp okunmaz olur: yerine mini önizleme (tema +
+     kişi rozeti) konuşur, düğme kalan genişliği alır. Ad tabelada, kapasite ve erişim alanlarda yazılı. */
+  @container room-cta (max-width: 440px) {
+    .create-room__summary {
+      display: none;
+    }
+
+    .create-room__cta > .site-btn {
+      grid-column: 2 / -1;
+      width: 100%;
+    }
   }
 }
 
@@ -2721,6 +2440,8 @@
   color: var(--muted);
   font-size: var(--type-caption, 14px);
   line-height: 1.4;
+  /* son satırda tek kelime kalmasın */
+  text-wrap: pretty;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2908,7 +2629,6 @@
     padding: 10px 0 8px;
   }
 
-
   .create-room__name-hint.name-hint {
     margin-bottom: 18px;
   }
@@ -2967,6 +2687,46 @@
 
 .theme-option__img[data-state='error'] {
   background: repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--line) 55%, transparent) 9px 10px);
+}
+
+/* görsel yüklenemedi: temanın kendi renginde kutu (--shot-tint, görselin ortalama rengi), ortada tema adı.
+   Kutu yükleme iskeletiyle aynı yerde durur (%10 içeride). Ton beyaz yazıya 4.5:1 verecek kadar
+   koyulaştırılır; rengi bilinmeyen temada çizgili zemin ve soluk ad kalır. */
+.theme-option__img[data-state='error'][style] {
+  background: none;
+}
+
+.theme-option__img[style] .theme-option__fallback {
+  position: absolute;
+  inset: 10%;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-block);
+  background: color-mix(in oklab, var(--shot-tint) 72%, #000);
+  color: #fff;
+}
+
+/* ad kutu genişliğine göre küçülür (1440'taki dar kartta "Kütüphane" bölünmesin); yalnızca sığmayan
+   tek kelime hecelenir. Ad süs (aria-hidden), kartın altındaki ad okunur. */
+.theme-option__img[data-state='error'] {
+  container-type: inline-size;
+}
+
+.theme-option__fallback {
+  padding: 6px;
+  font-size: clamp(12px, 12cqi, 15px);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* telefondaki küçük önizleme kutusunda ad sığmaz ve yanında özet zaten yazıyor: yalnızca renk */
+.create-room__mini-img.theme-option__img .theme-option__fallback {
+  padding: 0;
+  font-size: 0;
 }
 
 @keyframes thumbShimmer {
@@ -3044,26 +2804,6 @@
     min-height: 0;
     padding-bottom: 0;
     contain: size;
-  }
-
-  .avatar-page__editor .avatar-tabs {
-    position: static;
-    flex: none;
-    margin-bottom: 0;
-  }
-
-  .avatar-page__editor .avatar-page__panel {
-    /* ekran okuyucu etiketleri (mutlak konumlu) kayan alanın içinde kalsın, sayfayı uzatmasın */
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 0;
-    margin: 0 -24px;
-    padding: 4px 24px 20px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-color: var(--line-strong) transparent;
-    scrollbar-gutter: stable;
-    scrollbar-width: thin;
   }
 
   .avatar-page__editor .avatar-page__actions {

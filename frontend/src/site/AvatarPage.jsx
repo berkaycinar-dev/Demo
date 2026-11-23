@@ -1,32 +1,11 @@
-import { Fragment, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import AvatarPreview from '../avatars/AvatarPreview'
 import {
-  BEARDS,
-  BODIES,
-  BOTTOMS,
-  BROW_MODES,
-  CLOTH_COLORS,
   DEFAULT_AVATAR,
   EAR_COVERING,
-  EARRINGS,
-  EYE_COLORS,
-  FOOTWEAR,
-  GLASSES,
   HAIR_COLORS,
-  HAIR_STYLES,
-  HATS,
-  HEADPHONES,
   HEADPHONE_HATS,
-  METALS,
-  MUSTACHES,
-  NECKWEAR,
-  NO_BANGS,
-  OUTFITS,
   OVER_HEAD,
-  SHOE_COLORS,
-  SKIN_TONES,
-  TOPS,
-  WRISTWEAR,
   randomAvatar,
   resolveConflicts,
   sanitizeAvatar,
@@ -52,20 +31,6 @@ const ACTIVITIES = [
   { id: 'read', label: 'Kitap', icon: 'read' },
   { id: 'type', label: 'Bilgisayar', icon: 'type' },
 ]
-// zone: sekme açılınca kameranın odağı. Sekmenin içinde bir seçeneğe dokunulunca o seçeneğin bölgesine
-// geçilir (Zone); açı ve yakınlık seçili poza göre (AvatarPreview VIEWS).
-const TABS = [
-  { id: 'body', label: 'Beden', zone: 'full', icon: 'body' },
-  { id: 'hair', label: 'Saç ve yüz', zone: 'face', icon: 'hair' },
-  { id: 'clothes', label: 'Kıyafet', zone: 'full', icon: 'clothes' },
-  { id: 'extras', label: 'Aksesuar', zone: 'upper', icon: 'extras' },
-]
-const ON_OFF = [
-  { id: 'on', label: 'Var' },
-  { id: 'off', label: 'Yok' },
-]
-// Rengi seçilemeyen başlıklar (kendi malzemesi var ya da metal rengini kullanır).
-const FIXED_COLOR_HATS = ['none', 'crown', 'viking', 'flowers']
 // Ortak renkleri kullanan takılı öğeler (avatars/model.js ile aynı kural). Boşsa o renk alanı gizlenir.
 const ACC_PHONES = ['gaming', 'cat', 'retro', 'neck']
 const ACC_NECK = { scarf: 'atkı', bowtie: 'papyon', tie: 'kravat' }
@@ -97,8 +62,6 @@ const sameLook = (a, b) => JSON.stringify({ ...a, name: '' }) === JSON.stringify
 // thumbs: o alanın tür adı (hair, hat, glasses, beard, mustache); body: avatarın bedeni.
 const thumbOf = (kind, id, body) => `${import.meta.env.BASE_URL}avatar-thumbs/${kind}-${id}-${body === 'female' ? 'female' : 'male'}.webp`
 
-// Tek seçimlik düğme. "Yok" seçeneği ikonla ve kesik çerçeveyle ayrılır; thumbs verilirse üstte
-// seçeneğin voxel görseli durur.
 // Seçenek görseli: yüklenirken iskelet, yüklenemezse çizgi ikonlu yer tutucu (kırık resim simgesi yok).
 function OptionThumb({ src }) {
   const [state, imgProps] = useImageState()
@@ -106,154 +69,6 @@ function OptionThumb({ src }) {
     <span className="tile__thumb" data-state={state}>
       {state === 'error' ? <Icon name="image" size={20} /> : <img src={src} alt="" width="56" height="56" loading="lazy" decoding="async" {...imgProps} />}
     </span>
-  )
-}
-
-function Option({ o, value, onChange, thumbs, body }) {
-  const none = o.id === 'none'
-  const cls = ['tile', none && 'tile--none', thumbs && 'tile--thumb'].filter(Boolean).join(' ')
-  return (
-    <button type="button" className={cls} aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
-      {thumbs && <OptionThumb key={body} src={thumbOf(thumbs, o.id, body)} />}
-      <span className="tile__label">
-        {none && <Icon name="none" size={14} />}
-        {o.label}
-      </span>
-    </button>
-  )
-}
-
-// Alan etiketi. bare: ad yalnızca ekran okuyucuya (bölüm başlığı zaten aynı şeyi söylüyor); not ve
-// seçili değer görünür kalır. action: etiket satırının sonunda küçük bir düğme.
-function FieldLabel({ label, current, note, bare = false, action }) {
-  return (
-    <legend className={bare ? 'field__label field__label--bare' : 'field__label'}>
-      <span className={bare ? 'field__name visually-hidden' : 'field__name'}>{label}</span>
-      {current && <span className="field__value">{current}</span>}
-      {note && <span className="field__note">{note}</span>}
-      {action}
-    </legend>
-  )
-}
-
-// Seçenekler (tek seçim). Az ve kısa seçenekler (variant="segment") bitişik bir şeritte, diğerleri
-// sıkı bir ızgarada. option.group varsa ızgara alt başlıklara bölünür. disabled: o anki seçimde
-// geçersiz; alan soluklaşır, düğmeler tıklanmaz ve klavyeyle de seçilmez, not (neden) okunur kalır.
-// detail: seçili seçeneğin ayrıntısı (ör. başlık rengi). Izgarada seçili düğmeden hemen sonra tam satır
-// olarak durur; ızgara "dense" akışla seçili seçeneğin satırını doldurur, ayrıntı o satırın altına iner.
-function Choices({ label, options, value, onChange, note, variant = 'grid', disabled = false, bare = false, thumbs, body, detail = null }) {
-  const groups = options[0]?.group ? [...new Set(options.map((o) => o.group))] : null
-  const grid = ['option-grid', thumbs && 'option-grid--thumbs', detail && 'option-grid--detail'].filter(Boolean).join(' ')
-  const tiles = (list) =>
-    list.map((o) => (
-      <Fragment key={o.id}>
-        <Option o={o} value={value} onChange={onChange} thumbs={thumbs} body={body} />
-        {detail && o.id === value && <div className="option-detail">{detail}</div>}
-      </Fragment>
-    ))
-  return (
-    <fieldset className={disabled ? 'field field--off' : 'field'} disabled={disabled}>
-      <FieldLabel label={label} note={note} bare={bare} />
-      {variant === 'segment' ? (
-        <div className="segmented">
-          {options.map((o) => (
-            <button key={o.id} type="button" aria-pressed={value === o.id} onClick={() => onChange(o.id)}>
-              {o.label}
-            </button>
-          ))}
-        </div>
-      ) : groups ? (
-        groups.map((g) => (
-          <div key={g} className="option-group">
-            <span className="option-group__name">{g}</span>
-            <div className={grid}>{tiles(options.filter((o) => o.group === g))}</div>
-          </div>
-        ))
-      ) : (
-        <div className={grid}>{tiles(options)}</div>
-      )}
-    </fieldset>
-  )
-}
-
-// Renk yuvarlakları (tek seçim); seçilen rengin adı başlıkta görünür. color: null olan seçenek "yok".
-// Dengeli ızgara: geniş panelde hepsi tek satırda; dar panelde 8+ renk eşit iki satıra bölünür (tek renk alta düşmez);
-// telefonda 44 px yuvarlaklar en çok 6 sütunlu dengeli satırlara (--fit) dizilir.
-// collapsible: renkler "+ İkinci renk" gibi katlı durur; satırda seçili renk ve "Değiştir" görünür,
-// düğme yuvarlakları açar ve kapatır (seçim yapınca açık kalır, renkler karşılaştırılabilsin).
-function Swatches({ label, options, value, onChange, note, action, collapsible = false }) {
-  const current = options.find((o) => o.id === value)
-  const [open, setOpen] = useState(!collapsible)
-  const rowId = useId()
-  const toggle = collapsible && (
-    <button type="button" className="color-toggle field__action" aria-expanded={open} aria-controls={rowId} onClick={() => setOpen(!open)}>
-      <span className={current?.color ? 'color-toggle__chip' : 'color-toggle__chip swatch--none'} style={current?.color ? { background: current.color } : undefined} aria-hidden="true" />
-      {open ? 'Kapat' : 'Değiştir'}
-      <span className="visually-hidden">: {label}</span>
-    </button>
-  )
-  return (
-    <fieldset className={collapsible && !open ? 'field field--folded' : 'field'}>
-      <FieldLabel label={label} current={current?.label} note={note} action={action ?? toggle} />
-      {open && <div id={rowId} className="swatch-row" style={{ '--n': options.length, '--half': options.length > 7 ? Math.ceil(options.length / 2) : options.length, '--fit': Math.ceil(options.length / Math.ceil(options.length / 6)) }}>
-        {options.map((o) => (
-          <button
-            key={o.id}
-            type="button"
-            className={o.color ? 'swatch' : 'swatch swatch--none'}
-            style={o.color ? { background: o.color } : undefined}
-            aria-pressed={value === o.id}
-            aria-label={o.label}
-            title={o.label}
-            onClick={() => onChange(o.id)}
-          />
-        ))}
-      </div>}
-    </fieldset>
-  )
-}
-
-// İkinci saç rengi (parlama ve uçlar): seçilmemişse "+ İkinci renk" düğmesinin arkasında katlı durur.
-// "Kaldır" rengi siler ve alanı yeniden katlar.
-function SecondHairColor({ value, onChange }) {
-  const [open, setOpen] = useState(false)
-  if (value === 'none' && !open)
-    return (
-      <button type="button" className="add-btn" onClick={() => setOpen(true)} aria-expanded="false">
-        <span aria-hidden="true">+</span> İkinci renk <span className="add-btn__hint">parlama ve uçlar</span>
-      </button>
-    )
-  const close = (
-    <button
-      type="button"
-      className="link-btn field__action"
-      onClick={() => {
-        onChange('none')
-        setOpen(false)
-      }}
-    >
-      Kaldır
-    </button>
-  )
-  return <Swatches label="İkinci renk" note="parlama ve uçlar" options={HAIR_COLORS} value={value} onChange={onChange} action={close} />
-}
-
-// Sekme içindeki bölüm: başlık + ilgili alanlar; bölümler ince çizgiyle ayrılır.
-function Section({ title, children }) {
-  return (
-    <section className="opt-section">
-      {title && <h2 className="opt-section__title">{title}</h2>}
-      {children}
-    </section>
-  )
-}
-
-// Kamera odağı bölgesi: içindeki bir seçeneğe dokunulunca önizleme o bölgeye döner.
-function Zone({ zone, onZone, children }) {
-  return (
-    <div onFocusCapture={() => onZone(zone)} onPointerDownCapture={() => onZone(zone)}>
-      {children}
-    </div>
   )
 }
 
@@ -319,7 +134,7 @@ function Wardrobe({ avatar, onLoad }) {
           </button>
         )}
       </div>
-      <p className="wardrobe__hint">Kaydet simgesiyle şu anki görünümü sakla, sonra kombine dokunup tek seferde giy.</p>
+      <p className="wardrobe__hint">Kaydet simgesi şu anki görünümü bir kombine saklar. Kombini seçince hepsini birden giyersin.</p>
       <p className="form-error wardrobe__error" role="alert">
         {notice?.kind === 'error' && noticeText(notice)}
       </p>
@@ -400,17 +215,6 @@ function PoseSheet({ open, onClose, mode, setMode, activity, setActivity, childr
   )
 }
 
-// Düzenleyici düzeni: karakter menüsü (varsayılan, CharacterMenu) ya da sekmeler. Sekmeli düzen başlıkta
-// küçük bir ikincil anahtarla açılır; seçim bu tarayıcıda hatırlanır.
-const LAYOUT_KEY = 'odakhane:avatar-layout'
-const loadLayout = () => {
-  try {
-    return localStorage.getItem(LAYOUT_KEY) === 'tabs' ? 'tabs' : 'menu'
-  } catch {
-    return 'menu'
-  }
-}
-
 // Ekran genişliği eşiği (CSS'teki @media ile aynı); değişince yeniden çizer.
 const COMPACT = '(max-width: 900px)'
 function useCompact() {
@@ -424,29 +228,31 @@ function useCompact() {
   )
 }
 
+// Otomatik kayıt duyurusu (ekran okuyucu): her değişiklikte değil, değişiklikler SAVE_ANNOUNCE_MS
+// durulunca bir kez; son yazışın sonucunu söyler. Metin önce boşaltılır ki aynı cümle yeniden okunsun.
+const SAVE_ANNOUNCE_MS = 1200
+const SAVE_TEXT = { ok: 'Kaydedildi', failed: 'Kaydedilemedi: tarayıcı depolaması dolu ya da kapalı. Avatar yalnızca bu oturumda duracak.' }
+function useSaveAnnouncer() {
+  const [message, setMessage] = useState('')
+  const timer = useRef(null)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const announce = (ok) => {
+    clearTimeout(timer.current)
+    setMessage('')
+    timer.current = setTimeout(() => setMessage(ok === false ? SAVE_TEXT.failed : SAVE_TEXT.ok), SAVE_ANNOUNCE_MS)
+  }
+  return [message, announce]
+}
+
 // Avatarım: avatar atölyesi. Solda canlı 3D önizleme (poz ve çalışma türü seçilir; kamera seçilen
-// bölgeye yaklaşır), geri al / ileri al ve kombin slotları; sağda sekmelere ayrılmış özelleştirme. Her
+// bölgeye yaklaşır), geri al / ileri al ve kombin slotları; sağda karakter menüsü (CharacterMenu). Her
 // değişiklik hemen kaydedilir; odalarda "Sen" olarak bu avatar oturur.
 export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [mode, setMode] = useState('focus')
   const [activity, setActivity] = useState('read')
-  const [tab, setTab] = useState('body')
   const [zone, setZone] = useState('full')
-  const [layout, setLayoutState] = useState(loadLayout)
-  const setLayout = (id) => {
-    setLayoutState(id)
-    setZone(id === 'tabs' ? TABS.find((t) => t.id === tab).zone : 'full')
-    setMenuHair(false)
-    setHatShown(false)
-    try {
-      localStorage.setItem(LAYOUT_KEY, id)
-    } catch {
-      /* depolama kapalı: seçim bu oturumda kalır */
-    }
-  }
-  // menü düzeninde etkin satır saç satırıysa (sekmedeki "Saç ve yüz" gibi) başlık önizlemede gizlenir
+  // etkin menü satırı saç satırıysa başlık önizlemede gizlenir (saç görünsün); kullanıcı düğmeyle geri açabilir
   const [menuHair, setMenuHair] = useState(false)
-  // saç sekmesinde başlık önizlemede gizlenir (saç görünsün); kullanıcı düğmeyle geri açabilir
   const [hatShown, setHatShown] = useState(false)
   // telefonda poz ve kombinler alt sayfada
   const compact = useCompact()
@@ -470,22 +276,25 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [nameDraft, setNameDraft] = useState(null)
   const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan odadakiler seni “${DEFAULT_AVATAR.name}” adıyla görür.`)
 
+  const [saveMessage, announceSave] = useSaveAnnouncer()
+  // onChange kaydeder; false dönerse depolama yazılamadı
+  const save = (next) => announceSave(onChange(next))
   const commit = (next, key = null) => {
     if (JSON.stringify(next) === JSON.stringify(avatar)) return
     setHistory((h) => ({ past: key === 'name' && h.last === 'name' ? h.past : [...h.past, avatar].slice(-HISTORY_LIMIT), future: [], last: key }))
-    onChange(next)
+    save(next)
   }
   const undo = () => {
     const prev = history.past.at(-1)
     if (!prev) return
     setHistory((h) => ({ past: h.past.slice(0, -1), future: [avatar, ...h.future], last: null }))
-    onChange(prev)
+    save(prev)
   }
   const redo = () => {
     const next = history.future[0]
     if (!next) return
     setHistory((h) => ({ past: [...h.past, avatar], future: h.future.slice(1), last: null }))
-    onChange(next)
+    save(next)
   }
   // Ctrl+Z / Ctrl+Y (ve Ctrl+Shift+Z); yazı alanındayken tarayıcının kendi geri alması çalışır
   const keys = useRef(null)
@@ -529,26 +338,11 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
       }, at),
     )
   }
-  const openTab = (t) => {
-    setTab(t.id)
-    setZone(t.zone)
-    setHatShown(false)
-  }
-  const onTabKey = (e) => {
-    const i = TABS.findIndex((t) => t.id === tab)
-    const last = TABS.length - 1
-    const to = { ArrowRight: i === last ? 0 : i + 1, ArrowLeft: i === 0 ? last : i - 1, Home: 0, End: last }[e.key]
-    if (to === undefined || e.altKey || e.ctrlKey || e.metaKey) return
-    e.preventDefault()
-    openTab(TABS[to])
-    document.getElementById(`avatar-tab-${TABS[to].id}`)?.focus()
-  }
-  // saçı örten başlık ya da kafa üstü kulaklık: saç sekmesinde önizlemede gizlenir
+  // saçı örten başlık ya da kafa üstü kulaklık: menüde saç satırındayken önizlemede gizlenir
   const hasHeadwear = avatar.hat !== 'none' || OVER_HEAD.includes(avatar.headphones)
-  const hairFocus = layout === 'menu' ? menuHair : tab === 'hair'
+  const hairFocus = menuHair
   const hideHeadwear = hairFocus && hasHeadwear && !hatShown
   const seated = SEATED.includes(mode)
-  const male = avatar.body !== 'female'
   const earsCovered = EAR_COVERING.includes(avatar.hairStyle)
   const overHead = OVER_HEAD.includes(avatar.headphones)
   const earNote = avatar.earrings === 'none' ? null : earsCovered ? 'saç kulakları örtüyor' : overHead ? 'kulaklık örtüyor' : null
@@ -557,11 +351,8 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   // Otomatik kaş: doğal saç renginde saçla aynı, diğerlerinde doğal koyu. Not kuralı ve şu anki sonucu söyler.
   const browNote = avatar.brows === 'auto' ? (hair?.natural ? 'Otomatik: doğal saç renginde kaş saçla aynı olur' : 'Otomatik: bu saç renginde kaş doğal koyu olur') : null
   const outfit = avatar.outfit
-  const topLabel = outfit === 'dress' ? 'Elbise rengi' : outfit === 'onesie' ? 'Tulum rengi' : 'Renk'
-  const bottomLabel = outfit === 'overalls' ? 'Salopet rengi' : 'Renk'
   const replacedNote = 'tek parça seçili; seçilirse tek parça çıkar'
   const replaced = outfit === 'dress' || outfit === 'onesie' ? replacedNote : null
-  const hatLabel = HATS.find((h) => h.id === avatar.hat)?.label ?? 'Başlık'
   // ortak renkler: yalnızca o rengi kullanan bir öğe takılıysa görünür; not hangilerinin boyandığını söyler
   const accUsers = accessoryColorUsers(avatar)
   const metalUsers = metalUsersOf(avatar)
@@ -601,17 +392,11 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
         <div>
           <h1>Avatar atölyesi</h1>
           <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
+          <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+            {saveMessage}
+          </p>
         </div>
         <div className="avatar-workshop__tools">
-          {/* Menü varsayılan; sekmeli düzen küçük bir ikincil anahtar (ilk gelen kişiye seçim sorulmaz) */}
-          <button
-            type="button"
-            className="link-btn avatar-workshop__layout"
-            aria-pressed={layout === 'tabs'}
-            onClick={() => setLayout(layout === 'tabs' ? 'menu' : 'tabs')}
-          >
-            {layout === 'tabs' ? 'Menü düzenine dön' : 'Sekmeli düzen'}
-          </button>
           {onEnterRoom && (
             <button type="button" className="site-btn avatar-workshop__enter" onClick={onEnterRoom}>
               Bu hâliyle odama gir
@@ -624,7 +409,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           <div className="room-frame avatar-page__preview">
             <AvatarPreview avatar={roll?.look ?? avatar} shuffle={roll?.shuffle ?? null} mode={mode} activity={activity} focus={zone} hideHeadwear={hideHeadwear} hint={false} resetKey={resetKey} />
             {/* yüzen kontrol barları. Sol üst: poz ve altında çalışma türü (oturmayan pozda yeri korunur,
-                gizlenir). Sağ üst: geri al / ileri al ve saç sekmesinde başlık gizle. Alt: ipuçları. */}
+                gizlenir). Sağ üst: geri al / ileri al ve saç satırında başlık gizle. Alt: ipuçları. */}
             {!compact && (
             <div className="hud-stack hud-stack--start">
               <div className="hud" role="group" aria-label="Poz">
@@ -718,168 +503,27 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           )}
         </section>
 
-        <div className={layout === 'menu' ? 'site-card create-form avatar-page__editor avatar-page__editor--menu' : 'site-card create-form avatar-page__editor'}>
-          {layout === 'menu' ? (
-            <CharacterMenu
-              avatar={avatar}
-              set={set}
-              notes={{
-                brow: browNote,
-                topReplaced: replaced,
-                bottomReplaced: outfit === 'none' ? null : replacedNote,
-                phone: phoneNote,
-                ear: earNote,
-                acc: accUsers.length ? listOf(accUsers) : null,
-                metal: metalUsers.length ? listOf(metalUsers) : null,
-              }}
-              kit={{ Choices, Swatches, OptionThumb, thumbOf }}
-              onRow={({ zone: z, hair: h }) => {
-                setZone(z)
-                if (h !== menuHair) setHatShown(false)
-                setMenuHair(h)
-              }}
-              lead={<div className="cmenu__lead">{nameField}</div>}
-            />
-          ) : (
-          <>
-          {/* ARIA sekme deseni: ←/→ komşu sekmeye (uçlarda döner), Home/End ilk/son sekmeye geçer ve seçer;
-              roving tabindex ile Tab sırasında yalnızca seçili sekme durur */}
-          <div className="avatar-tabs" role="tablist" aria-label="Kategori" onKeyDown={onTabKey}>
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                role="tab"
-                id={`avatar-tab-${t.id}`}
-                aria-selected={tab === t.id}
-                aria-controls="avatar-panel"
-                tabIndex={tab === t.id ? 0 : -1}
-                onClick={() => openTab(t)}
-              >
-                <Icon name={t.icon} />
-                <span>{t.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* sekme değişince içerik yeniden kurulur ve yumuşakça gelir (avatar-page__panel) */}
-          <div key={tab} id="avatar-panel" role="tabpanel" aria-labelledby={`avatar-tab-${tab}`} className="avatar-page__panel">
-          {tab === 'body' && (
-            <Section>
-              {nameField}
-              <Choices label="Beden" variant="segment" options={BODIES} value={avatar.body} onChange={set('body')} />
-              <Swatches label="Ten rengi" collapsible options={SKIN_TONES} value={avatar.skin} onChange={set('skin')} />
-              <Swatches label="Göz rengi" collapsible options={EYE_COLORS} value={avatar.eyes} onChange={set('eyes')} />
-            </Section>
-          )}
-
-          {tab === 'hair' && (
-            <>
-              <Section title="Saç">
-                <Choices label="Saç modeli" bare thumbs="hair" body={avatar.body} options={HAIR_STYLES} value={avatar.hairStyle} onChange={set('hairStyle')} />
-                <Choices
-                  label="Kahkül"
-                  variant="segment"
-                  disabled={NO_BANGS.includes(avatar.hairStyle)}
-                  note={NO_BANGS.includes(avatar.hairStyle) ? 'bu saç modelinde yok' : null}
-                  options={ON_OFF}
-                  value={avatar.bangs ? 'on' : 'off'}
-                  onChange={(v) => set('bangs')(v === 'on')}
-                />
-                <Swatches label={male ? 'Saç ve sakal rengi' : 'Renk'} collapsible options={HAIR_COLORS} value={avatar.hairColor} onChange={set('hairColor')} />
-                <SecondHairColor value={avatar.hairColor2} onChange={set('hairColor2')} />
-              </Section>
-              <Section title="Kaş">
-                <Choices label="Kaş rengi" bare variant="segment" note={browNote} options={BROW_MODES} value={avatar.brows} onChange={set('brows')} />
-                {avatar.brows === 'custom' && <Swatches label="Renk" options={HAIR_COLORS} value={avatar.browColor} onChange={set('browColor')} />}
-              </Section>
-              {male && (
-                <Section title="Sakal ve bıyık">
-                  <Choices label="Sakal" thumbs="beard" options={BEARDS} value={avatar.beard} onChange={set('beard')} />
-                  <Choices label="Bıyık" thumbs="mustache" options={MUSTACHES} value={avatar.mustache} onChange={set('mustache')} />
-                </Section>
-              )}
-            </>
-          )}
-
-          {tab === 'clothes' && (
-            <>
-              <Zone zone="upper" onZone={setZone}>
-                <Section title="Üst">
-                  <Choices label="Üst" bare note={replaced} options={TOPS} value={avatar.top} onChange={set('top')} />
-                  <Swatches label={topLabel} collapsible options={CLOTH_COLORS} value={avatar.topColor} onChange={set('topColor')} />
-                </Section>
-              </Zone>
-              <Zone zone="legs" onZone={setZone}>
-                <Section title="Alt">
-                  <Choices label="Alt" bare note={outfit === 'none' ? null : replacedNote} options={BOTTOMS} value={avatar.bottom} onChange={set('bottom')} />
-                  <Swatches label={bottomLabel} collapsible options={CLOTH_COLORS} value={avatar.bottomColor} onChange={set('bottomColor')} />
-                </Section>
-              </Zone>
-              <Zone zone="full" onZone={setZone}>
-                <Section title="Tek parça">
-                  <Choices label="Tek parça" bare note="elbise ve tulum üst rengini, salopet alt rengini kullanır" options={OUTFITS} value={outfit} onChange={set('outfit')} />
-                </Section>
-              </Zone>
-              <Zone zone="feet" onZone={setZone}>
-                <Section title="Ayak">
-                  <Choices label="Ayakkabı" bare options={FOOTWEAR} value={avatar.footwear} onChange={set('footwear')} />
-                  <Swatches label="Renk" collapsible options={SHOE_COLORS} value={avatar.shoes} onChange={set('shoes')} />
-                </Section>
-              </Zone>
-            </>
-          )}
-
-          {tab === 'extras' && (
-            <>
-              <Zone zone="hat" onZone={setZone}>
-                <Section title="Başlık">
-                  <Choices
-                    label="Başlık"
-                    bare
-                    thumbs="hat"
-                    body={avatar.body}
-                    options={HATS}
-                    value={avatar.hat}
-                    onChange={set('hat')}
-                    detail={FIXED_COLOR_HATS.includes(avatar.hat) ? null : <Swatches label={`${hatLabel} rengi`} options={CLOTH_COLORS} value={avatar.hatColor} onChange={set('hatColor')} />}
-                  />
-                </Section>
-              </Zone>
-              <Section title="Yüz ve kulak">
-                <Zone zone="face" onZone={setZone}>
-                  <Choices label="Gözlük" thumbs="glasses" body={avatar.body} options={GLASSES} value={avatar.glasses} onChange={set('glasses')} />
-                </Zone>
-                <Zone zone={avatar.headphones === 'neck' ? 'chest' : 'face'} onZone={setZone}>
-                  <Choices label="Kulaklık" note={phoneNote} options={HEADPHONES} value={avatar.headphones} onChange={set('headphones')} />
-                </Zone>
-                <Zone zone="face" onZone={setZone}>
-                  <Choices label="Küpe" note={earNote} options={EARRINGS} value={avatar.earrings} onChange={set('earrings')} />
-                </Zone>
-              </Section>
-              <Section title="Boyun ve bilek">
-                <Zone zone="chest" onZone={setZone}>
-                  <Choices label="Boyun" options={NECKWEAR} value={avatar.neck} onChange={set('neck')} />
-                </Zone>
-                <Zone zone="wrist" onZone={setZone}>
-                  <Choices label="Bilek" options={WRISTWEAR} value={avatar.wrist} onChange={set('wrist')} />
-                </Zone>
-              </Section>
-              {(accUsers.length > 0 || metalUsers.length > 0) && (
-                <Zone zone="upper" onZone={setZone}>
-                  <Section title="Renkler">
-                    {accUsers.length > 0 && (
-                      <Swatches label="Diğer aksesuar rengi" collapsible note={listOf(accUsers)} options={CLOTH_COLORS} value={avatar.accessoryColor} onChange={set('accessoryColor')} />
-                    )}
-                    {metalUsers.length > 0 && <Swatches label="Metal" collapsible note={listOf(metalUsers)} options={METALS} value={avatar.metal} onChange={set('metal')} />}
-                  </Section>
-                </Zone>
-              )}
-            </>
-          )}
-          </div>
-          </>
-          )}
+        <div className="site-card create-form avatar-page__editor avatar-page__editor--menu">
+          <CharacterMenu
+            avatar={avatar}
+            set={set}
+            notes={{
+              brow: browNote,
+              topReplaced: replaced,
+              bottomReplaced: outfit === 'none' ? null : replacedNote,
+              phone: phoneNote,
+              ear: earNote,
+              acc: accUsers.length ? listOf(accUsers) : null,
+              metal: metalUsers.length ? listOf(metalUsers) : null,
+            }}
+            kit={{ OptionThumb, thumbOf }}
+            onRow={({ zone: z, hair: h }) => {
+              setZone(z)
+              if (h !== menuHair) setHatShown(false)
+              setMenuHair(h)
+            }}
+            lead={<div className="cmenu__lead">{nameField}</div>}
+          />
 
           {/* sessiz sıfırlama: geri al ile döner; rastgele önizlemedeki zarda */}
           <div className="avatar-page__actions">

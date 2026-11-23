@@ -11,7 +11,7 @@ const OPEN_ROOMS_SHOWN = 3
 const STEPS = [
   { no: '1', title: 'Bir oda seç', text: 'Sessiz kütüphane, şömineli dağ evi ya da kod yazanların ofisi. Herkese açık odalara katıl ya da arkadaşlarına davet kodu gönder.' },
   { no: '2', title: 'Sayacını başlat', text: '25, 50 ya da 90 dakikalık bloklar. Avatarın masasına oturur; molada mola köşesine yürür. Kimse seni görmez, herkes çalıştığını bilir.' },
-  { no: '3', title: 'Odak süreni izle', text: 'Her odak dakikası sayılır. Bugünkü toplamını ve bitirdiğin pomodoroları Sayfam’da gör; ortak odada sıralamadaki yerini izle.' },
+  { no: '3', title: 'Odak süreni izle', text: 'Her odak dakikası sayılır. Bugünkü toplamını ve bitirdiğin pomodoroları Sayfam’da gör. Ortak odada kimin seninle çalıştığı, kimin molaya çıktığı bir bakışta belli olur.' },
 ]
 
 // "Kamera yok" hero'da söyleniyor; burada yalnızca ürünün geri kalanı.

@@ -201,8 +201,9 @@
   }
 }
 
-/* dokunma hedefi ≥ 44 px (10 temanın hepsinde ortak araç çubuğu) */
-@media (max-width: 600px) {
+/* dokunma hedefi ≥ 44 px (10 temanın hepsinde ortak araç çubuğu): dar ekranda ve her dokunmatik
+   cihazda (768 tablet dahil); fareyle kullanılan geniş ekranda 34 px kalır */
+@media (max-width: 600px), (pointer: coarse) {
   .room-canvas__bar {
     left: 8px;
     right: var(--scene-ui-right, 8px);

@@ -48,8 +48,8 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #3ddc84;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.35);
+  background: var(--status-focus, #3ddc84);
+  box-shadow: 0 0 0 2px var(--status-ring, rgba(255, 255, 255, 0.9)), 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .avatar-label--break .avatar-label__dot {
@@ -57,11 +57,12 @@
   height: 9px;
   margin: 0 1px;
   border-radius: 2px;
-  background: #f5a623;
+  background: var(--status-break, #f5a623);
   transform: rotate(45deg);
 }
 
 .avatar-label--away .avatar-label__dot {
   background: transparent;
-  box-shadow: inset 0 0 0 3px #9a9a9a, 0 0 0 2px rgba(255, 255, 255, 0.9), 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 0 3px var(--status-away, #9a9a9a), 0 0 0 2px var(--status-ring, rgba(255, 255, 255, 0.9)),
+    0 1px 3px rgba(0, 0, 0, 0.35);
 }

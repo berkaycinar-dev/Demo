@@ -1,23 +1,31 @@
-import Icon from './AvatarIcons'
+import { THEMES } from '../rooms/themes'
 import useImageState from './useImageState'
-import { thumbOf, useDocumentDark } from './roomThumbs'
+import { thumbOf, tintOf, useDocumentDark } from './roomThumbs'
 
-function Shot({ src, className, eager }) {
+function Shot({ theme, dark, className, eager }) {
   const [state, imgProps] = useImageState()
+  const tint = tintOf(theme, dark)
   return (
-    <span className={`theme-option__img ${className}`} data-state={state}>
+    <span className={`theme-option__img ${className}`} data-state={state} style={state === 'error' && tint ? { '--shot-tint': tint } : undefined}>
       {state === 'error' ? (
-        <Icon name="image" size={28} />
+        // yüklenemezse: temanın renginde kutu ve tema adı (adı kart zaten okutuyor, burada yalnızca görsel)
+        <span className="theme-option__fallback" aria-hidden="true">
+          {THEMES[theme]?.label}
+        </span>
       ) : (
-        <img src={src} alt="" width="480" height="360" loading={eager ? 'eager' : 'lazy'} decoding="async" {...imgProps} />
+        <img src={thumbOf(theme, dark)} alt="" width="480" height="360" loading={eager ? 'eager' : 'lazy'} decoding="async" {...imgProps} />
       )}
     </span>
   )
 }
 
+/** Tema görseli, açık / koyu ışığı dışarıdan verilen sürüm. */
+export function ThemeShot({ theme, dark, className = '', eager = false }) {
+  return <Shot key={`${theme}-${dark}`} theme={theme} dark={dark} className={className} eager={eager} />
+}
+
 /** Temanın izometrik oda görseli; açık modda gündüz, koyu modda akşam. Süs görselidir (alt boş). */
 export default function RoomShot({ theme, className = '', eager = false }) {
   const dark = useDocumentDark()
-  const src = thumbOf(theme, dark)
-  return <Shot key={src} src={src} className={className} eager={eager} />
+  return <ThemeShot theme={theme} dark={dark} className={className} eager={eager} />
 }
