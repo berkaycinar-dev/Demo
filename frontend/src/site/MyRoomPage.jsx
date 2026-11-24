@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import AvatarCrowd from '../avatars/AvatarCrowd'
-import useRoomPeople from '../avatars/useRoomPeople'
+import useRoomPeople, { roomSeed as seedOf } from '../avatars/useRoomPeople'
 import { useRoom } from '../rooms/core/roomContext'
 import { THEMES } from '../rooms/themes'
 import { accessLabel } from './access'
@@ -10,13 +10,16 @@ import { formatMinutes } from './usePomodoro'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
+import useFirstVisit from './useFirstVisit'
 
 const STATUS_LABELS = { focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
 
 // Durum sayaçtan gelir (odak bloku: Odakta, mola: Molada); elle yalnızca Uzakta seçilir.
 const STATUS_COPY = {
   label: 'Durumun',
-  fromTimer: 'Sayaçla değişir.',
+  // çipin ekran okuyucu adı: "Durumun: Odakta"
+  chip: (status) => `Durumun: ${status}`,
+  fromTimer: 'Durumun sayaçla değişir.',
   away: 'Uzaktayım',
   awayNote: 'Döndüğünde tekrar bas.',
   // molada değilken seçilen mola yeri: sıradaki molada oraya gidilir
@@ -35,7 +38,12 @@ const SPOT_COPY = {
   nearest: 'En yakın boş yer',
   // aynı addan birden çok yer varsa: "Okuma koltuğu 2"
   numbered: (name, n) => `${name} ${n}`,
+  // çipin yanında, seçilen mola yeri (ekran okuyucu: "Mola yeri: Okuma koltuğu")
+  chosen: (name) => `Mola yeri: ${name}`,
 }
+
+const SCENE_HINT = 'Halkaya tıkla: mola yerini seç · Sürükle: döndür'
+const LEAVE = 'Odadan çık'
 
 // Şimdiki zaman; every ms'de bir yenilenir (listede uzaktaki dakikası).
 function useClock(every) {
@@ -76,8 +84,6 @@ function RoomTitle({ name }) {
     </h1>
   )
 }
-
-const seedOf = (id) => [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 100000, 17)
 
 // Listedeki küçük avatar: kombin slotlarındaki düz voxel büst; kişi listede de odadaki haliyle tanınır.
 const AvatarChip = ({ avatar }) => (
@@ -189,13 +195,87 @@ function SpotPicker({ spots, value, onPick, note }) {
   )
 }
 
+// Durum çipi: şu anki durum (sayaçtan ya da Uzakta) ve küçük bir açılır kutu. Kutuda Uzaktayım ve
+// mola yeri seçimi durur; panelde yer kaplamaz. Dışarı tıklayınca ya da Esc ile kapanır, Esc odağı
+// çipe geri verir. Kutu sayfanın akışında değil, çipin altına biner.
+function StatusMenu({ status, away, onAway, spotName, children }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const chipRef = useRef(null)
+  const popId = useId()
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+      chipRef.current?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  const label = STATUS_LABELS[status]
+  return (
+    <div className="status-menu" ref={wrapRef}>
+      <div className="status-menu__row">
+        <button
+          ref={chipRef}
+          type="button"
+          className={`status-pill roster__item--${status}`}
+          aria-expanded={open}
+          aria-controls={popId}
+          aria-label={STATUS_COPY.chip(label)}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="roster__dot" aria-hidden="true" />
+          {label}
+          <svg className="status-pill__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        {/* durum değişimi (sayaçtan ya da Uzaktayım'dan) duyurulur */}
+        <span className="sr-only" role="status">
+          {label}
+        </span>
+        {spotName && (
+          <span className="status-menu__spot" title={SPOT_COPY.chosen(spotName)}>
+            <span className="room-legend__ring" aria-hidden="true" />
+            <span className="sr-only">{SPOT_COPY.chosen(spotName)}</span>
+            <span aria-hidden="true">{spotName}</span>
+          </span>
+        )}
+      </div>
+      <div id={popId} className="status-menu__pop" role="group" aria-label={STATUS_COPY.label} hidden={!open}>
+        <div className="status-menu__away">
+          <button type="button" className="status-chip roster__item--away" aria-pressed={away} onClick={onAway}>
+            <span className="roster__dot" aria-hidden="true" />
+            {STATUS_COPY.away}
+          </button>
+          <p className="status-menu__note">{away ? STATUS_COPY.awayNote : STATUS_COPY.fromTimer}</p>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
   const [spot, setSpot] = useState(null)
   const [spots, setSpots] = useState([])
   const [names, setNames] = useState(false)
   const [picked, setPicked] = useState(null)
-  // Liste kapalı başlar (oda odağı korur); her açılışta "Şu an" görünümüyle gelir.
-  const [peopleOpen, setPeopleOpen] = useState(false)
+  // Geniş ekranda (≥1024 px) liste açık başlar: odada kimlerin olduğu ilk bakışta görünür; daha dar
+  // ekranda kapalı (oda odağı korur). Her açılışta "Şu an" görünümüyle gelir.
+  const [peopleOpen, setPeopleOpen] = useState(() => window.matchMedia?.('(min-width: 1024px)').matches ?? false)
+  // Yardım satırları (Atla, odak modu, sahne ipucu) yalnızca ilk ziyarette görünür.
+  const hints = useFirstVisit('room')
   // 'here' (şu an buradakiler, varsayılan) | 'today' (bugünkü odak süresi, isteğe bağlı)
   const [peopleView, setPeopleView] = useState('here')
   // null | 'ok' | 'failed'
@@ -276,21 +356,25 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
   const pickSpot = (value) => setSpot(value === 'nearest' ? null : (spots.find((x) => x.id === value) ?? null))
   // Seçili yer; seçilmediyse "en yakın boş yer".
   const spotValue = spot?.id ?? 'nearest'
+  const spotName = useMemo(() => (spot ? spotOptions(spots).find((o) => o.id === spot.id)?.label : null), [spot, spots])
   const togglePeople = () => {
     if (!peopleOpen) setPeopleView('here')
     setPeopleOpen((v) => !v)
   }
 
-  const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} />
+  const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} hints={hints} />
 
-  // Panel tek sütunda, 1440×900'de kaydırmadan sığar: başlık kartında durumun, mola yeri ve iki eylem,
-  // sonra sayaç, en altta şu an buradakiler (kapalı başlar; bugünkü odak süresi listenin içinde isteğe
-  // bağlı görünüm).
+  // Panel tek sütunda, 1440×900'de kaydırmadan sığar. Üstte tek bir masa: oda adı ince ceviz levhada,
+  // altında oda bilgisi, durum çipi (Uzaktayım ve mola yeri çipin kutusunda), sayaç ve tam genişlik
+  // Başlat, en altta odak modu ve Odadan çık. Masanın altında şu an buradakiler (geniş ekranda açık,
+  // panelde kalan yükseklikte kendi içinde kayar).
   const panel = (
     <>
-      <div className="stage-card stage-card--head material-sign">
-        <div>
+      <div className="stage-card desk">
+        <div className="desk__sign material-sign">
           <RoomTitle name={room.name} />
+        </div>
+        <div className="desk__info">
           <p className="site-muted">
             <Dotted parts={[<ThemeLabel key="t" theme={room.theme} />, `${room.capacity} kişilik`, accessLabel(room.access)]} keep />
           </p>
@@ -310,37 +394,22 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
             </p>
           )}
         </div>
-        <div className="stage-card__status">
-          <span className="field__label">{STATUS_COPY.label}</span>
-          <div className="status-line">
-            <span className={`status-now roster__item--${myStatus}`} role="status">
-              <span className="roster__dot" aria-hidden="true" />
-              {STATUS_LABELS[myStatus]}
-            </span>
-            <span className="status-line__note">{away ? STATUS_COPY.awayNote : STATUS_COPY.fromTimer}</span>
-            <span className="choice-row status-line__away">
-              <button type="button" className="status-chip roster__item--away" aria-pressed={away} onClick={() => setAway((v) => !v)}>
-                <span className="roster__dot" aria-hidden="true" />
-                {STATUS_COPY.away}
-              </button>
-            </span>
-          </div>
+        <StatusMenu status={myStatus} away={away} onAway={() => setAway((v) => !v)} spotName={spotName}>
           <SpotPicker spots={spots} value={spotValue} onPick={pickSpot} note={myStatus !== 'break' && spot ? STATUS_COPY.nextBreak : null} />
-        </div>
-        <div>
+        </StatusMenu>
+        {timerCard}
+        <div className="desk__foot">
           <div className="stage-card__actions">
-            <FocusModeButton onClick={() => onFocusModeChange(true)} />
+            <FocusModeButton onClick={() => onFocusModeChange(true)} hints={hints} />
             <button type="button" className="site-btn" onClick={leave}>
-              Odadan çık
+              {LEAVE}
             </button>
           </div>
-          <FocusModeNote />
+          <FocusModeNote hints={hints} />
         </div>
       </div>
 
-      <div className="stage-card">{timerCard}</div>
-
-      <div className="stage-card fold">
+      <div className="stage-card fold people">
         <button type="button" className="fold__toggle" aria-expanded={peopleOpen} aria-controls="peopleList" onClick={togglePeople}>
           <span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -411,7 +480,7 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
           canvasStyle={canvasStyle}
           arrive={arriving}
           lampBoost={timer.running && timer.phase === 'focus'}
-          hint="Halkaya tıkla: mola yerini seç · Sürükle: döndür"
+          hint={hints ? SCENE_HINT : false}
           controls={
             <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
               İsimler

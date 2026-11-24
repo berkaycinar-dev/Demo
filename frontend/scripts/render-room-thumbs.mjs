@@ -6,7 +6,8 @@
 // Kullanım (frontend klasöründen):
 //   npm i --no-save puppeteer-core
 //   node scripts/render-room-thumbs.mjs [tema ...]
-// Ortam: CHROME_PATH (Chrome/Edge yolu), THUMB_CAPACITY (varsayılan 6), THUMB_TIME (day | evening | night).
+// Ortam: CHROME_PATH (Chrome/Edge yolu), THUMB_CAPACITY (varsayılan 6), THUMB_TIME (day | evening | night),
+// THUMB_PEOPLE (focus: masalar çalışan avatarlarla dolu; dosya adına -people eklenir; tanıtım görseli).
 import { mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,6 +19,7 @@ const THEMES = ['library', 'cabin', 'office', 'teagarden', 'camp', 'space', 'und
 const only = process.argv.slice(2)
 const capacity = Number(process.env.THUMB_CAPACITY) || 6
 const time = process.env.THUMB_TIME || 'day'
+const people = process.env.THUMB_PEOPLE || ''
 const browserPath =
   process.env.CHROME_PATH ||
   (process.platform === 'win32' ? 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe' : '/usr/bin/google-chrome')
@@ -49,14 +51,14 @@ try {
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])
   await page.setViewport({ width: WIDTH, height: HEIGHT, deviceScaleFactor: 1 })
   for (const theme of only.length ? only : THEMES) {
-    await page.goto(`${base}?theme=${theme}&c=${capacity}&t=${time}`, { waitUntil: 'networkidle0' })
+    await page.goto(`${base}?theme=${theme}&c=${capacity}&t=${time}${people ? `&people=${people}` : ''}`, { waitUntil: 'networkidle0' })
     // panel, düğmeler ve ipucu görünmez; sahne zemini şeffaf (kartın kendi yüzeyi görünür)
     await page.addStyleTag({
       content: `.room-preview__panel, .room-canvas__toolbar, .room-canvas__hint { display: none !important; }
         html, body, #root, .room-preview, .room-canvas { background: transparent !important; }`,
     })
     await new Promise((r) => setTimeout(r, 3500))
-    const out = resolve(outDir, `${theme}${time === 'day' ? '' : `-${time}`}.webp`)
+    const out = resolve(outDir, `${theme}${people ? '-people' : ''}${time === 'day' ? '' : `-${time}`}.webp`)
     const canvas = await page.$('.room-canvas')
     await canvas.screenshot({ path: out, type: 'webp', quality: 82, omitBackground: true })
     console.log('yazıldı', out)

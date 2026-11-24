@@ -7,41 +7,6 @@
   padding-top: 20px;
 }
 
-/* klavye ipucu: yalnızca fare ve klavyeyle (dokunmatikte okunmaz, yer kaplamaz) */
-.cmenu__keys {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 0 0 16px;
-  color: var(--muted);
-  font-size: var(--type-caption, 14px);
-}
-
-.cmenu__keys span {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.cmenu__keys kbd {
-  min-width: 20px;
-  padding: 1px 5px;
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  background: var(--surface);
-  box-shadow: var(--voxel-face);
-  color: var(--text-2);
-  font: inherit;
-  font-weight: 600;
-  text-align: center;
-}
-
-@media (hover: none), (pointer: coarse) {
-  .cmenu__keys {
-    display: none;
-  }
-}
-
 .cmenu__section {
   padding: 20px 0 8px;
   border-top: 1px solid var(--line);
@@ -138,12 +103,17 @@
 
 .cmenu__picker {
   display: grid;
-  /* şerit kısaysa oklar ona yaslanır, uzunsa şerit kalan genişliği doldurup kayar */
-  grid-template-columns: 44px minmax(0, max-content) 44px;
+  /* kısa satır (az seçenek): oklar yok, yalnızca şerit */
+  grid-template-columns: minmax(0, max-content);
   justify-content: start;
   align-items: center;
   gap: 4px;
   min-width: 0;
+}
+
+/* uzun satır: şerit kısaysa oklar ona yaslanır, uzunsa şerit kalan genişliği doldurup kayar */
+.cmenu__picker[data-arrows] {
+  grid-template-columns: 44px minmax(0, max-content) 44px;
 }
 
 .cmenu__row[data-off] .cmenu__picker {
@@ -176,7 +146,8 @@
 }
 
 @media (pointer: coarse) {
-  .cmenu__picker {
+  .cmenu__picker,
+  .cmenu__picker[data-arrows] {
     grid-template-columns: minmax(0, max-content);
   }
 

@@ -1,6 +1,7 @@
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { QUOTES, quoteForVisit } from './quotes'
 import RoomShot from './RoomShot'
+import RoomMates from './RoomMates'
 import { useDocumentDark } from './roomThumbs'
 import { scrollToId } from './scroll'
 import Dotted from './Dotted'
@@ -11,7 +12,8 @@ const OPEN_ROOMS_SHOWN = 3
 
 // Ana sayfa: lobinin kapısı. Önce oda görünür, sonra lobideki açık odalar ve on tema; en sonda bir oturum
 // canlı bir odada oynar (LandingDemo). Ayrı adım kartları, özellik üçlüsü ve kapanış bandı yok.
-// Oda arkadaşları şimdilik simülasyon olduğundan "şu an N kişi" gibi canlı sayı gösterilmez; yalnızca kapasite.
+// Oda arkadaşları şimdilik simülasyon olduğundan "şu an N kişi" gibi canlı sayı gösterilmez; kapasite ve
+// odaya girince göreceğin yüzler (RoomMates) gösterilir. Hero'daki oda masalarında çalışan avatarlarla çizilir.
 export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, isDark, onToggleMode }) {
   const [quote, by] = QUOTES[quoteForVisit()]
   const dark = useDocumentDark()
@@ -24,7 +26,7 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, i
       <section className="lp-section lp-hero-wrap" aria-labelledby="lpBaslik">
         <div className="lp-hero">
           <figure className="lp-hero__room">
-            <RoomShot theme={HERO_THEME} className="lp-hero__img" eager />
+            <RoomShot theme={HERO_THEME} className="lp-hero__img" eager people />
             <figcaption>
               {THEMES[HERO_THEME].label}, {dark ? 'akşam ışığında' : 'gündüz'}
             </figcaption>
@@ -70,6 +72,7 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, i
                     <span>
                       <Dotted parts={[THEMES[room.theme].label, `${room.capacity} kişilik`]} keep />
                     </span>
+                    <RoomMates room={room} className="room-mates--small" />
                   </span>
                   <button type="button" className="site-btn" onClick={() => sit(room)} aria-label={`${room.name} odasına gir`}>
                     Gir

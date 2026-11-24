@@ -170,6 +170,8 @@
   --badge: #8a5f08;
   --badge-soft: #f6eedb;
   --timer: #b5502d;
+  /* sayaç halkasındaki "ODAK" yazısı: halka çizgisi --timer kalır, yazı kâğıtta ≥ 4.5:1 tutan koyu ton */
+  --timer-ink: #9c4122;
   --info: #1f93ab;
   --info-soft: #e3f4f8;
   --break: #245f58;
@@ -248,6 +250,7 @@
   --badge: #e2bd6a;
   --badge-soft: #433c2c;
   --timer: #e08a66;
+  --timer-ink: #e08a66;
   --info: #9db8d6;
   --info-soft: #2e3a44;
   --break: #9ad9ce;

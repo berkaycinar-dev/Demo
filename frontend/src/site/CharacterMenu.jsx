@@ -38,6 +38,9 @@ const ON_OFF = [
   { id: 'off', label: 'Yok' },
 ]
 const FIXED_COLOR_HATS = ['none', 'crown', 'viking', 'flowers']
+// Klavye kullanımı: şeritlere aria-describedby ile okunur, ekranda yer kaplamaz (ok tuşları
+// radiogroup'un olağan davranışı).
+const KEYS_HINT = 'Sol ve sağ ok tuşları seçeneği değiştirir, yukarı ve aşağı ok tuşları kategoriler arasında gezer; Home ve End ilk ve son seçeneğe gider.'
 const SECOND_HAIR = [{ id: 'none', label: 'Yok', color: null }, ...HAIR_COLORS]
 
 // Satırlar: key avatar alanı; color: renk satırı (nokta); thumbs: seçenek görseli türü; hair: saç satırı
@@ -167,6 +170,28 @@ function Strip({ r, value, innerRef, children, ...props }) {
 // avatar: şu anki görünüm. set(key)(value): AvatarPage'in çakışma çözen yazıcısı. notes: satır notları ve
 // ortak renk kullanıcıları (AvatarPage hesaplar). kit: seçenek görseli (OptionThumb, thumbOf).
 // onRow({ zone, hair }): satıra gelinince kamera ve başlık gizleme için. lead: menünün başındaki alan (ad).
+// Oklar yalnızca şeridi sığmayan satırlarda çizilir (seçeneklerin hepsi zaten görünüyorsa ok gereksiz).
+// Ölçü satırın seçici alanına göre yapılır; o alanın genişliği oklardan bağımsızdır, döngü olmaz.
+function useOverflowingStrips(rootRef, strips) {
+  const [keys, setKeys] = useState(() => new Set())
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root) return undefined
+    const measure = () => {
+      const next = new Set()
+      for (const [key, strip] of Object.entries(strips.current)) {
+        const picker = strip?.closest('.cmenu__picker')
+        if (picker && strip.scrollWidth > picker.clientWidth + 1) next.add(key)
+      }
+      setKeys((old) => (old.size === next.size && [...next].every((k) => old.has(k)) ? old : next))
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(root)
+    return () => ro.disconnect()
+  }, [rootRef, strips])
+  return keys
+}
+
 export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) {
   const { OptionThumb, thumbOf } = kit
   const sections = menuSections(avatar, notes)
@@ -176,6 +201,8 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) 
   let active = rows.findIndex((r) => r.key === current.key)
   if (active < 0) active = Math.min(current.index, rows.length - 1)
   const strips = useRef({})
+  const rootRef = useRef(null)
+  const overflowing = useOverflowingStrips(rootRef, strips)
   const hintId = useId()
   const baseId = useId()
 
@@ -228,20 +255,9 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) 
   }
 
   return (
-    <div className="cmenu" role="group" aria-label="Karakter menüsü">
-      <p id={hintId} className="cmenu__keys">
-        <span>
-          <kbd>←</kbd>
-          <kbd>→</kbd> değiştir
-        </span>
-        <span>
-          <kbd>↑</kbd>
-          <kbd>↓</kbd> kategori
-        </span>
-        <span>
-          <kbd>Home</kbd>
-          <kbd>End</kbd> ilk / son
-        </span>
+    <div ref={rootRef} className="cmenu" role="group" aria-label="Karakter menüsü">
+      <p id={hintId} className="sr-only">
+        {KEYS_HINT}
       </p>
       {lead}
       {sections.map((s) => (
@@ -255,6 +271,7 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) 
               const value = valueOf(r)
               const cur = list.find((o) => o.id === value) ?? list[0]
               const labelId = `${baseId}-${r.key}`
+              const arrows = overflowing.has(r.key)
               const groupStart = r.group && r.group !== s.rows[k - 1]?.group
               return (
                 <Fragment key={r.key}>
@@ -272,10 +289,12 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) 
                     {(r.color || r.thumbs) && <span className="cmenu__current">{cur.label}</span>}
                     {r.note && <span className="cmenu__note">{r.note}</span>}
                   </div>
-                  <div className="cmenu__picker">
-                    <button type="button" className="cmenu__arrow" tabIndex={-1} disabled={r.disabled} aria-label={`Önceki ${r.label.toLocaleLowerCase('tr')}`} onClick={() => step(r, -1)}>
-                      <Icon name="chevronLeft" size={20} />
-                    </button>
+                  <div className="cmenu__picker" data-arrows={arrows || undefined}>
+                    {arrows && (
+                      <button type="button" className="cmenu__arrow" tabIndex={-1} disabled={r.disabled} aria-label={`Önceki ${r.label.toLocaleLowerCase('tr')}`} onClick={() => step(r, -1)}>
+                        <Icon name="chevronLeft" size={20} />
+                      </button>
+                    )}
                     {/* radiogroup: Tab sırasında yalnızca seçili seçenek durur; ↑/↓ burada satır değiştirir
                         (ipucu aria-describedby ile okunur) */}
                     <Strip
@@ -311,9 +330,11 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) 
                         )
                       })}
                     </Strip>
-                    <button type="button" className="cmenu__arrow" tabIndex={-1} disabled={r.disabled} aria-label={`Sonraki ${r.label.toLocaleLowerCase('tr')}`} onClick={() => step(r, 1)}>
-                      <Icon name="chevronRight" size={20} />
-                    </button>
+                    {arrows && (
+                      <button type="button" className="cmenu__arrow" tabIndex={-1} disabled={r.disabled} aria-label={`Sonraki ${r.label.toLocaleLowerCase('tr')}`} onClick={() => step(r, 1)}>
+                        <Icon name="chevronRight" size={20} />
+                      </button>
+                    )}
                   </div>
                 </li>
                 </Fragment>

@@ -3,6 +3,7 @@ import { THEMES } from '../rooms/themes'
 import { accessLabel } from './access'
 import { codeMatches } from './roomStore'
 import RoomShot from './RoomShot'
+import RoomMates from './RoomMates'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 
@@ -48,6 +49,7 @@ function RoomCard({ room, onAction }) {
         <p className="site-muted">
           <Dotted parts={[`${room.capacity} kişilik`, accessLabel(room.access)]} keep />
         </p>
+        <RoomMates room={room} />
         <div className="room-card__actions">
           {locked ? (
             <button type="button" className="site-btn" onClick={onAction}>
@@ -426,7 +428,9 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
                     <RoomShot theme={room.theme} className="lobby-list__shot" />
                     <span className="lobby-list__text">
                       <strong>
-                        <Dotted text={room.name} />
+                        <span className="lobby-list__name" title={room.name}>
+                          <Dotted text={room.name} />
+                        </span>
                         {room.access === 'invite' && (
                           <span className="lobby-list__lock" title="Gizli oda">
                             <LockIcon />

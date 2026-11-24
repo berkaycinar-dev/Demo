@@ -3,7 +3,7 @@ import './quietClock'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Vector3 } from 'three'
 import { TimeOfDayContext } from './roomContext'
-import { TIME_LABELS, TIME_MODES, TIME_PRESETS, timeOfDayForHour } from './timeOfDay'
+import { TIME_LABELS, TIME_MODES, TIME_PRESETS, autoTimeOfDay } from './timeOfDay'
 import './RoomCanvas.css'
 
 // İzometrik kamera: 45° azimut, sabit yükseklik açısı. Sürükleme yalnızca azimutu değiştirir.
@@ -44,6 +44,19 @@ function useCurrentHour() {
     return () => clearInterval(id)
   }, [])
   return hour
+}
+
+// Sitenin koyu modu (<html data-mode="dark">): "Otomatik" gün zamanını etkiler (autoTimeOfDay).
+const isDocDark = () => typeof document !== 'undefined' && document.documentElement.dataset.mode === 'dark'
+function useDocumentDark() {
+  const [dark, setDark] = useState(isDocDark)
+  useEffect(() => {
+    const root = document.documentElement
+    const mo = new MutationObserver(() => setDark(isDocDark()))
+    mo.observe(root, { attributes: true, attributeFilter: ['data-mode'] })
+    return () => mo.disconnect()
+  }, [])
+  return dark
 }
 
 // Oda kutusunu varsayılan açıdan ekrana sığdıran zoom ve kameranın bakacağı merkez.
@@ -207,7 +220,7 @@ function Lighting({ bounds, preset, lamps, lampBoost }) {
  * presets: temaya özel gün zamanı ayarları, TIME_PRESETS üzerine yazılır ({ night: { glass } } gibi)
  * Sahne araç çubuğu her sayfada tek düzendedir: sağ altta, yakınlaştırma ve görünümü sıfırlama ikonları,
  * sayfaya özel düğmeler (controls) ve katlanır gün zamanı menüsü. İpucu sol altta.
- * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık).
+ * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık). false ya da '' verilirse çıkmaz.
  * controls: sahne araç çubuğuna eklenen sayfaya özel görünüm düğmeleri (ör. ortak odada "İsimler");
  *           <button> öğeleri verilir, kendi grubunda durur.
  * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
@@ -319,7 +332,8 @@ export default function RoomCanvas({
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
   const hour = useCurrentHour()
-  const timeOfDay = mode === 'auto' ? timeOfDayForHour(hour) : mode
+  const dark = useDocumentDark()
+  const timeOfDay = mode === 'auto' ? autoTimeOfDay(hour, dark) : mode
   const preset = useMemo(
     () => ({ ...TIME_PRESETS[timeOfDay], ...presets?.[timeOfDay] }),
     [timeOfDay, presets],
@@ -417,7 +431,7 @@ export default function RoomCanvas({
           {controls && <div className="room-canvas__group">{controls}</div>}
           <TimeMenu mode={mode} onChange={setMode} />
         </div>
-        <p className="room-canvas__hint">{hint}</p>
+        {hint && <p className="room-canvas__hint">{hint}</p>}
       </div>
     </div>
   )

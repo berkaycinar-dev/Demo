@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { PRESETS, formatClock, formatMinutes } from './usePomodoro'
 
 const R = 104
@@ -26,21 +26,40 @@ function useSpaceToggle(toggle) {
   }, [])
 }
 
-// Atla'nın görünür açıklaması (title'a saklanmaz): aşamaya göre ne olacağını söyler.
-// Seans sürerken süre seçimi kilitli; kısa tek satır (panel 1440×900'de kaydırmadan sığsın).
-const LOCK_NOTE = 'Süreyi değiştirmek için önce sıfırla.'
+// Sayacın metinleri. Sayılar ayrı değişken; çeviride sıra değişebilir.
+const TIMER_COPY = {
+  focus: 'ODAK',
+  break: 'MOLA',
+  start: 'Başlat',
+  pause: 'Duraklat',
+  resume: 'Devam et',
+  reset: 'Sıfırla',
+  skip: 'Atla',
+  presets: 'Süre',
+  ok: 'Tamam',
+  undo: 'Geri al',
+  // seans sürerken kilitli bir süreye basınca kartın üstünde kısa not olarak çıkar
+  lock: 'Süreyi değiştirmek için önce sıfırla.',
+  // bugünkü sayıma eklenen dakikaların kısa yankısı (duyuru aşama metninden gelir)
+  gain: (min) => `+${min} dk`,
+}
 
-// Bugünkü sayıma eklenen dakikaların kısa yankısı (duyuru aşama metninden gelir).
-const GAIN_TEXT = (min) => `+${min} dk`
-
+// Atla'nın açıklaması: aşamaya göre ne olacağını söyler. İlk ziyarette görünür (hints), sonra yalnızca
+// ekran okuyucuya (aria-describedby) ve fareyle üstüne gelene (title) kalır.
 const SKIP_COPY = {
   focus: 'Atla: molaya geç. Geçen dakikalar sayılır.',
   break: 'Atla: molayı bitir, odağa dön.',
 }
 
-// Halkalı pomodoro sayacı. timer: usePomodoro() dönüşü. compact: odak modunda süre seçimi ve
-// istatistik gizlenir. title / note: kartın üst satırı.
-export default function TimerCard({ timer, title = 'Sayaç', note, compact = false, showStats = true, children }) {
+const LOCK_MS = 3200
+
+// Halkalı pomodoro sayacı. timer: usePomodoro() dönüşü. compact: odak modunda yalnızca halka ve tek
+// eylem kalır. hints: ilk ziyarette yardım satırları görünür. title / note: kartın üst satırı (oda
+// panelinde gizli).
+//
+// Kısa notlar (sıfırlamayı / atlamayı geri alma, kilitli süre) kartın içinde yer açmaz; kartın altına
+// yüzen bir şerit olarak biner, altındaki satırlar kaymaz.
+export default function TimerCard({ timer, title = 'Sayaç', note, compact = false, showStats = true, hints = false, children }) {
   const isFocus = timer.phase === 'focus'
   const color = isFocus ? 'var(--timer)' : 'var(--break)'
   const offset = CIRC * (1 - timer.remaining / timer.total)
@@ -48,6 +67,22 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
   const { notice } = timer
   useSpaceToggle(timer.toggle)
   const skipNoteId = useId()
+  const lockNoteId = useId()
+
+  // Kilitli süreye basılınca görünen not; kendiliğinden kalkar.
+  const [lockShown, setLockShown] = useState(0) // sayaç: her basışta yeni not (key)
+  const lockTimer = useRef(0)
+  useEffect(() => () => clearTimeout(lockTimer.current), [])
+  const showLock = () => {
+    clearTimeout(lockTimer.current)
+    setLockShown((n) => n + 1)
+    lockTimer.current = setTimeout(() => setLockShown(0), LOCK_MS)
+  }
+  const pickPreset = (p) => {
+    if (timer.preset === p.id) return
+    if (locked) return showLock()
+    timer.setPreset(p.id)
+  }
 
   const hold = {
     onPointerEnter: () => timer.holdNotice(true),
@@ -55,6 +90,7 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
     onFocus: () => timer.holdNotice(true),
     onBlur: () => timer.holdNotice(false),
   }
+  const skipNote = isFocus ? SKIP_COPY.focus : SKIP_COPY.break
 
   return (
     <div className="timer-card">
@@ -81,8 +117,8 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
           />
         </svg>
         <div className="timer-ring__inner">
-          <span className="timer-ring__phase" style={{ color }}>
-            {isFocus ? 'ODAK' : 'MOLA'}
+          <span className="timer-ring__phase" style={{ color: isFocus ? 'var(--timer-ink, var(--timer))' : color }}>
+            {isFocus ? TIMER_COPY.focus : TIMER_COPY.break}
           </span>
           <span className="timer-ring__clock" role="timer" aria-live="off">
             {formatClock(timer.remaining)}
@@ -90,67 +126,81 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
         </div>
       </div>
 
-      {/* Saniyeler duyurulmaz; yalnızca aşama değişimi ve sıfırlama. */}
+      {/* Saniyeler duyurulmaz; yalnızca aşama değişimi, sıfırlama ve kilit notu. */}
       <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {timer.announcement?.text}
+        {lockShown ? TIMER_COPY.lock : timer.announcement?.text}
       </span>
 
-      <div className="timer-card__actions">
-        <button type="button" className="site-btn site-btn--primary timer-card__main" onClick={timer.toggle} aria-keyshortcuts="Space">
-          {timer.running ? 'Duraklat' : timer.fresh ? 'Başlat' : 'Devam et'}
-        </button>
-        <button type="button" className="site-btn" onClick={timer.reset}>
-          Sıfırla
-        </button>
-        <button type="button" className="site-btn" onClick={timer.skip} aria-describedby={skipNoteId}>
-          Atla
-        </button>
-      </div>
-      {/* odak modunda sayaç sade kalır; açıklama yalnızca ekran okuyucuya */}
-      <p id={skipNoteId} className={compact ? 'sr-only' : 'timer-card__note'}>
-        {isFocus ? SKIP_COPY.focus : SKIP_COPY.break}
-      </p>
-
-      {notice && (
-        <div className="timer-toast" key={notice.id} {...hold}>
-          <span>{notice.text}</span>
-          {notice.undo ? (
-            <button type="button" className="link-btn timer-toast__btn" onClick={notice.undo}>
-              Geri al
-            </button>
-          ) : (
-            <button type="button" className="link-btn timer-toast__btn" onClick={timer.dismissNotice}>
-              Tamam
-            </button>
-          )}
-        </div>
-      )}
+      <button type="button" className="site-btn site-btn--primary site-btn--wide timer-card__main" onClick={timer.toggle} aria-keyshortcuts="Space">
+        {timer.running ? TIMER_COPY.pause : timer.fresh ? TIMER_COPY.start : TIMER_COPY.resume}
+      </button>
 
       {!compact && (
-        <div className="timer-card__presets-wrap">
-          <div className="choice-row timer-card__presets" role="group" aria-label="Süre" aria-describedby={locked ? 'timerPresetLock' : undefined}>
+        <div className="timer-card__quiet">
+          <span className="timer-card__ctl">
+            <button type="button" className="quiet-btn" onClick={timer.reset}>
+              {TIMER_COPY.reset}
+            </button>
+            <button type="button" className="quiet-btn" onClick={timer.skip} aria-describedby={skipNoteId} title={hints ? undefined : skipNote}>
+              {TIMER_COPY.skip}
+            </button>
+          </span>
+          {/* Seans sürerken diğer süreler kilitli: basılabilir kalır, basınca nedeni kartın üstünde yazar. */}
+          <span className="segmented timer-card__presets" role="group" aria-label={TIMER_COPY.presets} aria-describedby={locked ? lockNoteId : undefined}>
             {PRESETS.map((p) => (
-              <button key={p.id} type="button" aria-pressed={timer.preset === p.id} disabled={locked && timer.preset !== p.id} onClick={() => timer.setPreset(p.id)}>
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={timer.preset === p.id}
+                aria-disabled={locked && timer.preset !== p.id ? true : undefined}
+                onClick={() => pickPreset(p)}
+              >
                 {p.label}
               </button>
             ))}
-          </div>
-          {/* yeri hep ayrılır: kilit açılıp kapanınca altındaki satırlar kaymaz */}
-          <p id="timerPresetLock" className="timer-card__lock" data-hidden={locked ? undefined : ''} aria-hidden={locked ? undefined : true}>
-            {LOCK_NOTE}
-          </p>
+          </span>
         </div>
       )}
+      {!compact && (
+        <p id={skipNoteId} className={hints ? 'timer-card__note' : 'sr-only'}>
+          {skipNote}
+        </p>
+      )}
+      <p id={lockNoteId} className="sr-only">
+        {TIMER_COPY.lock}
+      </p>
 
       {!compact && showStats && (
         <p className="timer-card__stats">
           Bugün <strong>{timer.stats.pomodoros}</strong> pomodoro · <strong>{formatMinutes(timer.stats.minutes)}</strong> odak
           {timer.gain && (
             <span key={timer.gain.id} className="timer-card__gain" aria-hidden="true">
-              {GAIN_TEXT(timer.gain.minutes)}
+              {TIMER_COPY.gain(timer.gain.minutes)}
             </span>
           )}
         </p>
+      )}
+
+      {/* yüzen not: geri alma önce gelir; kilit notu ancak başka not yokken */}
+      {notice ? (
+        <div className="timer-toast" key={notice.id} {...hold}>
+          <span>{notice.text}</span>
+          {notice.undo ? (
+            <button type="button" className="link-btn timer-toast__btn" onClick={notice.undo}>
+              {TIMER_COPY.undo}
+            </button>
+          ) : (
+            <button type="button" className="link-btn timer-toast__btn" onClick={timer.dismissNotice}>
+              {TIMER_COPY.ok}
+            </button>
+          )}
+        </div>
+      ) : (
+        lockShown > 0 && (
+          <div className="timer-toast" key={lockShown} aria-hidden="true">
+            <span>{TIMER_COPY.lock}</span>
+          </div>
+        )
       )}
       {children}
     </div>

@@ -18,6 +18,31 @@ function pickStatus(rnd, not) {
   return 'focus'
 }
 
+// Bir oda kimliğinden sabit tohum: aynı oda her açılışta aynı oda arkadaşlarıyla dolar.
+export const roomSeed = (id) => [...String(id)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 100000, 17)
+
+// Odanın simüle edilmiş oda arkadaşları (koltuk sırası, ad, avatar): tohumdan sabit üretilir, saf.
+// useRoomPeople bunları kullanır; lobi kartı da aynı kişileri gösterir (odaya girince aynı yüzler).
+export function roomBots(capacity, seed) {
+  const rnd = seededRandom(seed)
+  const seats = Array.from({ length: capacity }, (_, i) => i)
+  for (let i = seats.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1))
+    ;[seats[i], seats[j]] = [seats[j], seats[i]]
+  }
+  const names = [...NAMES].sort(() => rnd() - 0.5)
+  return seats.map((seat, i) => ({
+    id: `bot-${seed}-${i}`,
+    name: names[i % names.length],
+    avatar: randomAvatar(rnd, names[i % names.length]),
+    seat,
+    rnd: seededRandom(seed * 31 + i),
+  }))
+}
+
+// Sen girdiğinde odada seninle oturacak kişiler (ilk koltuk senin): lobi kartındaki yüzler.
+export const roomMates = (capacity, seed) => roomBots(capacity, seed).slice(1)
+
 /**
  * Bir odadaki kişiler: kendin (me verilirse) ve koltukları dolduran simüle edilmiş oda arkadaşları.
  * Oda arkadaşlarının durumu kendi kendine değişir (odak, mola, uzakta). forced verilirse herkes o
@@ -27,22 +52,7 @@ function pickStatus(rnd, not) {
  * kaldırıp sevinir, sonra molaya kalkar.
  */
 export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0 }) {
-  const bots = useMemo(() => {
-    const rnd = seededRandom(seed)
-    const seats = Array.from({ length: capacity }, (_, i) => i)
-    for (let i = seats.length - 1; i > 0; i--) {
-      const j = Math.floor(rnd() * (i + 1))
-      ;[seats[i], seats[j]] = [seats[j], seats[i]]
-    }
-    const names = [...NAMES].sort(() => rnd() - 0.5)
-    return seats.map((seat, i) => ({
-      id: `bot-${seed}-${i}`,
-      name: names[i % names.length],
-      avatar: randomAvatar(rnd, names[i % names.length]),
-      seat,
-      rnd: seededRandom(seed * 31 + i),
-    }))
-  }, [capacity, seed])
+  const bots = useMemo(() => roomBots(capacity, seed), [capacity, seed])
 
   const [status, setStatus] = useState(() => {
     const now = Date.now()

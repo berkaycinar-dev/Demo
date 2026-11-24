@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 // Oda görselleri: scripts/render-room-thumbs.mjs ile 3D sahneden bir kez üretilir (480×360, saydam zemin).
 // Koyu modda akşam ışığında çizilmiş varyant (<tema>-evening.webp): krem gündüz duvarları koyu
 // zeminde parlak kutu gibi durmaz, kart canlı sahneyle aynı ışıkta görünür.
-export const thumbOf = (theme, isDark) => `${import.meta.env.BASE_URL}room-thumbs/${theme}${isDark ? '-evening' : ''}.webp`
+// people: masaları çalışan avatarlarla dolu tanıtım varyantı (<tema>-people[-evening].webp; THUMB_PEOPLE=focus).
+export const thumbOf = (theme, isDark, people = false) =>
+  `${import.meta.env.BASE_URL}room-thumbs/${theme}${people ? '-people' : ''}${isDark ? '-evening' : ''}.webp`
 
 // Görsel yüklenemezse yer tutucunun zemini: her temanın kendi görselinin (opak piksellerin) ortalama
 // rengi, [gündüz, akşam]. Görseller yeniden üretilirse bu değerler de yeniden ölçülmeli.

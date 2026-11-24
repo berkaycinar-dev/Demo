@@ -9,6 +9,7 @@ import TimerCard from './TimerCard'
 import { swatchOf } from './themeLook'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
+import useFirstVisit from './useFirstVisit'
 
 // Odam: tek kişilik kişisel oda. Sağda sayaç ve oda ayarları (tasarım, ortam sesi).
 // Varış levhasının metni (bkz. RoomStage).
@@ -40,25 +41,30 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
   const update = (patch) => setSettings((s) => ({ ...s, ...patch }))
   const playing = SOUNDS.find((s) => s.id === settings.sound)
 
-  const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} />
+  // Yardım satırları (Atla, odak modu, sahne ipucu) yalnızca ilk ziyarette görünür.
+  const hints = useFirstVisit('odam')
+  const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} hints={hints} />
 
+  // Çok kişili odadakiyle aynı masa: ad ince ceviz levhada, sayaç ve tam genişlik Başlat, altta odak
+  // modu. Durum çipi yok (tek kişilik odada durum sayaçtan gelir). Masanın altında oda ayarları.
   const panel = (
     <>
-      <div className="stage-card stage-card--head material-sign">
-        <div>
+      <div className="stage-card desk">
+        <div className="desk__sign material-sign">
           <h1 className="stage-card__title">
             <ThemeLabel theme={settings.theme} markOnly />
             {label}
           </h1>
+        </div>
+        <div className="desk__info">
           <p className="site-muted">Tek kişilik, yalnızca sana ait.</p>
         </div>
-        <div>
-          <FocusModeButton onClick={() => onFocusModeChange(true)} />
-          <FocusModeNote />
+        {timerCard}
+        <div className="desk__foot">
+          <FocusModeButton onClick={() => onFocusModeChange(true)} hints={hints} />
+          <FocusModeNote hints={hints} />
         </div>
       </div>
-
-      <div className="stage-card">{timerCard}</div>
 
       {/* Ayarlar seyrek değişir: kapalı başlar, panel 1440×900'de kaydırmadan sığar. Özet satırı
           kapalıyken de seçili tasarımı ve sesi söyler. */}
@@ -138,7 +144,7 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
       timer={timer}
       arrival={arriving ? { lead: ARRIVE_LEAD, name: label } : null}
       renderRoom={(canvasStyle) => (
-        <Room capacity={1} canvasStyle={canvasStyle} arrive={arriving} lampBoost={timer.running && timer.phase === 'focus'}>
+        <Room capacity={1} canvasStyle={canvasStyle} arrive={arriving} lampBoost={timer.running && timer.phase === 'focus'} hint={hints ? undefined : false}>
           <AvatarCrowd occupants={occupants} theme={settings.theme} />
         </Room>
       )}

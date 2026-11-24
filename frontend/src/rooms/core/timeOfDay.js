@@ -61,3 +61,11 @@ export function timeOfDayForHour(hour) {
   if (hour >= 17 && hour < 20) return 'evening'
   return 'night'
 }
+
+// "Otomatik" gün zamanı: gerçek saat; sitenin koyu modunda gündüz akşama döner (koyu mod aynı odanın
+// akşamıdır: krem gündüz duvarları koyu arayüzün ortasında parlak kutu gibi durmaz). Gece gece kalır;
+// elle seçilen gün zamanı (Gündüz / Akşam / Gece) hiç değişmez.
+export function autoTimeOfDay(hour, dark) {
+  const part = timeOfDayForHour(hour)
+  return dark && part === 'day' ? 'evening' : part
+}

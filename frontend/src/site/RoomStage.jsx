@@ -76,10 +76,13 @@ function useRoomTone(roomRef) {
 // Panel kaydırılsa da sayaç görünür; paneldeki sayaç kartı bu yüzden kendi Başlat'ını göstermez.
 // Masaüstünde gizli. Sahnenin son öğesidir: yapışkan çubuk sahnenin sonunda kendi yerini ayırır, panelin
 // son satırı çubuğun altında kalmaz ve alt bilgiye gelince çubuk sahneyle birlikte yukarı kayar.
-function StageBar({ timer }) {
+// Paneldeki Başlat ekrandayken çubuk aşağı çekilir: aynı düğme iki kez görünmez, ekranda hep tam bir
+// Başlat kalır. Başlat ekrandan çıkınca çubuk geri gelir. Çekilince odaktan ve ekran okuyucudan da çıkar
+// (inert).
+function StageBar({ timer, away }) {
   const isFocus = timer.phase === 'focus'
   return (
-    <div className="stage-bar" data-phase={timer.phase} role="group" aria-label="Sayaç özeti">
+    <div className="stage-bar" data-phase={timer.phase} data-away={away ? '' : undefined} inert={away} role="group" aria-label="Sayaç özeti">
       <span className="stage-bar__phase">{isFocus ? 'Odak' : 'Mola'}</span>
       <span className="stage-bar__clock">{formatClock(timer.remaining)}</span>
       <button type="button" className="site-btn site-btn--primary stage-bar__toggle" onClick={timer.toggle} aria-keyshortcuts="Space">
@@ -110,9 +113,25 @@ function ArrivalSign({ lead, name }) {
 // renderRoom(canvasStyle): odayı çizer; canvasStyle, 3D sahneyi panelin solunda kalan alana sığdırır.
 // timer verilirse telefonda ekranın altında sayaç çubuğu çıkar (odak modunda panelin kendisi sayaçtır).
 // arrival ({ lead, name }) verilirse odaya yeni girildiği için varış levhası gösterilir.
+// Paneldeki Başlat düğmesi ekranda mı (telefonda yapışkan çubuğun kapladığı alt şerit hariç).
+function useMainInView(panelRef, active) {
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    if (!active) return undefined
+    const main = panelRef.current?.querySelector('.timer-card__main')
+    if (!main || !('IntersectionObserver' in window)) return undefined
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin: '0px 0px -72px 0px', threshold: 0.9 })
+    io.observe(main)
+    return () => io.disconnect()
+  }, [panelRef, active])
+  return active && inView
+}
+
 export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, onFocusModeChange, timer, arrival }) {
   const roomRef = useRef(null)
+  const panelRef = useRef(null)
   const { tone, color } = useRoomTone(roomRef)
+  const mainInView = useMainInView(panelRef, !!timer && !focusMode)
 
   // Tam ekran: tarayıcı izin verirse gerçek tam ekran, vermezse yalnızca sayfa içi tam boy.
   useEffect(() => {
@@ -140,7 +159,7 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
         {renderRoom({ width: 'var(--stage-canvas-w, 100%)' })}
         {arrival && !focusMode && <ArrivalSign lead={arrival.lead} name={arrival.name} />}
       </div>
-      <aside className="stage__panel" data-tone={focusMode ? tone : undefined} aria-label={focusMode ? 'Sayaç' : 'Oda paneli'}>
+      <aside ref={panelRef} className="stage__panel" data-tone={focusMode ? tone : undefined} aria-label={focusMode ? 'Sayaç' : 'Oda paneli'}>
         {focusMode ? (
           <>
             {focusPanel}
@@ -152,23 +171,23 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
           panel
         )}
       </aside>
-      {timer && !focusMode && <StageBar timer={timer} />}
+      {timer && !focusMode && <StageBar timer={timer} away={mainInView} />}
     </div>
   )
 }
 
-// Odak modu düğmesinin metinleri: düğme adı ve altında görünen kısa açıklama (ilk ziyarette de okunur,
-// title'a saklanmaz). Tam cümleler; çeviride birleştirilmez.
+// Odak modu düğmesinin metinleri: düğme adı ve kısa açıklama. Tam cümleler; çeviride birleştirilmez.
 const FOCUS_MODE_COPY = {
   button: 'Odak modu',
   note: 'Tam ekran: yalnızca oda ve sayaç kalır. Esc ile çık.',
 }
 const FOCUS_NOTE_ID = 'focusModeNote'
 
-// İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır. Açıklaması FocusModeNote'ta.
-export function FocusModeButton({ onClick }) {
+// İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır. Açıklaması FocusModeNote'ta; not
+// gizliyken (ilk ziyaretten sonra) fareyle üstüne gelince title olarak da okunur.
+export function FocusModeButton({ onClick, hints = false }) {
   return (
-    <button type="button" className="site-btn focus-btn" onClick={onClick} aria-describedby={FOCUS_NOTE_ID}>
+    <button type="button" className="site-btn focus-btn" onClick={onClick} aria-describedby={FOCUS_NOTE_ID} title={hints ? undefined : FOCUS_MODE_COPY.note}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
       </svg>
@@ -177,10 +196,11 @@ export function FocusModeButton({ onClick }) {
   )
 }
 
-// Odak modu düğmesinin altındaki görünür açıklama; sayfada bir FocusModeButton ile birlikte bir kez.
-export function FocusModeNote() {
+// Odak modu düğmesinin açıklaması; sayfada bir FocusModeButton ile birlikte bir kez. İlk ziyarette
+// (hints) görünür, sonra yalnızca ekran okuyucuya kalır.
+export function FocusModeNote({ hints = false }) {
   return (
-    <p id={FOCUS_NOTE_ID} className="stage-note">
+    <p id={FOCUS_NOTE_ID} className={hints ? 'stage-note' : 'sr-only'}>
       {FOCUS_MODE_COPY.note}
     </p>
   )
