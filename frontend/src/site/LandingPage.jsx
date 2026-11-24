@@ -4,27 +4,16 @@ import RoomShot from './RoomShot'
 import { useDocumentDark } from './roomThumbs'
 import { scrollToId } from './scroll'
 import Dotted from './Dotted'
+import LandingDemo from './LandingDemo'
 
 const HERO_THEME = 'library'
 const OPEN_ROOMS_SHOWN = 3
 
-const STEPS = [
-  { no: '1', title: 'Bir oda seç', text: 'Sessiz kütüphane, şömineli dağ evi ya da kod yazanların ofisi. Herkese açık odalara katıl ya da arkadaşlarına davet kodu gönder.' },
-  { no: '2', title: 'Sayacını başlat', text: '25, 50 ya da 90 dakikalık bloklar. Avatarın masasına oturur; molada mola köşesine yürür. Kimse seni görmez, herkes çalıştığını bilir.' },
-  { no: '3', title: 'Odak süreni izle', text: 'Her odak dakikası sayılır. Bugünkü toplamını ve bitirdiğin pomodoroları Sayfam’da gör. Ortak odada kimin seninle çalıştığı, kimin molaya çıktığı bir bakışta belli olur.' },
-]
-
-// "Kamera yok" hero'da söyleniyor; burada yalnızca ürünün geri kalanı.
-const FEATURES = [
-  { title: 'Kendi odan', text: 'Tek kişilik odanı istediğin temayla kur; yağmur ya da şömine sesi aç.' },
-  { title: 'Odak modu', text: 'Tek tıkla tam ekran: yalnızca odan ve sayacın kalır.' },
-  { title: 'Göz yormayan', text: 'Kâğıt tonlarında zemin, tek bir terakota vurgu; istersen tek tıkla koyu mod.' },
-]
-
-// Ana sayfa: lobinin kapısı. Önce oda görünür, sonra lobideki açık odalar ve on tema; anlatım en sonda.
+// Ana sayfa: lobinin kapısı. Önce oda görünür, sonra lobideki açık odalar ve on tema; en sonda bir oturum
+// canlı bir odada oynar (LandingDemo). Ayrı adım kartları, özellik üçlüsü ve kapanış bandı yok.
 // Oda arkadaşları şimdilik simülasyon olduğundan "şu an N kişi" gibi canlı sayı gösterilmez; yalnızca kapasite.
-export default function LandingPage({ user, rooms = [], onGo, onEnter }) {
-  const [quote, by, note] = QUOTES[quoteForVisit()]
+export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, isDark, onToggleMode }) {
+  const [quote, by] = QUOTES[quoteForVisit()]
   const dark = useDocumentDark()
   const start = () => onGo(user ? 'sayfam' : 'kayit')
   const sit = (room) => (user ? onEnter(room) : onGo('kayit'))
@@ -82,13 +71,13 @@ export default function LandingPage({ user, rooms = [], onGo, onEnter }) {
                       <Dotted parts={[THEMES[room.theme].label, `${room.capacity} kişilik`]} keep />
                     </span>
                   </span>
-                  <button type="button" className="site-btn site-btn--primary" onClick={() => sit(room)} aria-label={`${room.name} odasına otur`}>
-                    Otur
+                  <button type="button" className="site-btn" onClick={() => sit(room)} aria-label={`${room.name} odasına gir`}>
+                    Gir
                   </button>
                 </li>
               ))}
             </ul>
-            {!user && <p className="lp-open__note">Oturmak için önce bir hesap açarsın; bir dakika sürer.</p>}
+            {!user && <p className="lp-open__note">Girmek için önce bir hesap açarsın; bir dakika sürer.</p>}
           </section>
         )}
       </section>
@@ -118,67 +107,7 @@ export default function LandingPage({ user, rooms = [], onGo, onEnter }) {
         </ul>
       </section>
 
-      <section id="nasil" className="lp-section" aria-labelledby="nasilBaslik">
-        <div className="lp-inner">
-          <h2 id="nasilBaslik" className="lp-h2">
-            Üç adımda masana otur
-          </h2>
-          <ol className="lp-steps">
-            {STEPS.map((s) => (
-              <li key={s.no}>
-                <span className="lp-steps__no" aria-hidden="true">
-                  {s.no}
-                </span>
-                <span className="lp-steps__title">{s.title}</span>
-                <span className="lp-steps__text">{s.text}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      <section id="neden" className="lp-section" aria-labelledby="nedenBaslik">
-        <div className="lp-inner lp-why">
-          <div className="lp-why__text">
-            <h2 id="nedenBaslik" className="lp-h2">
-              Yanında biri çalışırken sen de çalışırsın
-            </h2>
-            <p>
-              Kütüphanede ders çalışmanın evden kolay gelmesinin bir nedeni var: başkalarını çalışırken görmek seni de masada tutar. Buna “body doubling” deniyor. Odakhane bu hissi internete taşır;
-              kimse seni izlemez, ama yalnız da değilsin.
-            </p>
-          </div>
-          <dl className="lp-features">
-            {FEATURES.map((f) => (
-              <div key={f.title}>
-                <dt>{f.title}</dt>
-                <dd>{f.text}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-
-      {/* kullanıcı yorumu değil: kaynağı belli bir söz ya da atasözü (quotes.js) */}
-      <section className="lp-quote-wrap" aria-label="Söz">
-        <figure className="lp-quote">
-          <blockquote>“{quote}”</blockquote>
-          <figcaption>— {by}</figcaption>
-          <p>{note}</p>
-        </figure>
-      </section>
-
-      <section className="lp-section lp-cta-wrap">
-        <div className="lp-cta">
-          <div className="lp-cta__text">
-            <h2>İlk adımı bugün at.</h2>
-            <p>Hesap açmak bir dakika sürer. İlk pomodoronu bitirdiğinde odak yolculuğun da başlamış olur.</p>
-          </div>
-          <button type="button" className="site-btn site-btn--xl lp-cta__main" onClick={start}>
-            {user ? 'Sayfama git' : 'Hesap oluştur'}
-          </button>
-        </div>
-      </section>
+      <LandingDemo avatar={avatar} quote={[quote, by]} isDark={isDark} onToggleMode={onToggleMode} />
     </div>
   )
 }

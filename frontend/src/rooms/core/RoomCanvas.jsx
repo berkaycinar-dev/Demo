@@ -24,6 +24,19 @@ const MAX_DPR = 1.5
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v))
 
+// Odaya varış: kamera biraz uzaktan ve yandan başlar, odanın oturma açısına süzülür. Yalnızca odaya
+// yeni girilince (arrive) ve "hareketi azalt" kapalıyken; kullanıcı bu sırada sürüklerse süzülme
+// onun hareketinin üstüne eklenir, kesilmez.
+const ARRIVE_MS = 1100
+const ARRIVE_YAW = 0.24
+const ARRIVE_ZOOM = 0.8
+const easeOutQuart = (t) => 1 - (1 - t) ** 4
+// Odak sürerken masa lambaları biraz parlar (sayaç ↔ oda bağı): yoğunluk çarpanı LAMP_FOCUS'a
+// LAMP_MS içinde yumuşakça çıkar, duraklatınca aynı yoldan iner. "Hareketi azalt"ta anında.
+const LAMP_FOCUS = 1.6
+const LAMP_MS = 700
+const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
 function useCurrentHour() {
   const [hour, setHour] = useState(() => new Date().getHours())
   useEffect(() => {
@@ -56,13 +69,24 @@ function frameRoom(bounds, size) {
   return { target, fit }
 }
 
-function CameraRig({ bounds, view }) {
+function CameraRig({ bounds, view, arrivalRef }) {
   const size = useThree((s) => s.size)
   const { target, fit } = useMemo(() => frameRoom(bounds, size), [bounds, size])
 
   // frameloop="demand": bu yalnızca bir kare istendiğinde çalışır, boşta CPU/GPU harcamaz.
-  useFrame(({ camera }) => {
-    const { yaw, zoom } = view.current
+  useFrame(({ camera, invalidate }) => {
+    let { yaw, zoom } = view.current
+    const a = arrivalRef.current
+    if (a) {
+      const now = performance.now()
+      a.start ??= now
+      const t = Math.min(1, (now - a.start) / ARRIVE_MS)
+      const rest = 1 - easeOutQuart(t)
+      yaw += ARRIVE_YAW * rest
+      zoom *= 1 - (1 - ARRIVE_ZOOM) * rest
+      if (t < 1) invalidate()
+      else arrivalRef.current = null
+    }
     const azimuth = BASE_AZIMUTH + yaw
     const flat = Math.cos(ELEVATION) * CAMERA_DISTANCE
     camera.position.set(
@@ -86,9 +110,30 @@ function CameraRig({ bounds, view }) {
 
 // Güneş/ay + gökyüzü + lamba ışıkları. Gölge haritası yalnızca ışık değişince yeniden çizilir
 // (gl.shadowMap.autoUpdate = false); kamera dönerken dünya sabit kaldığı için gerek yok.
-function Lighting({ bounds, preset, lamps }) {
+function Lighting({ bounds, preset, lamps, lampBoost }) {
   const sun = useRef(null)
   const getState = useThree((s) => s.get)
+  const lampRefs = useRef([])
+  const glow = useRef({ value: lampBoost ? LAMP_FOCUS : 1, from: 1, at: 0 })
+  const target = lampBoost ? LAMP_FOCUS : 1
+  useEffect(() => {
+    const g = glow.current
+    g.from = g.value
+    g.at = prefersReducedMotion() ? -Infinity : performance.now()
+    getState().invalidate()
+  }, [target, getState])
+  useFrame(({ invalidate }) => {
+    const g = glow.current
+    if (g.value === target) return
+    const t = Math.min(1, (performance.now() - g.at) / LAMP_MS)
+    g.value = t >= 1 ? target : g.from + (target - g.from) * easeOutQuart(t)
+    lampRefs.current.forEach((l) => l && (l.intensity = preset.lamp * g.value))
+    if (t < 1) invalidate()
+  })
+  // Gün zamanı (preset.lamp) ya da lambalar değişince çarpan yeniden uygulanır.
+  useLayoutEffect(() => {
+    lampRefs.current.forEach((l) => l && (l.intensity = preset.lamp * glow.current.value))
+  }, [preset.lamp, lamps])
   const { center, radius } = useMemo(() => {
     const min = new Vector3(...bounds.min)
     const max = new Vector3(...bounds.max)
@@ -140,6 +185,7 @@ function Lighting({ bounds, preset, lamps }) {
       {lamps.map((lamp, i) => (
         <pointLight
           key={i}
+          ref={(l) => (lampRefs.current[i] = l)}
           position={Array.isArray(lamp) ? lamp : lamp.position}
           color={lamp.color ?? preset.lampColor}
           intensity={preset.lamp}
@@ -267,6 +313,8 @@ export default function RoomCanvas({
   canvasStyle,
   hint = 'Sürükle: döndür · Çift tık: görünümü sıfırla',
   controls,
+  arrive = false,
+  lampBoost = false,
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
@@ -278,6 +326,12 @@ export default function RoomCanvas({
   )
 
   const view = useRef({ yaw: 0, zoom: 1 })
+  // Varış sayfayla birlikte başlar (varış levhasıyla aynı saat); sahne geç çizilirse ilk karede
+  // başlar. null: varış yok ya da bitti.
+  const arrival = useRef(arrive && !prefersReducedMotion() ? { start: null } : null)
+  useEffect(() => {
+    if (arrival.current) arrival.current.start ??= performance.now()
+  }, [])
   const store = useRef(null)
   const drag = useRef(null)
 
@@ -341,8 +395,8 @@ export default function RoomCanvas({
           store.current = state
         }}
       >
-        <CameraRig bounds={bounds} view={view} />
-        <Lighting bounds={bounds} preset={preset} lamps={lamps} />
+        <CameraRig bounds={bounds} view={view} arrivalRef={arrival} />
+        <Lighting bounds={bounds} preset={preset} lamps={lamps} lampBoost={lampBoost} />
         <TimeOfDayContext.Provider value={preset}>{children}</TimeOfDayContext.Provider>
       </Canvas>
 

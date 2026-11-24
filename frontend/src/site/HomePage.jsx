@@ -3,6 +3,11 @@ import { THEMES } from '../rooms/themes'
 import { loadMyRoom } from './myRoom'
 import { formatClock, formatMinutes } from './usePomodoro'
 
+// Bugün henüz sayılan blok yokken: boş bir "0 dk" kartı yerine ilk adımı söyleyen tek satır.
+const TODAY_COPY = {
+  zero: (min) => `Bugün henüz blok yok. İlk blok ${min} dakika; bitince burada sayılır.`,
+}
+
 const dateText = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
 
 // Sayfam: giriş yapınca açılan ilk sayfa. Tek birincil eylem "Odama git"; yanında sayacın o anki
@@ -42,12 +47,14 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
           </div>
         </section>
 
-        {hasToday && (
+        {hasToday ? (
           <section className="site-card home__today" aria-label="Bugünkü odak">
             <span className="site-muted">Bugünkü odak</span>
             <span className="stat__value">{formatMinutes(minutes)}</span>
             <span className="site-muted">{pomodoros} pomodoro tamamlandı</span>
           </section>
+        ) : (
+          <p className="home__zero">{TODAY_COPY.zero(timer.presetInfo.focus)}</p>
         )}
 
         <section className="site-card home__rooms">
@@ -66,7 +73,7 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
             Şu an {open.length} herkese açık oda var.{' '}
             {quick && (
               <button type="button" className="link-btn" onClick={() => onEnter(quick)}>
-                Birine hemen katıl
+                Hemen gir: {quick.name}
               </button>
             )}
           </p>

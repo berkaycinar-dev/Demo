@@ -1,4 +1,5 @@
-/* Odakhane sitesi: gri zemin + çelik mavisi tasarımı. Renkler theme.css'teki token'lardan gelir. */
+/* Odakhane sitesi: sıcak kâğıt, kil ve ahşap nötrleri + terakota vurgu (DESIGN.md). Renkler ve yazı
+   ölçeği theme.css'teki token'lardan gelir. */
 
 /* viewport-fit=cover (index.html): yatay telefonda çentik payı yanlarda; alt pay (ev göstergesi) altta
    yapışan öğelerin kendisinde (sayaç çubuğu, oda oluştur eylem çubuğu, odak modu paneli) */
@@ -10,12 +11,13 @@
   background: var(--bg-page);
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--text-body);
   line-height: 1.5;
 }
 
-/* Üç ses, üç rol: sayfa başlığı (h1) piksel (Pixelify Sans, ızgara boyutu 33 px); alt başlık (h2, h3,
-   kart ve bölüm başlığı) Space Grotesk; okunan ve tıklanan her şey Inter. Piksel ayrıntısı aşağıda. */
+/* İki ses: sayfa başlığı (h1) piksel (Pixelify Sans, ızgara boyutu 33 px); alt başlık (h2, h3, kart ve
+   bölüm başlığı) ile okunan ve tıklanan her şey Inter. Alt başlığı boyut, ağırlık ve sıkı harf aralığı
+   ayırır. Piksel ayrıntısı aşağıda. */
 .site h1 {
   margin: 0 0 16px;
   font-family: var(--font-pixel);
@@ -30,15 +32,17 @@
 .site h2 {
   margin: 32px 0 14px;
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: var(--text-title);
   line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 .site h3 {
   margin: 4px 0;
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: var(--text-title-s);
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .site p {
@@ -62,7 +66,7 @@
   gap: 12px;
   padding: 20px;
   border: 1px dashed var(--line-strong);
-  border-radius: 16px;
+  border-radius: var(--radius-control-lg);
   color: var(--muted);
 }
 
@@ -75,9 +79,35 @@
   white-space: nowrap;
 }
 
+/* tema adı: odanın vurgu renginde, önünde blok gibi küçük kare (ThemeLabel.jsx) */
+.theme-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--room-accent);
+  font-weight: 700;
+}
+
+.theme-label__mark {
+  flex: none;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+}
+
+/* başlığın önündeki tek blok: piksel yazının ızgarasına oturur (33 px yazıda 18 px) */
+.theme-label__mark--lead {
+  display: inline-block;
+  margin-right: 0.3em;
+  vertical-align: 0.05em;
+  color: var(--room-accent);
+}
+
 .site-muted {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-label);
 }
 
 .site button:focus-visible,
@@ -100,14 +130,14 @@
   background: var(--header-bg);
 }
 
-.site-header--wide {
-  padding-inline: 24px;
-}
+/* oda sayfalarında da header sayfa kabına hizalı kalır: lobi ↔ oda geçişinde logo ve araçlar yerinden
+   sıçramaz (sahne tam genişlik, header değil) */
 
 .site-brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px; /* dokunma hedefi; başlıktaki sekmelerle aynı */
   padding: 0;
   border: none;
   background: none;
@@ -130,10 +160,10 @@
   min-height: 44px;
   padding: 0 14px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-control-sm);
   background: none;
   color: var(--header-muted);
-  font: 500 15px var(--font-body);
+  font: 500 var(--text-control) var(--font-body);
   cursor: pointer;
 }
 
@@ -183,10 +213,42 @@
 }
 
 .site-card {
-  padding: 24px;
-  border-radius: 20px;
+  padding: var(--pad-card);
+  border-radius: var(--radius-card);
   background: var(--surface);
   box-shadow: var(--card-edge);
+}
+
+/* açılır pencere: kartın sayfanın üstünde yüzen hâli (davet kodu, yasal metin). Genişlik ve iç düzen
+   pages.css'te, pencereye özel. */
+.code-dialog,
+.legal-dialog {
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-card-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-dialog);
+  font-family: var(--font-body);
+}
+
+.code-dialog::backdrop,
+.legal-dialog::backdrop {
+  background: rgba(20, 22, 26, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+/* seçenek bloğu: kart zemininde, koyu çizgili, altı gölgeli küçük blok. Yazılı seçenek (.choice-row),
+   karakter menüsünün seçenek ve ok düğmeleri aynı tabanı paylaşır; boyut, yazı ve seçili hâl her
+   birinin kendi kuralında. */
+.choice-row button,
+.cstrip__opt,
+.cmenu__arrow {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-block);
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
+  cursor: pointer;
 }
 
 .site-actions {
@@ -206,12 +268,18 @@
   min-height: 46px;
   padding: 0 20px;
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text);
-  font: 600 15px var(--font-body);
+  font: 600 var(--text-control) var(--font-body);
   cursor: pointer;
-  transition: background-color 0.15s ease, filter 0.15s ease;
+  transition: background-color var(--dur-fast) var(--ease-standard), filter var(--dur-fast) var(--ease-standard),
+    transform var(--dur-press) var(--ease-out), box-shadow var(--dur-press) var(--ease-out);
+}
+
+/* basış: düğme blok gibi 1 px yerine oturur (hareketi azalt: --press-sink none) */
+.site-btn:active:not(:disabled) {
+  transform: var(--press-sink);
 }
 
 .site-btn:hover {
@@ -247,11 +315,16 @@
   filter: brightness(0.94);
 }
 
+/* basılıyken alt gölge kısalır: düğme zemine değmiş gibi */
+.site-btn--primary:active:not(:disabled) {
+  box-shadow: var(--primary-glow-pressed);
+}
+
 .site-btn--small {
   min-height: 36px;
   padding: 0 14px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: var(--radius-control-sm);
+  font-size: var(--text-label);
 }
 
 .site-btn--lg {
@@ -262,15 +335,15 @@
 .site-btn--xl {
   min-height: 54px;
   padding: 0 24px;
-  border-radius: 14px;
-  font-size: 17px;
+  border-radius: var(--radius-control-lg);
+  font-size: var(--text-lead);
 }
 
 .site-btn--wide {
   width: 100%;
   min-height: 54px;
-  border-radius: 14px;
-  font-size: 16px;
+  border-radius: var(--radius-control-lg);
+  font-size: var(--text-body);
 }
 
 /* oda kartı ızgarası */
@@ -300,7 +373,7 @@
 
 .create-preview h2 {
   margin-top: 0;
-  font-size: 20px;
+  font-size: var(--text-title-s);
 }
 
 .field {
@@ -315,7 +388,7 @@
   margin-bottom: 8px;
   padding: 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
 }
 
@@ -323,8 +396,8 @@
   width: 100%;
   min-height: 46px;
   padding: 0 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border: 1px solid var(--line-field);
+  border-radius: var(--radius-control);
   background: var(--bg);
   color: var(--text);
   font: inherit;
@@ -374,7 +447,7 @@
   border-radius: var(--radius-block);
   background: radial-gradient(circle at 50% 45%, var(--surface), var(--surface-sunken));
   box-shadow: inset 0 0 0 1px var(--line), var(--voxel-face);
-  transition: box-shadow 160ms ease, transform 200ms var(--ease-out, ease-out);
+  transition: box-shadow var(--dur-fast) var(--ease-standard), transform var(--dur-state) var(--ease-out);
 }
 
 .theme-option__shot img {
@@ -384,11 +457,11 @@
   aspect-ratio: 4 / 3;
   object-fit: contain;
   transform: scale(1.06);
-  transition: transform 260ms var(--ease-out, ease-out);
+  transition: transform var(--dur-reveal) var(--ease-out);
 }
 
 .theme-option__name {
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -397,7 +470,7 @@
   display: -webkit-box;
   overflow: hidden;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.35;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -514,7 +587,7 @@
   color: var(--text);
   font: 600 24px/1 var(--font-display);
   cursor: pointer;
-  transition: background-color 150ms ease, transform 120ms ease-out;
+  transition: background-color var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
 }
 
 /* kalın çizgi: blok düğmenin ağırlığına uyar; sahnedeki büyüteçli yakınlaştırmadan ayrı okunur */
@@ -527,7 +600,7 @@
 }
 
 .stepper__btn:active:not(:disabled) {
-  transform: scale(0.95);
+  transform: var(--press-shrink);
 }
 
 .stepper__btn:disabled {
@@ -546,6 +619,7 @@
 
 .stepper__count {
   font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
   font-size: 24px;
   font-weight: 700;
   line-height: 1;
@@ -555,7 +629,7 @@
 .stepper__count span {
   color: var(--text-2);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 500;
 }
 
@@ -569,7 +643,7 @@
 
 .stepper__person {
   display: inline-flex;
-  transition: color 160ms ease;
+  transition: color var(--dur-fast) var(--ease-standard);
 }
 
 .stepper__person--on {
@@ -593,14 +667,9 @@
   min-width: 44px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-block);
-  background: var(--surface);
-  box-shadow: var(--voxel-face);
   color: var(--text-2);
   font: inherit;
-  font-size: 14px;
-  cursor: pointer;
+  font-size: var(--text-label);
 }
 
 .choice-row button:hover {
@@ -626,7 +695,7 @@
 .room-frame {
   overflow: hidden;
   margin-bottom: 12px;
-  border-radius: 20px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   box-shadow: var(--card-edge);
 }
@@ -637,13 +706,7 @@
 
 .create-preview__scene {
   height: 100%;
-  animation: sceneIn 320ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes sceneIn {
-  from {
-    opacity: 0.35;
-  }
+  animation: motion-fade-soft var(--dur-reveal) var(--ease-out);
 }
 
 /* koyu modda oda sahnesinin boşluğu: gün zamanının rengi koyu zeminle karışır (gündüz kremi
@@ -697,15 +760,15 @@
   align-items: center;
   gap: 6px;
   padding: 5px 12px 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   box-shadow: var(--card-edge);
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
 }
 
 .roster__item .site-muted {
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 400;
 }
 
@@ -745,7 +808,7 @@
   align-items: center;
   gap: 2px;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--surface) 84%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 70%, transparent),
     0 6px 18px -10px rgba(40, 26, 12, 0.45);
@@ -779,14 +842,14 @@
 
 /* çalışma türü: oturmayan pozda gizlenir ama yeri korunur; görünürlük solmadan sonra kapanır */
 .hud--sub {
-  transition: opacity 160ms ease, transform 200ms var(--ease-out, ease-out), visibility 0s linear 0s;
+  transition: opacity var(--dur-fast) var(--ease-standard), transform var(--dur-state) var(--ease-out), visibility 0s linear 0s;
 }
 
 .hud--sub[data-off] {
   visibility: hidden;
   opacity: 0;
   transform: translateY(-4px);
-  transition: opacity 120ms ease, transform 120ms ease, visibility 0s linear 120ms;
+  transition: opacity var(--dur-press) var(--ease-exit), transform var(--dur-press) var(--ease-exit), visibility 0s linear var(--dur-press);
 }
 
 .hud--bottom {
@@ -795,7 +858,7 @@
   max-width: calc(100% - 20px);
   padding-left: 12px;
   transform: translateX(-50%);
-  font-size: 14px;
+  font-size: var(--text-label);
   white-space: nowrap;
 }
 
@@ -806,7 +869,7 @@
   gap: 6px;
   height: 34px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -828,18 +891,18 @@
   align-items: center;
   gap: 8px;
   padding: 5px 9px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--text);
   box-shadow: 0 6px 14px -8px rgba(40, 26, 12, 0.5);
   color: var(--surface);
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
   line-height: 1.2;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
   transform: translateY(-3px);
-  transition: opacity 120ms ease, transform 160ms var(--ease-out, ease-out);
+  transition: opacity var(--dur-press) var(--ease-standard), transform var(--dur-fast) var(--ease-out);
 }
 
 .hud__key {
@@ -852,7 +915,7 @@
 .hud__icon:focus-visible .hud__label {
   opacity: 1;
   transform: none;
-  transition-delay: 250ms;
+  transition-delay: var(--delay-intent);
 }
 
 .hud__icon:focus-visible .hud__label {
@@ -876,8 +939,8 @@
     height: auto;
     min-height: 44px;
     padding: 5px 6px 4px;
-    border-radius: 14px;
-    font-size: 11.5px;
+    border-radius: var(--radius-control-lg);
+    font-size: var(--text-micro);
     font-weight: 600;
     line-height: 1.2;
   }
@@ -888,7 +951,7 @@
     background: none;
     box-shadow: none;
     color: inherit;
-    font-size: 11.5px;
+    font-size: var(--text-micro);
     opacity: 1;
     transform: none;
     transition: none;
@@ -899,7 +962,7 @@
   }
 
   .hud:has(.hud__icon) {
-    border-radius: 17px;
+    border-radius: calc(var(--radius-control-lg) + 3px);
   }
 }
 
@@ -911,7 +974,7 @@
 /* poz ve çalışma türü seçeneği: ikon + etiket */
 .hud__opt {
   padding: 0 12px 0 10px;
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
 }
 
@@ -932,13 +995,13 @@
     height: auto;
     min-width: 52px;
     padding: 5px 4px 4px;
-    border-radius: 14px;
-    font-size: 14px;
+    border-radius: var(--radius-control-lg);
+    font-size: var(--text-label);
     line-height: 1.1;
   }
 
   .hud-stack .hud:has(.hud__opt) {
-    border-radius: 17px;
+    border-radius: calc(var(--radius-control-lg) + 3px);
   }
 }
 
@@ -950,7 +1013,8 @@
 
 }
 
-.hud button:hover:not(:disabled) {
+/* seçili seçenek hover'da da seçili dolgusunu korur (Raised Selection) */
+.hud button:hover:not(:disabled, [aria-pressed='true']) {
   background: var(--surface-2);
 }
 
@@ -1005,7 +1069,7 @@
   background: transparent;
   color: var(--text-2);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--text-label);
   cursor: pointer;
 }
 
@@ -1108,7 +1172,7 @@
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 6px;
+  border-radius: var(--radius-block);
 }
 
 .portrait {
@@ -1125,7 +1189,7 @@
 .wardrobe__name {
   display: grid;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
   line-height: 1.25;
 }
@@ -1149,7 +1213,7 @@
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
@@ -1251,12 +1315,12 @@
   background: none;
   color: var(--text-2);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--text-label);
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
   text-underline-offset: 3px;
   cursor: pointer;
-  transition: color 150ms ease, text-decoration-color 150ms ease;
+  transition: color var(--dur-fast) var(--ease-standard), text-decoration-color var(--dur-fast) var(--ease-standard);
 }
 
 .quiet-link:hover {
@@ -1280,35 +1344,34 @@
 
 /* avatar atölyesi hareketi: basışlar kısa geri bildirim verir, seçim halkası açılır, beliren
    öğeler yumuşakça gelir. Varsayılan hâl görünür; animasyon yalnızca "from" tanımlar. */
-.avatar-page {
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
 .avatar-page .segmented button,
 .avatar-page .wardrobe__slot,
 .avatar-page .wardrobe__wear,
 .avatar-page .wardrobe__save,
 .avatar-page .hud button {
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease,
-    opacity 150ms ease, transform 120ms var(--ease-out);
+  transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard),
+    opacity var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
 }
 
-.avatar-page .segmented button:active:not(:disabled),
+/* küçük seçenekler sitenin her yerinde aynı basışı alır */
+.segmented button,
+.choice-row button {
+  transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.segmented button:active:not(:disabled),
+.choice-row button:active:not(:disabled),
 .avatar-page .wardrobe__slot:has(.wardrobe__wear:active:not(:disabled)),
 .avatar-page .wardrobe__save:active,
 .avatar-page .hud button:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: var(--press-shrink);
 }
 
 .avatar-page .wardrobe__status > span,
 .avatar-page .wardrobe__save[data-done] .icon {
-  animation: avatarFade 200ms ease-out;
-}
-
-@keyframes avatarFade {
-  from {
-    opacity: 0;
-  }
+  animation: motion-fade var(--dur-state) var(--ease-out);
 }
 
 /* footer */
@@ -1317,7 +1380,7 @@
   border-top: 1px solid var(--header-border);
   background: var(--header-bg);
   color: var(--header-muted);
-  font-size: 14px;
+  font-size: var(--text-label);
 }
 
 /* tek satır: marka, yasal bağlantılar, telif; darda alt alta akar */
@@ -1387,9 +1450,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-btn {
-    transition: none;
-  }
+  /* düğme: renk ve gölge geçişi kalır; basıştaki yer değiştirme --press-sink ile zaten kapalı */
 
   /* atölye: yer değiştirme ve ölçek yok; renk geçişleri ve solma kalır */
   .avatar-page .segmented button:active,
@@ -1428,7 +1489,7 @@
   padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
   overflow: auto;
   border: 0;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
   background: var(--surface);
   box-shadow: 0 -14px 32px -18px rgba(40, 26, 12, 0.5);
   color: var(--text);
@@ -1439,7 +1500,7 @@
 }
 
 .sheet[open] {
-  animation: sheetUp 280ms var(--ease-out);
+  animation: sheetUp var(--dur-reveal) var(--ease-out);
 }
 
 @keyframes sheetUp {
@@ -1459,7 +1520,7 @@
 .sheet__note {
   margin: 0 0 12px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.4;
 }
 
@@ -1477,7 +1538,7 @@
   height: 44px;
   margin-right: -8px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-2);
   cursor: pointer;
@@ -1503,20 +1564,20 @@
   gap: 3px;
   min-height: 54px;
   padding: 4px;
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.15;
 }
 
 /* çalışma türü: oturmayan pozda yeri korunur */
 .sheet__sub {
   margin-top: 8px;
-  transition: opacity 160ms ease, visibility 0s linear 0s;
+  transition: opacity var(--dur-fast) var(--ease-standard), visibility 0s linear 0s;
 }
 
 .sheet__sub[data-off] {
   visibility: hidden;
   opacity: 0;
-  transition: opacity 120ms ease, visibility 0s linear 120ms;
+  transition: opacity var(--dur-press) var(--ease-exit), visibility 0s linear var(--dur-press);
 }
 
 .sheet .wardrobe {
@@ -1558,7 +1619,7 @@
 
   .hud--bottom {
     padding-left: 10px;
-    font-size: 14px;
+    font-size: var(--text-label);
   }
 
   .segmented button {
@@ -1681,7 +1742,7 @@
     min-width: 44px;
     min-height: 44px;
     padding: 0 8px;
-    font-size: 14px;
+    font-size: var(--text-label);
   }
 
   .site-header .site-header__tools {
@@ -1705,16 +1766,17 @@
   }
 }
 
+/* 375 px altı (320-374): dört sekme 196 px'e sığmalı; 14 px'te "Avatarım" düğmesinden taşıyordu */
 @media (max-width: 374px) {
   .site-nav:not(.site-nav--sections) button {
-    padding: 0 6px;
-    font-size: 13.5px;
+    padding: 0 4px;
+    font-size: var(--text-meta);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sheet[open] {
-    animation: avatarFade 160ms ease-out;
+    animation: motion-fade var(--dur-fast) var(--ease-out);
   }
 }
 
@@ -1825,8 +1887,8 @@
   line-gap-override: 0%;
 }
 
-/* Üç font, üç görev. Piksel (Pixelify Sans): sayfa başlığı (her sayfanın h1'i) ve bir değeri okutan kısa
-   yazı; tabela, sayaç, seçili değer. Space Grotesk: bölüm, kart ve alt sayfa başlığı. Inter: okunan ve
+/* İki font, iki görev. Piksel (Pixelify Sans): sayfa başlığı (her sayfanın h1'i) ve bir değeri okutan kısa
+   yazı; tabela, sayaç, seçili değer. Inter: bölüm, kart ve alt sayfa başlığı; okunan ve
    tıklanan her şey; gövde, açıklama, not, form etiketi (tabeladaki "Oda adı" dahil), karakter sayacı gibi
    yardım metni, seçenek ve düğme yazısı.
    Piksel ızgarası: bir font pikseli 92/1000 em. Yalnızca 11'in katlarında (22 / 33 / 44 / 55 px) bu tam
@@ -1931,7 +1993,7 @@
   background: var(--material-paper);
   box-shadow: 0 1px 2px rgba(40, 26, 12, 0.3);
   color: var(--sign-wood);
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
   line-height: 1.4;
   transform: translateX(-50%) rotate(1.2deg);
@@ -1996,7 +2058,7 @@
   gap: 16px;
   margin-top: var(--sign-room);
   padding: 20px;
-  border-radius: 20px;
+  border-radius: var(--radius-card);
   background: var(--grain), var(--surface);
   box-shadow: var(--card-edge);
 }
@@ -2101,7 +2163,7 @@
   padding-bottom: 16px;
   border-bottom: 1px solid var(--line);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.4;
 }
 
@@ -2130,7 +2192,7 @@
   }
 
   .create-room-page .theme-option__name {
-    font-size: 14px;
+    font-size: var(--text-label);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2191,7 +2253,7 @@
   gap: 2px;
   margin: 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.4;
 }
 
@@ -2218,7 +2280,7 @@
   color: var(--on-ring);
   opacity: 0;
   transform: scale(0.6);
-  transition: opacity 160ms ease, transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity var(--dur-fast) var(--ease-standard), transform var(--dur-state) var(--ease-out);
 }
 
 .theme-option__check .icon {
@@ -2272,11 +2334,10 @@
     display: contents;
   }
 
+  /* telefonda ayarlar kart değil, sahnenin altında düz bir bölüm: içindeki kapasite kutusu kart içinde
+     kart olmasın */
   .create-room__fields {
-    padding: 18px;
-    border-radius: 20px;
-    background: var(--grain), var(--surface);
-    box-shadow: var(--card-edge);
+    padding: 4px 0 0;
   }
 
   /* eylem çubuğu: akışta en son (tema listesinin altı), ekranın altına yapışır. Tek satır: mini önizleme,
@@ -2325,14 +2386,15 @@
     position: relative;
     display: block;
     width: 56px;
+    min-height: 44px; /* dokunma hedefi */
     padding: 0;
     overflow: hidden;
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-control-sm);
     background: var(--surface-sunken);
     box-shadow: inset 0 0 0 1px var(--line);
     cursor: pointer;
-    animation: miniSwap 320ms var(--ease-out);
+    animation: miniSwap var(--dur-reveal) var(--ease-out);
   }
 
   .create-room__mini-img img {
@@ -2351,10 +2413,10 @@
     align-items: center;
     gap: 2px;
     padding: 1px 5px 1px 3px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--surface);
     color: var(--text);
-    font-size: 11px;
+    font-size: var(--text-micro);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     line-height: 16px;
@@ -2366,7 +2428,7 @@
     gap: 1px;
     align-self: center;
     min-width: 0;
-    font-size: 13px;
+    font-size: var(--text-meta);
     line-height: 1.35;
   }
 
@@ -2378,7 +2440,7 @@
 
   .create-room__summary-name {
     color: var(--text);
-    font-size: 14px;
+    font-size: var(--text-label);
     font-weight: 650;
   }
 
@@ -2446,7 +2508,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .theme-option__check {
-    transition: opacity 160ms ease;
+    transition: opacity var(--dur-fast) var(--ease-standard);
     transform: none;
   }
 }
@@ -2527,7 +2589,7 @@
   min-height: 1.4em;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.4;
 }
 
@@ -2605,7 +2667,7 @@
   max-width: 100%;
   margin: 8px auto 0;
   padding: 3px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-block);
   background: var(--material-paper);
   box-shadow: 0 1px 2px rgba(40, 26, 12, 0.3);
   color: #4a3a2c;
@@ -2626,6 +2688,7 @@
 
 @media (max-width: 900px) {
   .field.create-room__sign .door-sign__plate textarea {
+    min-height: 44px; /* tek satırlık ad bile 44 px dokunma hedefi */
     padding: 10px 0 8px;
   }
 
@@ -2654,7 +2717,7 @@
 
 .tile__thumb img,
 .theme-option__img img {
-  transition: opacity 200ms ease-out;
+  transition: opacity var(--dur-state) var(--ease-out);
 }
 
 .tile__thumb[data-state='loading'] img,
@@ -2757,7 +2820,7 @@
   background: rgba(180, 67, 47, 0.1);
   box-shadow: inset 0 0 0 1px rgba(180, 67, 47, 0.35);
   color: #8a2f1f;
-  font-size: 14px;
+  font-size: var(--text-label);
   line-height: 1.45;
 }
 

@@ -30,7 +30,7 @@ function SessionCard({ isDark, onToggleMode, onLogout }) {
         <button type="button" className="site-btn" onClick={onToggleMode}>
           {isDark ? 'Açık moda geç' : 'Koyu moda geç'}
         </button>
-        <button type="button" className="site-btn" onClick={onLogout}>
+        <button type="button" className="site-btn account__logout" onClick={onLogout}>
           Çıkış yap
         </button>
       </div>
@@ -72,6 +72,10 @@ function inputProps(id, errors, key) {
   }
 }
 
+const PROFILE_COPY = {
+  noChange: 'Değişiklik yok. Bir alanı düzenleyince Kaydet açılır.',
+}
+
 function ProfileCard({ user, onUserChange }) {
   const f = useForm({ displayName: user.displayName, username: user.username })
   const changed = f.form.displayName.trim() !== user.displayName || f.form.username !== user.username
@@ -109,10 +113,18 @@ function ProfileCard({ user, onUserChange }) {
         </Field>
         {f.errors.form && <div className="form-alert" role="alert">{f.errors.form}</div>}
         <div className="account__actions">
-          <button type="submit" className="site-btn site-btn--primary" disabled={!changed}>
+          <button type="submit" className="site-btn site-btn--primary" disabled={!changed} aria-describedby={!changed && !f.saved ? 'profilNoChange' : undefined}>
             Kaydet
           </button>
-          <Saved text={f.saved} />
+          {f.saved ? (
+            <Saved text={f.saved} />
+          ) : (
+            !changed && (
+              <p id="profilNoChange" className="account__nochange">
+                {PROFILE_COPY.noChange}
+              </p>
+            )
+          )}
         </div>
       </form>
     </section>
