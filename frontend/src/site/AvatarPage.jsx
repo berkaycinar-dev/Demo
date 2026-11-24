@@ -234,20 +234,24 @@ const SAVE_ANNOUNCE_MS = 1200
 const SAVE_TEXT = { ok: 'Kaydedildi', failed: 'Kaydedilemedi: tarayıcı depolaması dolu ya da kapalı. Avatar yalnızca bu oturumda duracak.' }
 function useSaveAnnouncer() {
   const [message, setMessage] = useState('')
+  // Görünür damga: her kayıtta yeniden oynar (id), kendiliğinden söner.
+  const [stamp, setStamp] = useState(null)
   const timer = useRef(null)
   useEffect(() => () => clearTimeout(timer.current), [])
   const announce = (ok) => {
     clearTimeout(timer.current)
     setMessage('')
+    setStamp({ id: Date.now(), ok: ok !== false })
     timer.current = setTimeout(() => setMessage(ok === false ? SAVE_TEXT.failed : SAVE_TEXT.ok), SAVE_ANNOUNCE_MS)
   }
-  return [message, announce]
+  return [message, announce, stamp]
 }
 
 // Avatarım: avatar atölyesi. Solda canlı 3D önizleme (poz ve çalışma türü seçilir; kamera seçilen
 // bölgeye yaklaşır), geri al / ileri al ve kombin slotları; sağda karakter menüsü (CharacterMenu). Her
 // değişiklik hemen kaydedilir; odalarda "Sen" olarak bu avatar oturur.
-export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
+// fallbackName: boş ad bırakılınca kullanılan ad (hesabın görünen adı).
+export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName = DEFAULT_AVATAR.name }) {
   const [mode, setMode] = useState('focus')
   const [activity, setActivity] = useState('read')
   const [zone, setZone] = useState('full')
@@ -274,9 +278,9 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [history, setHistory] = useState({ past: [], future: [], last: null })
   // sınırı aşan görünen ad: kaydedilmez, kısaltılana dek alanda bu taslak durur
   const [nameDraft, setNameDraft] = useState(null)
-  const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan odadakiler seni “${DEFAULT_AVATAR.name}” adıyla görür.`)
+  const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan odadakiler seni “${fallbackName}” adıyla görür.`)
 
-  const [saveMessage, announceSave] = useSaveAnnouncer()
+  const [saveMessage, announceSave, saveStamp] = useSaveAnnouncer()
   // onChange kaydeder; false dönerse depolama yazılamadı
   const save = (next) => announceSave(onChange(next))
   const commit = (next, key = null) => {
@@ -378,7 +382,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           commit({ ...avatar, name: v }, 'name')
         }}
         onBlur={() => {
-          if (nameDraft === null && !avatar.name.trim()) commit({ ...avatar, name: DEFAULT_AVATAR.name }, 'name')
+          if (nameDraft === null && !avatar.name.trim()) commit({ ...avatar, name: fallbackName }, 'name')
         }}
       />
       <NameHint id="avatar-name-hint" status={nameState} max={NAME_MAX} />
@@ -391,7 +395,15 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
       <div className="avatar-workshop__head">
         <div>
           <h1>Avatar atölyesi</h1>
-          <p className="site-muted">Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.</p>
+          <p className="site-muted">
+            Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.
+            {saveStamp && (
+              <span key={saveStamp.id} className="save-stamp" data-ok={saveStamp.ok ? '' : undefined} aria-hidden="true">
+                {saveStamp.ok && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>}
+                {saveStamp.ok ? SAVE_TEXT.ok : SAVE_TEXT.failed}
+              </span>
+            )}
+          </p>
           <p className="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
             {saveMessage}
           </p>

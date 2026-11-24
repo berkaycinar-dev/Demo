@@ -89,13 +89,28 @@ function StageBar({ timer }) {
   )
 }
 
+// Varış levhası: odaya yeni girince sahnenin üstünde tabela ahşabından bir levha ~1.5 sn durur, sonra
+// kendiliğinden kalkar. Bilgi ekran okuyucuya sayfa başlığından gelir (odak oda adına taşınır); levha
+// görsel bir yankıdır, aria-hidden. "Hareketi azalt"ta kaymadan, yalnızca belirip söner.
+function ArrivalSign({ lead, name }) {
+  const [shown, setShown] = useState(true)
+  if (!shown) return null
+  return (
+    <div className="stage__arrival" aria-hidden="true" onAnimationEnd={() => setShown(false)}>
+      <span className="stage__arrival-lead">{lead}</span>
+      <span className="stage__arrival-name">{name}</span>
+    </div>
+  )
+}
+
 // Oda sayfalarının düzeni: oda sahnesi header'ın altındaki alanın tamamını kaplar, sayfa kaymaz (arka plan
 // odanın kendi rengi), sağda yüzen bir panel durur. Odak modunda sayfa tam ekran olur; header,
 // footer ve panelin geri kalanı gizlenir, yalnızca oda ve focusPanel kalır.
 //
 // renderRoom(canvasStyle): odayı çizer; canvasStyle, 3D sahneyi panelin solunda kalan alana sığdırır.
 // timer verilirse telefonda ekranın altında sayaç çubuğu çıkar (odak modunda panelin kendisi sayaçtır).
-export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, onFocusModeChange, timer }) {
+// arrival ({ lead, name }) verilirse odaya yeni girildiği için varış levhası gösterilir.
+export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, onFocusModeChange, timer, arrival }) {
   const roomRef = useRef(null)
   const { tone, color } = useRoomTone(roomRef)
 
@@ -123,6 +138,7 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
     <div className={`stage${focusMode ? ' stage--focus' : ''}`} style={color ? { '--stage-bg': color } : undefined}>
       <div className="stage__room" ref={roomRef}>
         {renderRoom({ width: 'var(--stage-canvas-w, 100%)' })}
+        {arrival && !focusMode && <ArrivalSign lead={arrival.lead} name={arrival.name} />}
       </div>
       <aside className="stage__panel" data-tone={focusMode ? tone : undefined} aria-label={focusMode ? 'Sayaç' : 'Oda paneli'}>
         {focusMode ? (

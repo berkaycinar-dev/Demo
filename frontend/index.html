@@ -3,14 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
-    />
+    <meta name="theme-color" content="#fffdf9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#2c2824" media="(prefers-color-scheme: dark)" />
     <title>Odakhane</title>
+    <meta name="description" content="Kamerasız birlikte çalışma odaları: avatarınla bir odaya otur, pomodoro sayacını başlat, başkalarıyla aynı odada odaklan." />
+    <!-- paylaşım önizlemesi: görsel scripts/render-brand-assets.mjs ile üretilir. Site bir alan adında
+         yayınlanınca og:image tam adrese çevrilmeli (bazı platformlar göreli yolu okumaz). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Odakhane" />
+    <meta property="og:locale" content="tr_TR" />
+    <meta property="og:title" content="Odakhane · Birlikte çalışınca odaklanmak kolaylaşır" />
+    <meta property="og:description" content="Kamerasız, sessiz, birlikte: avatarınla bir odaya otur, sayacını başlat." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Odakhane: akşam ışığında izometrik kütüphane odası ve “Birlikte çalışınca odaklanmak kolaylaşır.” başlığı" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/og-image.png" />
   </head>
   <body>
     <div id="root"></div>

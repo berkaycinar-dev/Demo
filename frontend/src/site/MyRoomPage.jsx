@@ -8,15 +8,25 @@ import RoomStage, { FocusModeButton, FocusModeNote } from './RoomStage'
 import TimerCard from './TimerCard'
 import { formatMinutes } from './usePomodoro'
 import Dotted from './Dotted'
+import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
 
-const MY_STATUSES = [
-  { id: 'focus', label: 'Odakta' },
-  { id: 'break', label: 'Molada' },
-  { id: 'away', label: 'Uzakta' },
-]
+const STATUS_LABELS = { focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
 
-const STATUS_LABELS = Object.fromEntries(MY_STATUSES.map((s) => [s.id, s.label]))
+// Durum sayaçtan gelir (odak bloku: Odakta, mola: Molada); elle yalnızca Uzakta seçilir.
+const STATUS_COPY = {
+  label: 'Durumun',
+  fromTimer: 'Sayaçla değişir.',
+  away: 'Uzaktayım',
+  awayNote: 'Döndüğünde tekrar bas.',
+  // molada değilken seçilen mola yeri: sıradaki molada oraya gidilir
+  nextBreak: 'Mola başlayınca buraya geçersin.',
+}
+
+// Odaya varış ve odadan çıkış metinleri. Sayılar ayrı değişken; çeviride sıra değişebilir.
+const ROOM_MOTION_COPY = {
+  arriveLead: 'Odaya girdin',
+}
 
 // Mola yeri seçicisinin metinleri. Çeviride sıra değişebilsin diye sayı ve ad ayrı değişkendir.
 const SPOT_COPY = {
@@ -137,7 +147,7 @@ function spotOptions(spots) {
 
 // Mola yerini dokunmadan seçme yolu: yerel seçim listesi (klavye, ekran okuyucu, liste). Seçmek molaya
 // geçirir; zemindeki halkaya tıklamakla aynı iş. Etiketteki halka işareti odadaki halkaların lejantı.
-function SpotPicker({ spots, value, onPick }) {
+function SpotPicker({ spots, value, onPick, note }) {
   const id = useId()
   const options = useMemo(() => spotOptions(spots), [spots])
   if (options.length === 0) return null
@@ -174,11 +184,12 @@ function SpotPicker({ spots, value, onPick }) {
           <path d="M6 9l6 6 6-6" />
         </svg>
       </span>
+      {note && <p className="spot-picker__note">{note}</p>}
     </div>
   )
 }
 
-function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }) {
+function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
   const [spot, setSpot] = useState(null)
   const [spots, setSpots] = useState([])
   const [names, setNames] = useState(false)
@@ -192,7 +203,19 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
   const codeRef = useRef(null)
   const copyTimer = useRef(0)
   const now = useClock(30000)
-  const { label, Room } = THEMES[room.theme]
+  // Odaya girişteki sayaç özeti: çıkarken bu oturumun fişi (blok, odak dakikası, odada kalınan süre)
+  // bununla farkı alınarak çıkarılır.
+  const [entry] = useState(() => ({ blocks: timer.stats.pomodoros, minutes: timer.stats.minutes, at: Date.now() }))
+  const leave = () => {
+    const e = entry
+    onLeave({
+      blocks: Math.max(0, timer.stats.pomodoros - e.blocks),
+      minutes: Math.max(0, timer.stats.minutes - e.minutes),
+      stay: Math.max(0, Math.round((Date.now() - e.at) / 60000)),
+    })
+  }
+  const { Room } = THEMES[room.theme]
+  const [away, setAway] = useState(false)
   const { occupants, setMyStatus, myStatus } = useRoomPeople({
     capacity: room.capacity,
     seed: seedOf(room.id),
@@ -200,10 +223,12 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     cheer: timer.completed,
   })
 
-  // Sayaç aşama değiştirince avatar da değişir (elle seçilen durum bir sonraki aşamaya kadar kalır).
+  // Durum sayacın aşamasından türer: molada mola yerine (seçildiyse oraya) yürür, aksi hâlde masada.
+  // Uzakta elle seçilir ve sayaçtan önce gelir.
+  const derived = away ? 'away' : timer.phase === 'break' ? 'break' : 'focus'
   useEffect(() => {
-    if (timer.running) setMyStatus(timer.phase === 'break' ? 'break' : 'focus')
-  }, [timer.phase, timer.running, setMyStatus])
+    setMyStatus(derived, derived === 'break' ? (spot?.id ?? null) : null)
+  }, [derived, spot, setMyStatus])
 
   // Varsayılan liste: şu an buradakiler, odadaki sırayla (sen en üstte). Kimse puanlanmaz; ürün
   // gözetim değil, varlık. Bugünkü odak süresi isteğe bağlı ikinci görünüm: oda arkadaşlarınınki
@@ -246,21 +271,11 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
     navigator.clipboard.writeText(room.code).then(() => flash('ok', 1600), copyFailed)
   }
 
-  const goToSpot = (s) => {
-    setSpot(s)
-    setMyStatus('break', s.id)
-  }
-  const pickSpot = (value) => {
-    if (value === 'nearest') {
-      setSpot(null)
-      setMyStatus('break')
-      return
-    }
-    const s = spots.find((x) => x.id === value)
-    if (s) goToSpot(s)
-  }
-  // Moladayken seçili yer; elle yer seçilmediyse "en yakın boş yer". Molada değilken boş.
-  const spotValue = myStatus === 'break' ? (spot?.id ?? 'nearest') : ''
+  // Mola yeri seçmek molayı başlatmaz: molada o yere yürünür, değilse sıradaki molada.
+  const goToSpot = (s) => setSpot(s)
+  const pickSpot = (value) => setSpot(value === 'nearest' ? null : (spots.find((x) => x.id === value) ?? null))
+  // Seçili yer; seçilmediyse "en yakın boş yer".
+  const spotValue = spot?.id ?? 'nearest'
   const togglePeople = () => {
     if (!peopleOpen) setPeopleView('here')
     setPeopleOpen((v) => !v)
@@ -273,15 +288,18 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
   // bağlı görünüm).
   const panel = (
     <>
-      <div className="stage-card stage-card--head">
+      <div className="stage-card stage-card--head material-sign">
         <div>
           <RoomTitle name={room.name} />
           <p className="site-muted">
-            <Dotted parts={[label, `${room.capacity} kişilik`, accessLabel(room.access)]} keep />
+            <Dotted parts={[<ThemeLabel key="t" theme={room.theme} />, `${room.capacity} kişilik`, accessLabel(room.access)]} keep />
           </p>
           {room.code && (
             <p className="invite-code">
-              Davet kodu <code ref={codeRef}>{room.code}</code>
+              Davet kodu{' '}
+              <code ref={codeRef} key={copy === 'ok' ? 'copied' : 'code'} data-copied={copy === 'ok' ? '' : undefined}>
+                {room.code}
+              </code>
               <button type="button" className="link-btn" onClick={copyCode}>
                 {copy === 'ok' ? 'Kopyalandı' : 'Kopyala'}
               </button>
@@ -293,30 +311,26 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
           )}
         </div>
         <div className="stage-card__status">
-          <span className="field__label">Durumun</span>
-          <div className="choice-row" role="group" aria-label="Durumun">
-            {MY_STATUSES.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`status-chip roster__item--${s.id}`}
-                aria-pressed={myStatus === s.id}
-                onClick={() => {
-                  setMyStatus(s.id)
-                  if (s.id !== 'break') setSpot(null)
-                }}
-              >
+          <span className="field__label">{STATUS_COPY.label}</span>
+          <div className="status-line">
+            <span className={`status-now roster__item--${myStatus}`} role="status">
+              <span className="roster__dot" aria-hidden="true" />
+              {STATUS_LABELS[myStatus]}
+            </span>
+            <span className="status-line__note">{away ? STATUS_COPY.awayNote : STATUS_COPY.fromTimer}</span>
+            <span className="choice-row status-line__away">
+              <button type="button" className="status-chip roster__item--away" aria-pressed={away} onClick={() => setAway((v) => !v)}>
                 <span className="roster__dot" aria-hidden="true" />
-                {s.label}
+                {STATUS_COPY.away}
               </button>
-            ))}
+            </span>
           </div>
-          <SpotPicker spots={spots} value={spotValue} onPick={pickSpot} />
+          <SpotPicker spots={spots} value={spotValue} onPick={pickSpot} note={myStatus !== 'break' && spot ? STATUS_COPY.nextBreak : null} />
         </div>
         <div>
           <div className="stage-card__actions">
             <FocusModeButton onClick={() => onFocusModeChange(true)} />
-            <button type="button" className="site-btn" onClick={onLeave}>
+            <button type="button" className="site-btn" onClick={leave}>
               Odadan çık
             </button>
           </div>
@@ -390,11 +404,14 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange }
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
       timer={timer}
+      arrival={arriving ? { lead: ROOM_MOTION_COPY.arriveLead, name: room.name } : null}
       renderRoom={(canvasStyle) => (
         <Room
           capacity={room.capacity}
           canvasStyle={canvasStyle}
-          hint="Halkaya tıkla: mola yerine git · Sürükle: döndür"
+          arrive={arriving}
+          lampBoost={timer.running && timer.phase === 'focus'}
+          hint="Halkaya tıkla: mola yerini seç · Sürükle: döndür"
           controls={
             <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>
               İsimler

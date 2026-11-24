@@ -4,6 +4,7 @@ import { accessLabel } from './access'
 import { codeMatches } from './roomStore'
 import RoomShot from './RoomShot'
 import Dotted from './Dotted'
+import ThemeLabel from './ThemeLabel'
 
 const LockIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -25,7 +26,6 @@ function sinceText(at) {
 // "Kodla gir" düğmesi; tıklayınca kod sorulur.
 function RoomCard({ room, onAction }) {
   const locked = room.access === 'invite'
-  const { label } = THEMES[room.theme]
   return (
     <li className="room-card">
       <span className="room-card__shot">
@@ -33,16 +33,12 @@ function RoomCard({ room, onAction }) {
       </span>
       <div className="room-card__body">
         <div className="room-card__top">
-          <span className="room-card__theme">{label}</span>
-          {locked ? (
+          <ThemeLabel theme={room.theme} className="room-card__theme" />
+          {/* açık oda rozet taşımaz (bölüm başlığı zaten "Aktif odalar"); yalnızca gizli oda işaretlenir */}
+          {locked && (
             <span className="tag tag--lock">
               <LockIcon />
               Gizli
-            </span>
-          ) : (
-            <span className="tag tag--live">
-              <i className="live-dot" aria-hidden="true" />
-              Aktif
             </span>
           )}
         </div>
@@ -94,7 +90,7 @@ function CodeDialog({ room, onClose, onSuccess }) {
   const submit = (e) => {
     e.preventDefault()
     if (!codeMatches(room, code)) {
-      setError('Kod hatalı. Odanın sahibinden aldığın davet kodunu kontrol et.')
+      setError(CODE_COPY.wrong)
       inputRef.current?.select()
       return
     }
@@ -162,6 +158,13 @@ function CodeDialog({ room, onClose, onSuccess }) {
   )
 }
 
+// Davet kodu metinleri: hatalar kodun biçimini de söyler (kelime, tire, dört rakam).
+const CODE_COPY = {
+  format: 'Kod bir kelime, tire ve dört rakamdır; ör. ORMAN-2741. Büyük/küçük harf fark etmez.',
+  wrong: 'Kod bu odaya ait değil. Biçim: kelime, tire, dört rakam (ör. ORMAN-2741).',
+  notFound: 'Bu kodla bir oda bulunamadı. Biçim: kelime, tire, dört rakam (ör. ORMAN-2741).',
+}
+
 // Davet koduyla doğrudan katılma: kod hangi gizli odaya aitse ona girer.
 function CodeJoin({ rooms, onEnter }) {
   const [code, setCode] = useState('')
@@ -170,7 +173,7 @@ function CodeJoin({ rooms, onEnter }) {
     e.preventDefault()
     const room = rooms.find((r) => codeMatches(r, code))
     if (!room) {
-      setError('Bu kodla bir oda bulunamadı.')
+      setError(CODE_COPY.notFound)
       return
     }
     setCode('')
@@ -196,7 +199,7 @@ function CodeJoin({ rooms, onEnter }) {
         aria-describedby={error ? 'lobbyCode-err' : undefined}
       />
       <button type="submit" className="site-btn site-btn--primary" disabled={!code.trim()}>
-        Katıl
+        Gir
       </button>
       {error && (
         <span id="lobbyCode-err" className="form-error lobby-code__error" role="alert">
@@ -222,10 +225,113 @@ const PlusIcon = () => (
 const trLower = (t) => t.toLocaleLowerCase('tr')
 const pickRandom = (list) => list[Math.floor(Math.random() * list.length)]
 
+// Hızlı katılım ve çıkış fişi metinleri. Sayılar ayrı değişken; çeviride sıra değişebilir.
+const QUICK_COPY = {
+  idle: 'Hızlı gir',
+  going: 'Seni bu odaya götürüyoruz',
+  now: 'Hemen gir',
+  other: 'Başka oda',
+  cancel: 'Vazgeç',
+  announce: (name) => `Seni bu odaya götürüyoruz: ${name}. Vazgeçmek için Esc.`,
+}
+const RECEIPT_COPY = {
+  title: 'Odadan çıktın',
+  session: 'Bu oturum',
+  blocks: (n) => `${n} blok`,
+  minutes: (n) => `${n} dk odak`,
+  stay: (n) => (n < 1 ? 'Odada 1 dakikadan az kaldın.' : `Odada ${n} dk kaldın.`),
+  again: 'Tekrar gir',
+  close: 'Kapat',
+}
+// Hızlı katılımda odaya geçmeden önce oda adının görünür kaldığı süre (Hemen gir ile kısalır).
+const QUICK_MS = 1600
+
+// Hızlı katılım: rastgele seçilen oda girmeden önce söylenir; süre dolunca girilir. Başka oda seçilebilir
+// ya da vazgeçilebilir (Esc de vazgeçer). Şerit kalan süreyi gösterir; "hareketi azalt"ta şerit durur,
+// süre aynı kalır.
+function QuickJoin({ rooms, onEnter }) {
+  const [room, setRoom] = useState(null)
+  const timer = useRef(0)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const schedule = (next) => {
+    clearTimeout(timer.current)
+    setRoom(next)
+    if (next) timer.current = setTimeout(() => onEnter(next), QUICK_MS)
+  }
+  const pick = () => schedule(pickRandom(rooms.length > 1 && room ? rooms.filter((r) => r.id !== room.id) : rooms))
+  const cancel = () => schedule(null)
+  const enterNow = () => {
+    clearTimeout(timer.current)
+    onEnter(room)
+  }
+  return (
+    <div className="quick-join" onKeyDown={(e) => e.key === 'Escape' && room && cancel()}>
+      <button type="button" className="site-btn site-btn--primary site-btn--lg" onClick={room ? enterNow : pick} disabled={!rooms.length}>
+        <BoltIcon />
+        {room ? QUICK_COPY.now : QUICK_COPY.idle}
+      </button>
+      <span className="sr-only" role="status">
+        {room ? QUICK_COPY.announce(room.name) : ''}
+      </span>
+      <div className="quick-join__status">
+        {room && (
+          <div key={room.id} className="quick-join__card">
+            <span className="quick-join__lead">{QUICK_COPY.going}</span>
+            <strong className="quick-join__name">{room.name}</strong>
+            <span className="quick-join__meta">
+              <Dotted parts={[<ThemeLabel key="t" theme={room.theme} />, `${room.capacity} kişilik`]} keep />
+            </span>
+            <span className="quick-join__fuse" style={{ '--fuse-ms': `${QUICK_MS}ms` }} aria-hidden="true" />
+            <span className="quick-join__actions">
+              {rooms.length > 1 && (
+                <button type="button" className="link-btn" onClick={pick}>
+                  {QUICK_COPY.other}
+                </button>
+              )}
+              <button type="button" className="link-btn" onClick={cancel}>
+                {QUICK_COPY.cancel}
+              </button>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Odadan çıkış fişi: çıkılan odanın adı ve bu oturumda sayılan bloklar, odak dakikası, odada kalınan
+// süre. Odak buraya taşınır (data-autofocus); "Tekrar gir" aynı odaya döner.
+function LeaveReceipt({ receipt, onEnter, onClose }) {
+  const { room, blocks, minutes, stay } = receipt
+  return (
+    <section className="leave-receipt" aria-labelledby="fisBaslik">
+      <div className="leave-receipt__text">
+        <h2 id="fisBaslik" data-autofocus>
+          {RECEIPT_COPY.title}
+          <span className="leave-receipt__room">{room.name}</span>
+        </h2>
+        <p>
+          <span className="leave-receipt__label">{RECEIPT_COPY.session}:</span>{' '}
+          <Dotted parts={[RECEIPT_COPY.blocks(blocks), RECEIPT_COPY.minutes(minutes)]} keep />
+        </p>
+        <p className="site-muted">{RECEIPT_COPY.stay(stay)}</p>
+      </div>
+      <div className="leave-receipt__actions">
+        <button type="button" className="site-btn" onClick={() => onEnter(room)}>
+          {RECEIPT_COPY.again}
+        </button>
+        <button type="button" className="link-btn" onClick={onClose}>
+          {RECEIPT_COPY.close}
+        </button>
+      </div>
+    </section>
+  )
+}
+
 // Lobi: odalarla ilgili her şey tek sayfada. Üstte hızlı katılma ve oda oluşturma; ortada
 // aranabilir aktif odalar ve altında gizli odalar; yanda davet koduyla katılma ve son katıldıkların.
 // Gizli odaya listeden girerken kod sorulur; daha önce katıldığın odaya geçmişten kodsuz girilir.
-export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }) {
+export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
   const open = rooms.filter((r) => r.access === 'public')
@@ -238,36 +344,20 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
   const shown = open.filter(matches)
   const shownHidden = hidden.filter(matches)
 
-  const quickJoin = () => {
-    if (open.length) onEnter(pickRandom(open))
-  }
-
   return (
     <>
-      <section className="site-card lobby-hero" aria-labelledby="lobiBaslik">
-        <div className="lobby-hero__text">
-          <h1 id="lobiBaslik">Birlikte çalışacak bir oda seç</h1>
-          <p className="site-muted">Açık bir odaya hemen katıl, davet koduyla gizli bir odaya gir ya da kendi odanı kur.</p>
-          <div className="lobby-hero__stats">
-            <span>
-              <i className="live-dot" aria-hidden="true" />
-              {open.length} aktif oda
-            </span>
-            <span>{hidden.length} gizli oda</span>
-            {history.length > 0 && <span>{history.length} odaya katıldın</span>}
-          </div>
-        </div>
-        <div className="lobby-hero__actions">
-          <button type="button" className="site-btn site-btn--primary site-btn--lg" onClick={quickJoin} disabled={!open.length}>
-            <BoltIcon />
-            Hızlı odaya katıl
-          </button>
+      {receipt && <LeaveReceipt receipt={receipt} onEnter={onEnter} onClose={onCloseReceipt} />}
+      {/* sayfanın başı yalnızca başlık ve iki eylem: kart, zemin süsü ve sayı hapları yok; odalar sayfanın kendisi */}
+      <header className="lobby-head">
+        <h1 id="lobiBaslik">Birlikte çalışacak bir oda seç</h1>
+        <div className="lobby-head__actions">
+          <QuickJoin rooms={open} onEnter={onEnter} />
           <button type="button" className="site-btn site-btn--lg" onClick={onCreate}>
             <PlusIcon />
             Oda oluştur
           </button>
         </div>
-      </section>
+      </header>
 
       <div className="lobby">
         <section className="lobby__main" aria-labelledby="aktifBaslik">
@@ -318,16 +408,16 @@ export default function LobbyPage({ rooms, joined, onEnter, onForget, onCreate }
 
         <aside className="lobby__side" aria-label="Davet kodu ve geçmiş">
           <section className="site-card lobby-panel" aria-labelledby="kodBaslik">
-            <h2 id="kodBaslik">Davet koduyla katıl</h2>
-            <p className="site-muted">Gizli bir odanın kodunu aldıysan buraya yaz.</p>
+            <h2 id="kodBaslik">Davet koduyla gir</h2>
+            <p className="site-muted">Gizli bir odanın kodunu aldıysan buraya yaz. {CODE_COPY.format}</p>
             <CodeJoin rooms={rooms} onEnter={onEnter} />
           </section>
 
           <section className="site-card lobby-panel" aria-labelledby="katildigimBaslik">
-            <h2 id="katildigimBaslik">Son katıldıkların</h2>
+            <h2 id="katildigimBaslik">Son girdiğin odalar</h2>
             {history.length === 0 ? (
               <div className="empty-note">
-                <p>Katıldığın odalar burada listelenir; tekrar girmek tek tık.</p>
+                <p>Girdiğin odalar burada listelenir; tekrar girmek tek tık.</p>
               </div>
             ) : (
               <ul className="lobby-list">

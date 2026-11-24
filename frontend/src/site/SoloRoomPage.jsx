@@ -8,9 +8,13 @@ import RoomStage, { FocusModeButton, FocusModeNote } from './RoomStage'
 import TimerCard from './TimerCard'
 import { swatchOf } from './themeLook'
 import Dotted from './Dotted'
+import ThemeLabel from './ThemeLabel'
 
 // Odam: tek kişilik kişisel oda. Sağda sayaç ve oda ayarları (tasarım, ortam sesi).
-export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusModeChange }) {
+// Varış levhasının metni (bkz. RoomStage).
+const ARRIVE_LEAD = 'Odana girdin'
+
+export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusModeChange, arriving }) {
   const [settings, setSettings] = useState(() => loadMyRoom(user))
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { label, Room } = THEMES[settings.theme]
@@ -20,7 +24,7 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
 
   // Sayaç avatarı yönetir: odakta masada, molada mola yerinde.
   useEffect(() => {
-    setMyStatus(timer.phase === 'break' && timer.running ? 'break' : 'focus')
+    setMyStatus(timer.phase === 'break' ? 'break' : 'focus')
   }, [timer.phase, timer.running, setMyStatus])
 
   // Ortam sesi bu sayfadayken çalar; sayfadan çıkınca susar.
@@ -40,9 +44,12 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
 
   const panel = (
     <>
-      <div className="stage-card stage-card--head">
+      <div className="stage-card stage-card--head material-sign">
         <div>
-          <h1 className="stage-card__title">{label}</h1>
+          <h1 className="stage-card__title">
+            <ThemeLabel theme={settings.theme} markOnly />
+            {label}
+          </h1>
           <p className="site-muted">Tek kişilik, yalnızca sana ait.</p>
         </div>
         <div>
@@ -129,8 +136,9 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
       timer={timer}
+      arrival={arriving ? { lead: ARRIVE_LEAD, name: label } : null}
       renderRoom={(canvasStyle) => (
-        <Room capacity={1} canvasStyle={canvasStyle}>
+        <Room capacity={1} canvasStyle={canvasStyle} arrive={arriving} lampBoost={timer.running && timer.phase === 'focus'}>
           <AvatarCrowd occupants={occupants} theme={settings.theme} />
         </Room>
       )}

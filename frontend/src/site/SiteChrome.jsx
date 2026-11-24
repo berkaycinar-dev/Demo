@@ -60,6 +60,8 @@ function useHeaderHeight() {
 
 // Tek yapı: marka · (oturumluysa) sayfa menüsü · araçlar [mod, sonra hesap ya da giriş/kayıt].
 // Hangi sayfada olunursa olunsun aynı öğeler aynı yerde durur.
+const QUIET_CTA = new Set(['anasayfa', 'giris', 'kayit'])
+
 // wide: oda sayfalarında sahne tam genişlik; header da sayfa kabına değil sahnenin kenarına hizalanır.
 export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, isDark, onToggleMode, wide = false }) {
   const ref = useHeaderHeight()
@@ -109,7 +111,8 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
             <button type="button" className="header-link" aria-current={page === 'giris' ? 'page' : undefined} onClick={() => onGo('giris')}>
               Giriş yap
             </button>
-            <button type="button" className="site-btn site-btn--primary header-cta" onClick={() => onGo('kayit')}>
+            {/* tanıtım ve giriş/kayıt sayfalarında birincil eylem sayfanın kendisinde: üstteki düğme sakin kalır */}
+            <button type="button" className={`site-btn header-cta${QUIET_CTA.has(page) ? '' : ' site-btn--primary'}`} onClick={() => onGo('kayit')}>
               Kayıt ol
             </button>
           </>

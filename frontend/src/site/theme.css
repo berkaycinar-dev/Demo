@@ -40,11 +40,42 @@
 }
 
 :root {
+  /* İki aile: Pixelify Sans (başlık ve bir değeri okutan kısa yazı; site.css --font-pixel) ve Inter
+     (geri kalan her şey). Rol adları kalır, hepsi Inter'e çözülür; rolü font değil, boyut ve ağırlık
+     taşır. Dış font CDN'i yok: her şey kendi sunucumuzdan. */
   --font-body: Inter, 'Inter Fallback', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Space Grotesk', Inter, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  /* sayılar (sayaç, istatistik, sıralama): düz sıfır, eşit genişlikte rakamlar */
-  --font-numeric: 'Space Grotesk', Inter, system-ui, sans-serif;
+  --font-display: var(--font-body);
+  /* kod ve davet kodu: Inter + eğik sıfır ve eşit genişlikte rakam (bkz. --code-features) */
+  --font-mono: var(--font-body);
+  --code-features: 'zero' 1, 'tnum' 1;
+  /* sayılar (sayaç, istatistik, sıralama): eşit genişlikte rakamlar; bkz. font-variant-numeric */
+  --font-numeric: var(--font-body);
+
+  /* yazı ölçeği: rol başına bir boyut. Gövde 16 px; okunan piksel yazı ayrı ölçekte (site.css --pixel-*).
+     Ara boyut (11.5, 13.5, 17, 19…) kullanılmaz; sayaç ve istatistik rakamları kendi bileşeninde. */
+  --text-micro: 12px; /* yalnızca simgeli sekme etiketi ve küçük rozet */
+  --text-meta: 13px; /* sahne üstü ipucu, zaman damgası, kısa not */
+  --text-label: 14px; /* form etiketi, yardım metni, ikincil satır, çip */
+  --text-control: 15px; /* düğme ve gezinme yazısı */
+  --text-body: 16px; /* gövde */
+  --text-lead: 18px; /* giriş paragrafı, küçük panel başlığı */
+  --text-title-s: 20px; /* kart ve bölüm başlığı (h3) */
+  --text-title: 24px; /* sayfa içi başlık (h2) */
+  --text-title-l: 28px; /* tek başına duran başlık (giriş sayfası marka bloğu) */
+  /* hareket: süre mesafeyi ve sonucu söyler; çıkış girişten hızlıdır. Bütün geçişler bu token'lardan
+     gelir (site.css, pages.css, CharacterMenu.css). Döngüler (iskelet ışıltısı, canlı nokta) ayrı. */
+  --dur-press: 120ms; /* basış ve çıkış: anında geri bildirim */
+  --dur-fast: 150ms; /* renk, kenar, opaklık: rutin durum değişimi */
+  --dur-state: 200ms; /* küçük yer değiştirme: ok dönüşü, katlanır panel, bildirim */
+  --dur-reveal: 300ms; /* beliren yüzey: alt sayfa, sahne, önizleme değişimi */
+  --dur-scene: 600ms; /* oda sahnesinin gün zamanı rengi */
+  --delay-intent: 250ms; /* üzerinde durunca açılan ipucu: imleç yerleşsin */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); /* gelen öğe: hızlı başlar, yumuşak durur */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* durum geçişi */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* giden öğe: hızlanarak çıkar */
+  /* basış: büyük düğme blok gibi 1 px oturur, küçük seçenek hafifçe küçülür */
+  --press-sink: translateY(1px);
+  --press-shrink: scale(0.96);
 
   /* sayfa kabı: tek içerik genişliği. Header, sayfa gövdesi, tanıtım bölümleri ve footer aynı kenara
      hizalanır; --page-inline tam genişlikli şeritlerin (header, footer) iç boşluğudur. Metin sayfaları
@@ -74,12 +105,31 @@
   --card-edge: inset 0 0 0 1px #e6ded2, 0 1px 2px rgba(60, 40, 20, 0.05), 0 10px 24px -14px rgba(60, 40, 20, 0.2);
   --line: #e6ded2;
   --line-strong: #cbbfae;
+  /* giriş alanı kenarı: alanı tanıtan tek ipucu, karta ve alan zeminine karşı ≥ 3:1 (WCAG 1.4.11) */
+  --line-field: #958775;
   --text: #221e1a;
   --text-2: #3d362f;
   --muted: #675e54;
   /* voxel kenarı: bloğun alt yüzü gibi 2 px iç gölge + 1 px üst ışık; köşeler blok gibi az yuvarlak */
   --voxel-face: inset 0 -2px 0 rgba(90, 64, 36, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
   --radius-block: 6px;
+  /* yarıçap ölçeği: boyutla büyür. Blok (6) seçim bloğu; sm (8) küçük rozet ve simge kutusu; denetim
+     (10 / 12 / 14) küçük düğme, düğme ve giriş, büyük düğme; kart (20) her panel; büyük kart (24) tek
+     başına duran yüzey (giriş kartı, pencere, kapanış çağrısı); hap tam yuvarlak. İç içe yüzeyde dıştaki
+     yarıçap = içteki + aradaki boşluk. */
+  --radius-sm: 8px;
+  --radius-control-sm: 10px;
+  --radius-control: 12px;
+  --radius-control-lg: 14px;
+  --radius-card: 20px;
+  --radius-card-lg: 24px;
+  --radius-pill: 999px;
+  /* kart iç boşluğu: ekranla akar, ara kırılma noktası gerektirmez. Kart 320 px'te 18, geniş ekranda 24;
+     tek başına duran büyük yüzey (karşılama, giriş, lobi başı, kapanış çağrısı) 20'den 32'ye. */
+  --pad-card: clamp(18px, 5vw, 24px);
+  --pad-card-lg: clamp(20px, 6vw, 32px);
+  /* açılır pencere (dialog) gölgesi: sayfanın üstünde yüzer */
+  --shadow-dialog: 0 30px 80px -20px rgba(0, 0, 0, 0.45);
   /* 3D sahne zemini (avatar önizlemesi ve oda sahnesi ortak): gündüz krem stüdyo */
   --scene-base: #e2dbcf;
   --scene-glow: #f6f2ea;
@@ -97,6 +147,8 @@
   --primary-hover: #85361c;
   --primary-fill: var(--button-sheen), #a24526;
   --primary-glow: inset 0 0 0 1px #8a3a1d, 0 2px 6px -2px rgba(140, 60, 30, 0.4);
+  /* basılıyken: buton 1 px iner, alt gölgesi kısalır; blok yerine oturur */
+  --primary-glow-pressed: inset 0 0 0 1px #8a3a1d, 0 1px 2px -1px rgba(140, 60, 30, 0.45);
   --on-primary: #fff8f1;
   --primary-soft: #f8e7dd;
   /* seçim dili: kil tonu dolgu + 2 px terakota halka; --on-ring halka renginin üstündeki işaret */
@@ -150,7 +202,10 @@
   }
 }
 
-:root[data-mode='dark'] {
+/* tabela malzemesi (.material-sign): koyu ceviz levha her iki modda aynı; içindeki her bileşen koyu modun
+   token'larını kullanır, ayrıca kural gerekmez (bkz. pages.css oda paneli) */
+:root[data-mode='dark'],
+.material-sign {
   color-scheme: dark;
   /* orta alan: sıcak kömür; kartlar bir ton açık, ikincil yüzey ahşap */
   --material-clay: #2a2622;
@@ -163,7 +218,8 @@
   --surface-sunken: var(--material-clay);
   --card-edge: inset 0 0 0 1px #47403a, 0 12px 28px -18px rgba(0, 0, 0, 0.6);
   --line: #47403a;
-  --line-strong: #6a707a;
+  --line-strong: #786f66; /* sıcak; önceki soğuk gri (#6a707a) Same Warmth kuralını bozuyordu */
+  --line-field: #857b70;
   --text: #efe9e1;
   --text-2: #d4ccc1;
   --muted: #b3a99c;
@@ -178,6 +234,7 @@
   --primary: #eb9a78;
   --primary-hover: #f2b195;
   --primary-glow: inset 0 0 0 1px #c4643f, 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+  --primary-glow-pressed: inset 0 0 0 1px #c4643f, 0 1px 2px -1px rgba(0, 0, 0, 0.5);
   --primary-soft: #3f2b23;
   --chip-on-bg: #4b2d22;
   --chip-on-fg: #f9e9df;
@@ -208,4 +265,151 @@
   --header-active: var(--material-wood);
   --header-border: #403a34;
   --header-accent: #eb9a78;
+}
+
+/* hareketi azalt: basışta yer değiştirme yok (renk ve gölge geri bildirimi kalır); yeni bileşenler
+   --press-* kullandığı sürece ayrı kural gerekmez */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press-sink: none;
+    --press-shrink: none;
+  }
+}
+
+/* ortak giriş hareketleri: varsayılan hâl görünür, animasyon yalnızca "from" tanımlar */
+@keyframes motion-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* sahne değişimi: tamamen kaybolmaz, yarı saydamdan gelir */
+@keyframes motion-fade-soft {
+  from {
+    opacity: 0.35;
+  }
+}
+
+/* aşağıdan beliren küçük yüzey (bildirim) */
+@keyframes motion-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* yukarıdan açılan içerik (katlanır panel) */
+@keyframes motion-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/* oda vurgusu: her temanın kendi imza rengi. Yalnızca odanın kimliğini söyler (lobide tema adı, oda
+   sayfasında tema satırı ve küçük kare işaret); seçim, odak ve birincil eylem terakotada kalır (One
+   Ember). Hepsi aynı OKLCH açıklığında (açık L 0.47, koyu L 0.80): kart ve sayfa zeminine karşı açıkta
+   ≥ 5.6:1, koyuda ≥ 7:1. Ton, terakotadan (≈38°) uzak tutulur. Gizli simyacı teması varsayılanı alır. */
+:root {
+  --room-accent: var(--primary);
+}
+
+[data-room-theme='library'] {
+  --room-accent: #146d34; /* yeşil abajur */
+}
+[data-room-theme='cabin'] {
+  --room-accent: #735601; /* mum ve pirinç */
+}
+[data-room-theme='office'] {
+  --room-accent: #34589d; /* monitör mavisi */
+}
+[data-room-theme='teagarden'] {
+  --room-accent: #006483; /* deniz */
+}
+[data-room-theme='camp'] {
+  --room-accent: #44670d; /* çam */
+}
+[data-room-theme='space'] {
+  --room-accent: #5b4c99; /* hologram moru */
+}
+[data-room-theme='underwater'] {
+  --room-accent: #016869; /* akvaryum turkuazı */
+}
+[data-room-theme='bar'] {
+  --room-accent: #8a3a64; /* neon pembe */
+}
+[data-room-theme='treehouse'] {
+  --room-accent: #615e00; /* yaprak ve ateş böceği */
+}
+[data-room-theme='cyber'] {
+  --room-accent: #764286; /* neon mor */
+}
+
+:root[data-mode='dark'] [data-room-theme='library'],
+.material-sign [data-room-theme='library'] {
+  --room-accent: #89d298;
+}
+:root[data-mode='dark'] [data-room-theme='cabin'],
+.material-sign [data-room-theme='cabin'] {
+  --room-accent: #deb866;
+}
+:root[data-mode='dark'] [data-room-theme='office'],
+.material-sign [data-room-theme='office'] {
+  --room-accent: #9bbeff;
+}
+:root[data-mode='dark'] [data-room-theme='teagarden'],
+.material-sign [data-room-theme='teagarden'] {
+  --room-accent: #68ccf5;
+}
+:root[data-mode='dark'] [data-room-theme='camp'],
+.material-sign [data-room-theme='camp'] {
+  --room-accent: #a6cc80;
+}
+:root[data-mode='dark'] [data-room-theme='space'],
+.material-sign [data-room-theme='space'] {
+  --room-accent: #bcb2ff;
+}
+:root[data-mode='dark'] [data-room-theme='underwater'],
+.material-sign [data-room-theme='underwater'] {
+  --room-accent: #57d4d4;
+}
+:root[data-mode='dark'] [data-room-theme='bar'],
+.material-sign [data-room-theme='bar'] {
+  --room-accent: #f4a0c8;
+}
+:root[data-mode='dark'] [data-room-theme='treehouse'],
+.material-sign [data-room-theme='treehouse'] {
+  --room-accent: #c4c36c;
+}
+:root[data-mode='dark'] [data-room-theme='cyber'],
+.material-sign [data-room-theme='cyber'] {
+  --room-accent: #dca7ec;
+}
+
+/* gün zamanı (useDaypart.js, <html data-daypart>): yalnızca sayfa zemini ve üstteki ışık lekesi
+   değişir; kartlar, çizgiler ve yazı sabit kalır. Açık modun varsayılanı gündüz, koyu modunki akşam.
+   Zemin en koyu ucunda bile soluk yazıya (--muted) ≥ 4.7:1, açık modda --primary yazıya ≥ 4.8:1.
+   Same Warmth: gece de sıcak kalır; soğuk mavi ışık yok. */
+:root:not([data-mode='dark'])[data-daypart='evening'] {
+  --page-base: #eee3d4;
+  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 214, 170, 0.55), transparent 70%) fixed,
+    linear-gradient(180deg, #f4ebdf 0%, #eadccb 100%) fixed, var(--page-base);
+}
+
+:root:not([data-mode='dark'])[data-daypart='night'] {
+  --page-base: #e9e1d5;
+  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 226, 190, 0.3), transparent 70%) fixed,
+    linear-gradient(180deg, #eee8de 0%, #e6ddd0 100%) fixed, var(--page-base);
+}
+
+:root[data-mode='dark'][data-daypart='day'] {
+  --page-base: #282420;
+  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 236, 214, 0.08), transparent 70%) fixed,
+    linear-gradient(180deg, #2e2a25 0%, #24201d 100%) fixed, var(--page-base);
+}
+
+:root[data-mode='dark'][data-daypart='night'] {
+  --page-base: #1f1c19;
+  --bg-page: radial-gradient(90vw 60vh at 50% -10%, rgba(255, 190, 120, 0.05), transparent 70%) fixed,
+    linear-gradient(180deg, #24201c 0%, #1a1714 100%) fixed, var(--page-base);
 }

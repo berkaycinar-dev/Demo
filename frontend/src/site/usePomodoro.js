@@ -73,6 +73,12 @@ const serialize = (t) =>
 
 const sameTimer = (a, b) => a.preset === b.preset && a.phase === b.phase && a.running === b.running && (a.running ? a.endAt === b.endAt : a.remaining === b.remaining)
 
+// Atla'dan sonra görünen not. Sayı ayrı değişken; çeviride sıra değişebilir.
+const SKIP_TEXT = {
+  toBreak: (min) => (min > 0 ? `Molaya geçildi. ${min} dk odak sayıldı.` : 'Molaya geçildi. Blok 1 dakikadan kısaydı, sayılmadı.'),
+  toFocus: 'Mola bitti, odağa dönüldü.',
+}
+
 const PHASE_TEXT = {
   break: (p) => `Odak bloku bitti. ${p.break} dakikalık mola başladı.`,
   focus: (p) => `Mola bitti. ${p.focus} dakikalık odak bloku başladı.`,
@@ -87,6 +93,7 @@ const PHASE_TEXT = {
  *   artınca sevinir.
  *   notice: { id, text, undo? } görünür kısa not (sıfırlamayı geri alma, sen yokken biten aşamalar).
  *   announcement: { id, text } ekran okuyucuya aşama değişimi duyurusu.
+ *   gain: { id, minutes } bugünkü sayıma son eklenen dakikalar (biten blok ya da atlama).
  */
 export default function usePomodoro({ track = true } = {}) {
   const [timer, setTimer] = useState(() => (track && readTimer()) || idle(PRESETS[0].id))
@@ -95,6 +102,8 @@ export default function usePomodoro({ track = true } = {}) {
   const [notice, setNotice] = useState(null)
   const [hold, setHold] = useState(false)
   const [announcement, setAnnouncement] = useState(null)
+  // Bugünkü sayıma eklenen son dakikalar: { id, minutes }. Sayaç kartında "+25 dk" olarak görünür.
+  const [gain, setGain] = useState(null)
   const written = useRef(null)
   const baseTitle = useRef(typeof document === 'undefined' ? 'Odakhane' : document.title)
   const p = presetOf(timer.preset)
@@ -116,6 +125,21 @@ export default function usePomodoro({ track = true } = {}) {
       /* yok say: bu oturumda yine görünür */
     }
     setStats(next)
+    if (minutes > 0) setGain({ id: Date.now(), minutes })
+  }
+
+  // Geri alınan atlamanın yazdığı dakikalar geri çekilir.
+  const uncredit = (minutes) => {
+    if (!track || minutes <= 0) return
+    const base = readStats()
+    const next = { ...base, minutes: Math.max(0, base.minutes - minutes) }
+    try {
+      localStorage.setItem(STATS_KEY, JSON.stringify(next))
+    } catch {
+      /* yok say */
+    }
+    setStats(next)
+    setGain(null)
   }
 
   // Başka sekme sayacı zaten ilerlettiyse onunkini al; aynı blok iki kez sayılmasın.
@@ -233,7 +257,9 @@ export default function usePomodoro({ track = true } = {}) {
     if (!track) return
     document.title = fresh
       ? baseTitle.current
-      : `${formatClock(timer.remaining)} · ${timer.running ? (timer.phase === 'focus' ? 'Odak' : 'Mola') : 'Duraklatıldı'} · ${baseTitle.current}`
+      : timer.running
+        ? `${formatClock(timer.remaining)} · ${timer.phase === 'focus' ? 'Odak' : 'Mola'} · ${baseTitle.current}`
+        : `⏸ ${formatClock(timer.remaining)} · Duraklatıldı · ${baseTitle.current}`
   }, [track, fresh, timer.remaining, timer.running, timer.phase])
   useEffect(() => {
     const base = baseTitle.current
@@ -276,23 +302,29 @@ export default function usePomodoro({ track = true } = {}) {
     say('Sayaç sıfırlandı.')
   }
 
-  // Geri alınan sayaç olduğu gibi döner; çalışıyorsa aradaki saniyeler de geçmiş sayılır.
-  const undoReset = () => {
+  // Geri alınan sayaç olduğu gibi döner; çalışıyorsa aradaki saniyeler de geçmiş sayılır. Atlama
+  // geri alınınca o atlamanın yazdığı dakikalar da geri çekilir.
+  const undoNotice = () => {
     if (!notice?.undo) return
     setTimer(notice.undo)
+    uncredit(notice.credited ?? 0)
     setNotice(null)
-    say('Sıfırlama geri alındı.')
+    say(notice.kind === 'skip' ? 'Atlama geri alındı.' : 'Sıfırlama geri alındı.')
   }
 
   // Atlanan odak blokunda yalnızca geçen dakikalar yazılır; pomodoro sayılmaz, avatar sevinmez.
+  // Görünür not ne sayıldığını söyler ve Geri al sunar.
   const skip = () =>
     act(() => {
       if (takenOver(timer)) return
+      const snapshot = timer
       const elapsed = total - leftOf(timer)
-      if (timer.phase === 'focus') credit(Math.floor(elapsed / 60), 0)
+      const minutes = timer.phase === 'focus' ? Math.floor(elapsed / 60) : 0
+      if (minutes > 0) credit(minutes, 0)
       const phase = timer.phase === 'focus' ? 'break' : 'focus'
       const secs = phaseSecs(p, phase)
       setTimer({ ...timer, phase, remaining: secs, endAt: Date.now() + secs * 1000 })
+      note(phase === 'break' ? SKIP_TEXT.toBreak(minutes) : SKIP_TEXT.toFocus, { undo: snapshot, credited: minutes, kind: 'skip' })
       say(phase === 'break' ? `Molaya geçildi, ${p.break} dakika.` : `Odağa geçildi, ${p.focus} dakika.`)
     })
 
@@ -312,7 +344,8 @@ export default function usePomodoro({ track = true } = {}) {
     skip,
     stats: stats.day === today() ? stats : emptyStats(),
     completed,
-    notice: notice && { id: notice.id, text: notice.text, undo: notice.undo ? undoReset : null },
+    notice: notice && { id: notice.id, text: notice.text, undo: notice.undo ? undoNotice : null },
+    gain,
     dismissNotice,
     holdNotice: setHold,
     announcement,

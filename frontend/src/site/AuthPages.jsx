@@ -86,7 +86,7 @@ export function PasswordStrength({ value }) {
   )
 }
 
-export function PasswordInput({ id, value, onChange, autoComplete, invalid, placeholder }) {
+export function PasswordInput({ id, value, onChange, autoComplete, invalid, placeholder, describedBy }) {
   const [show, setShow] = useState(false)
   return (
     <span className="pass">
@@ -98,7 +98,7 @@ export function PasswordInput({ id, value, onChange, autoComplete, invalid, plac
         autoComplete={autoComplete}
         placeholder={placeholder}
         aria-invalid={invalid || undefined}
-        aria-describedby={invalid ? `${id}-err` : undefined}
+        aria-describedby={describedBy ?? (invalid ? `${id}-err` : undefined)}
       />
       <button type="button" className="pass__toggle" onClick={() => setShow((v) => !v)} aria-pressed={show}>
         {show ? 'Gizle' : 'Göster'}
@@ -107,25 +107,41 @@ export function PasswordInput({ id, value, onChange, autoComplete, invalid, plac
   )
 }
 
+const LOGIN_COPY = {
+  empty: 'E-posta / kullanıcı adı ve şifreni yaz.',
+}
+
 export function LoginPage({ onDone, onGo }) {
   const [identifier, setIdentifier] = useState(lastLoginId)
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState('')
+  // Hatanın bağlı olduğu alanlar: boş bırakılanlar ya da (giriş reddedilince) ikisi birden.
+  const [bad, setBad] = useState({})
   const [busy, setBusy] = useState(false)
   const [forgot, setForgot] = useState(false)
 
+  const fail = (text, fields) => {
+    setError(text)
+    setBad(fields)
+    document.getElementById(fields.id ? 'loginId' : 'loginPass')?.focus()
+  }
   const submit = async (e) => {
     e.preventDefault()
     if (!identifier.trim() || !password) {
-      setError('E-posta / kullanıcı adı ve şifreni yaz.')
+      fail(LOGIN_COPY.empty, { id: !identifier.trim(), pass: !password })
       return
     }
     setBusy(true)
     const res = await login(identifier, password, remember)
     setBusy(false)
-    if (res.error) setError(res.error)
+    if (res.error) fail(res.error, { id: true, pass: true })
     else onDone(res.user)
+  }
+  const clear = (key) => {
+    if (!bad[key]) return
+    setBad((b) => ({ ...b, [key]: false }))
+    setError('')
   }
 
   if (forgot) {
@@ -141,12 +157,23 @@ export function LoginPage({ onDone, onGo }) {
       </div>
       <form className="auth__form" onSubmit={submit} noValidate>
         {error && (
-          <div className="form-alert" role="alert">
+          <div id="loginErr" className="form-alert" role="alert">
             {error}
           </div>
         )}
         <Field id="loginId" label="E-posta veya kullanıcı adı">
-          <input id="loginId" value={identifier} onChange={(e) => setIdentifier(e.target.value)} autoComplete="username" placeholder="ornek@posta.com ya da kullanici_adi" />
+          <input
+            id="loginId"
+            value={identifier}
+            onChange={(e) => {
+              setIdentifier(e.target.value)
+              clear('id')
+            }}
+            autoComplete="username"
+            placeholder="ornek@posta.com ya da kullanici_adi"
+            aria-invalid={bad.id || undefined}
+            aria-describedby={bad.id && error ? 'loginErr' : undefined}
+          />
         </Field>
         <div className="auth-field">
           <span className="auth-field__label-row">
@@ -155,7 +182,18 @@ export function LoginPage({ onDone, onGo }) {
               Şifremi unuttum
             </button>
           </span>
-          <PasswordInput id="loginPass" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" placeholder="Şifren" />
+          <PasswordInput
+            id="loginPass"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              clear('pass')
+            }}
+            autoComplete="current-password"
+            placeholder="Şifren"
+            invalid={!!bad.pass}
+            describedBy={bad.pass && error ? 'loginErr' : undefined}
+          />
         </div>
         <label className="auth-check">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />

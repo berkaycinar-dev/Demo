@@ -30,6 +30,9 @@ function useSpaceToggle(toggle) {
 // Seans sürerken süre seçimi kilitli; kısa tek satır (panel 1440×900'de kaydırmadan sığsın).
 const LOCK_NOTE = 'Süreyi değiştirmek için önce sıfırla.'
 
+// Bugünkü sayıma eklenen dakikaların kısa yankısı (duyuru aşama metninden gelir).
+const GAIN_TEXT = (min) => `+${min} dk`
+
 const SKIP_COPY = {
   focus: 'Atla: molaya geç. Geçen dakikalar sayılır.',
   break: 'Atla: molayı bitir, odağa dön.',
@@ -60,7 +63,8 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
         <span className="site-muted">{note ?? (timer.running ? 'Sayaç çalışıyor' : `${timer.presetInfo.focus} dk odak · ${timer.presetInfo.break} dk mola`)}</span>
       </div>
 
-      <div className="timer-ring">
+      {/* data-state: run (çalışıyor; başlarken bir kez nabız), paused (halka söner), idle */}
+      <div className="timer-ring" data-state={timer.running ? 'run' : timer.fresh ? 'idle' : 'paused'}>
         <svg viewBox="0 0 240 240" aria-hidden="true">
           <circle cx="120" cy="120" r={R} fill="none" strokeWidth="12" stroke="var(--surface-2)" />
           <circle
@@ -131,17 +135,21 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
               </button>
             ))}
           </div>
-          {locked && (
-            <p id="timerPresetLock" className="timer-card__lock">
-              {LOCK_NOTE}
-            </p>
-          )}
+          {/* yeri hep ayrılır: kilit açılıp kapanınca altındaki satırlar kaymaz */}
+          <p id="timerPresetLock" className="timer-card__lock" data-hidden={locked ? undefined : ''} aria-hidden={locked ? undefined : true}>
+            {LOCK_NOTE}
+          </p>
         </div>
       )}
 
       {!compact && showStats && (
         <p className="timer-card__stats">
           Bugün <strong>{timer.stats.pomodoros}</strong> pomodoro · <strong>{formatMinutes(timer.stats.minutes)}</strong> odak
+          {timer.gain && (
+            <span key={timer.gain.id} className="timer-card__gain" aria-hidden="true">
+              {GAIN_TEXT(timer.gain.minutes)}
+            </span>
+          )}
         </p>
       )}
       {children}

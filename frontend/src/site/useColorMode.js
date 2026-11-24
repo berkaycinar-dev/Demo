@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const KEY = 'odakhane-mode'
+let fadeTimer = 0
 
 // Açık / koyu mod: kayıtlı seçim yoksa sistem tercihine uyar. Seçim <html data-mode> ile uygulanır.
 function initialMode() {
@@ -25,7 +26,12 @@ export default function useColorMode() {
     }
   }, [mode])
 
-  const toggle = () =>
+  // Geçişte renkler 200 ms'de döner (yer değiştirme yok; "hareketi azalt"ta da kalır).
+  const toggle = () => {
+    const root = document.documentElement
+    root.dataset.modeFade = ''
+    clearTimeout(fadeTimer)
+    fadeTimer = setTimeout(() => delete root.dataset.modeFade, 260)
     setMode((m) => {
       const next = m === 'dark' ? 'light' : 'dark'
       try {
@@ -35,6 +41,7 @@ export default function useColorMode() {
       }
       return next
     })
+  }
 
   return { mode, isDark: mode === 'dark', toggle }
 }

@@ -96,7 +96,7 @@
   margin: 0 -8px;
   padding: 8px;
   border-radius: calc(var(--radius-block) + 4px);
-  transition: background-color 150ms ease;
+  transition: background-color var(--dur-fast) var(--ease-standard);
 }
 
 .cmenu__row[data-active] {
@@ -157,13 +157,8 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-block);
-  background: var(--surface);
-  box-shadow: var(--voxel-face);
   color: var(--primary);
-  cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, transform 90ms var(--ease-out, ease-out);
+  transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
 }
 
 .cmenu__arrow:hover:not(:disabled) {
@@ -172,7 +167,7 @@
 }
 
 .cmenu__arrow:active:not(:disabled) {
-  transform: scale(0.9);
+  transform: var(--press-shrink);
 }
 
 .cmenu__arrow:disabled {
@@ -229,15 +224,10 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-block);
-  background: var(--surface);
-  box-shadow: var(--voxel-face);
   color: var(--text-2);
   font: inherit;
   scroll-snap-align: start;
-  cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 120ms var(--ease-out, ease-out);
+  transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
 }
 
 .cstrip__opt:hover {
@@ -246,7 +236,7 @@
 }
 
 .cstrip__opt:active:not([aria-disabled]) {
-  transform: scale(0.95);
+  transform: var(--press-shrink);
 }
 
 .cstrip__opt[aria-disabled] {
@@ -264,7 +254,7 @@
 /* yazı şeridi: ad düğmenin içinde */
 .cstrip--text .cstrip__opt {
   padding: 0 14px;
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -335,7 +325,7 @@
   height: 30px;
   border: 2px solid var(--glyph-off);
   border-radius: 50%;
-  transition: box-shadow 200ms var(--ease-out, ease-out), transform 120ms var(--ease-out, ease-out);
+  transition: box-shadow var(--dur-state) var(--ease-out), transform var(--dur-press) var(--ease-out);
 }
 
 .cstrip--color .cstrip__opt:hover .cstrip__dot {
