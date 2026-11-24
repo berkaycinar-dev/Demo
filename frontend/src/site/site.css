@@ -39,6 +39,7 @@
 
 .site h3 {
   margin: 4px 0;
+  text-wrap: balance;
   font-family: var(--font-display);
   font-size: var(--text-title-s);
   font-weight: 600;
@@ -301,7 +302,8 @@
 
 /* pasif birincil: soluk terakota bozuk gibi okunur; nötr zemin ve soluk metin alır */
 .site-btn--primary:disabled {
-  border: 1px solid var(--line);
+  /* kesikli kenar: sitenin pasif seçenek dili (.choice-row :disabled); dolgulu düğmelerden ayrılır */
+  border: 1px dashed var(--line-strong);
   background: var(--surface-2);
   color: var(--muted);
   box-shadow: none;

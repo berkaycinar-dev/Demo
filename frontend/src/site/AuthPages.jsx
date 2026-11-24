@@ -135,11 +135,13 @@ export function LoginPage({ onDone, onGo }) {
     setBusy(true)
     const res = await login(identifier, password, remember)
     setBusy(false)
-    if (res.error) fail(res.error, { id: true, pass: true })
+    // Hangisinin yanlış olduğu söylenmez (hesap varlığı sızmasın): iki alan da kırmızıya dönmez, yalnızca
+    // üstteki not kalır ve odak şifreye gider.
+    if (res.error) fail(res.error, {})
     else onDone(res.user)
   }
   const clear = (key) => {
-    if (!bad[key]) return
+    if (!bad[key] && !error) return
     setBad((b) => ({ ...b, [key]: false }))
     setError('')
   }
@@ -192,7 +194,7 @@ export function LoginPage({ onDone, onGo }) {
             autoComplete="current-password"
             placeholder="Şifren"
             invalid={!!bad.pass}
-            describedBy={bad.pass && error ? 'loginErr' : undefined}
+            describedBy={error && (bad.pass || !bad.id) ? 'loginErr' : undefined}
           />
         </div>
         <label className="auth-check">
