@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatClock } from './usePomodoro'
+import useShortcut from './useShortcut'
 
 // Odak modundaki yazı renkleri (pages.css .stage__panel[data-tone] ile aynı olmalı).
 const TEXT_ON_LIGHT = [0x1f, 0x24, 0x30]
@@ -179,19 +180,32 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
 // Odak modu düğmesinin metinleri: düğme adı ve kısa açıklama. Tam cümleler; çeviride birleştirilmez.
 const FOCUS_MODE_COPY = {
   button: 'Odak modu',
-  note: 'Tam ekran: yalnızca oda ve sayaç kalır. Esc ile çık.',
+  note: 'Tam ekran: yalnızca oda ve sayaç kalır. Kısayol F; Esc ile çık.',
+  // simge düğmenin ipucu
+  iconTitle: 'Odak modu (F)',
 }
 const FOCUS_NOTE_ID = 'focusModeNote'
 
 // İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır. Açıklaması FocusModeNote'ta; not
 // gizliyken (ilk ziyaretten sonra) fareyle üstüne gelince title olarak da okunur.
-export function FocusModeButton({ onClick, hints = false }) {
+// compact: yalnızca simge (çok kişili odada durum satırında); adı aria-label, açıklaması title'da.
+export function FocusModeButton({ onClick, hints = false, compact = false }) {
+  // F: odak moduna geç (çıkış Esc)
+  useShortcut('f', onClick)
   return (
-    <button type="button" className="site-btn focus-btn" onClick={onClick} aria-describedby={FOCUS_NOTE_ID} title={hints ? undefined : FOCUS_MODE_COPY.note}>
+    <button
+      type="button"
+      className={`site-btn focus-btn${compact ? ' site-btn--small focus-btn--icon' : ''}`}
+      onClick={onClick}
+      aria-keyshortcuts="F"
+      aria-label={compact ? FOCUS_MODE_COPY.button : undefined}
+      aria-describedby={FOCUS_NOTE_ID}
+      title={compact ? FOCUS_MODE_COPY.iconTitle : hints ? undefined : FOCUS_MODE_COPY.note}
+    >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
       </svg>
-      {FOCUS_MODE_COPY.button}
+      {!compact && FOCUS_MODE_COPY.button}
     </button>
   )
 }

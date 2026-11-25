@@ -86,7 +86,7 @@ export function PasswordStrength({ value }) {
   )
 }
 
-export function PasswordInput({ id, value, onChange, autoComplete, invalid, placeholder, describedBy }) {
+export function PasswordInput({ id, value, onChange, onBlur, autoComplete, invalid, placeholder, describedBy }) {
   const [show, setShow] = useState(false)
   return (
     <span className="pass">
@@ -95,6 +95,7 @@ export function PasswordInput({ id, value, onChange, autoComplete, invalid, plac
         type={show ? 'text' : 'password'}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         autoComplete={autoComplete}
         placeholder={placeholder}
         aria-invalid={invalid || undefined}
@@ -279,6 +280,9 @@ function ForgotPassword({ initialEmail, onBack }) {
 
 const EMPTY = { displayName: '', username: '', email: '', password: '', password2: '', terms: false }
 
+// Kayıt alanlarının ekrandaki sırası: ilk hatalı alana odak bu sırayla bulunur.
+const REG_ORDER = ['displayName', 'username', 'email', 'password', 'password2', 'terms']
+
 export function RegisterPage({ onDone, onGo }) {
   const [form, setForm] = useState(EMPTY)
   const [errors, setErrors] = useState({})
@@ -301,12 +305,27 @@ export function RegisterPage({ onDone, onGo }) {
     if (errors[key]) setErrors((er) => ({ ...er, [key]: undefined }))
   }
 
+  // Boş alan "henüz doldurulmadı" demektir, hata değil: gönderimde yanlış doldurulmuş alanların hepsi,
+  // boş alanlardan yalnızca ilki söylenir (boş formda tek hata, form kırmızıya boğulmaz). Dolu bir alan
+  // bırakılınca (blur) hemen denetlenir.
+  const isEmpty = (key) => (key === 'terms' ? !form.terms : !String(form[key]).trim())
   const submit = async (e) => {
     e.preventDefault()
     const found = validateRegistration(form)
-    setErrors(found)
+    const shown = {}
+    let emptyShown = false
+    for (const key of REG_ORDER) {
+      if (!found[key]) continue
+      if (!isEmpty(key)) shown[key] = found[key]
+      else if (!emptyShown) {
+        shown[key] = found[key]
+        emptyShown = true
+      }
+    }
+    setErrors(shown)
     if (Object.keys(found).length) {
-      document.getElementById(`reg-${Object.keys(found)[0]}`)?.focus()
+      const first = REG_ORDER.find((key) => shown[key])
+      document.getElementById(`reg-${first}`)?.focus()
       return
     }
     setBusy(true)
@@ -316,11 +335,18 @@ export function RegisterPage({ onDone, onGo }) {
     else onDone(res.user)
   }
 
+  const check = (key) => () => {
+    if (isEmpty(key)) return
+    const err = validateRegistration(form)[key]
+    if (err) setErrors((er) => ({ ...er, [key]: err }))
+  }
+
   const input = (key, props) => (
     <input
       id={`reg-${key}`}
       value={form[key]}
       onChange={set(key)}
+      onBlur={check(key)}
       aria-invalid={errors[key] ? true : undefined}
       aria-describedby={errors[key] ? `reg-${key}-err` : undefined}
       {...props}
@@ -344,7 +370,7 @@ export function RegisterPage({ onDone, onGo }) {
           {input('email', { type: 'email', autoComplete: 'email', placeholder: 'ornek@posta.com' })}
         </Field>
         <Field id="reg-password" label="Şifre" error={errors.password}>
-          <PasswordInput id="reg-password" value={form.password} onChange={set('password')} autoComplete="new-password" placeholder="En az 8 karakter" invalid={!!errors.password} />
+          <PasswordInput id="reg-password" value={form.password} onChange={set('password')} onBlur={check('password')} autoComplete="new-password" placeholder="En az 8 karakter" invalid={!!errors.password} />
           <PasswordStrength value={form.password} />
         </Field>
         <Field id="reg-password2" label="Şifre tekrar" error={errors.password2}>
@@ -353,6 +379,7 @@ export function RegisterPage({ onDone, onGo }) {
             type="password"
             value={form.password2}
             onChange={set('password2')}
+            onBlur={check('password2')}
             autoComplete="new-password"
             placeholder="Şifreni tekrar yaz"
             aria-invalid={errors.password2 ? true : undefined}

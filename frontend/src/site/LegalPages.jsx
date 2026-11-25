@@ -14,7 +14,8 @@ function LegalBody({ doc, headingId }) {
           <h2>
             {i + 1}. {s.heading}
           </h2>
-          {s.body.map((p) => (
+          {/* boş satırlar (doldurulmamış iletişim / veri sorumlusu) gösterilmez */}
+          {s.body.filter(Boolean).map((p) => (
             <p key={p}>{p}</p>
           ))}
         </section>

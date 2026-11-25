@@ -54,7 +54,8 @@ const SWITCH_AFTER = 6
 const FORCE_AFTER = 15
 const TENT_CAPACITY = 3
 const ZZZ_PER_AVATAR = 3
-const STATUS_LABELS = { focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
+// idle: yalnızca etikette (shown); sayaç durmuşken "Masada". Poz status'tan gelir.
+const STATUS_LABELS = { idle: 'Masada', focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
 
 // Sistem ayarı oturum sırasında değişirse (odadan çıkmadan) kalabalık hemen yürümeyi bırakır ya da sürdürür.
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
@@ -92,7 +93,7 @@ const HIDDEN = new Matrix4().makeScale(0, 0, 0)
  * Odadaki avatarlar. Oda bileşeninin çocuğu olarak kullanılır; koltukları, mola noktalarını ve
  * yürünebilir alanı odanın kendisinden (useRoom) okur.
  *
- * occupants: [{ id, name, avatar, status: 'focus' | 'break' | 'away', seat, spot?, me?, since? }]
+ * occupants: [{ id, name, avatar, status: 'focus' | 'break' | 'away', seat, spot?, me?, since?, shown?: 'idle' }]
  *   seat: koltuk indeksi (her kişiye ayrı), spot: molada gidilmek istenen mola noktası kimliği,
  *   since: uzakta olunan zamanın başlangıcı (ms; açık etikette dakika olarak görünür).
  * theme: tema anahtarı (rooms/themes.js); çalışma, uyuma ve mola hareketleri buna ve oturulan
@@ -965,8 +966,9 @@ function updateLabel(state, a, head, camera, size, open) {
   const minutes = o.status === 'away' && o.since ? Math.floor((Date.now() - o.since) / 60000) : 0
   const name = o.me ? 'Sen' : o.name
   const text = `${name}${minutes > 0 ? ` · ${minutes} dk` : ''}`
-  const title = `${name} · ${STATUS_LABELS[o.status]}${minutes > 0 ? ` · ${minutes} dk` : ''}`
-  const cls = `avatar-label avatar-label--${o.status}${o.me ? ' avatar-label--me' : ''}${open ? ' avatar-label--open' : ''}`
+  const shown = o.shown ?? o.status
+  const title = `${name} · ${STATUS_LABELS[shown]}${minutes > 0 ? ` · ${minutes} dk` : ''}`
+  const cls = `avatar-label avatar-label--${shown}${o.me ? ' avatar-label--me' : ''}${open ? ' avatar-label--open' : ''}`
   if (el.dataset.text !== text) {
     el.dataset.text = text
     el.lastChild.textContent = text

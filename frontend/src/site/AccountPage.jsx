@@ -14,8 +14,9 @@ export default function AccountPage({ user, onUserChange, isDark, onToggleMode, 
       <div className="account__grid">
         <ProfileCard user={user} onUserChange={onUserChange} />
         <EmailCard user={user} onUserChange={onUserChange} />
-        <PasswordCard user={user} />
+        {/* geniş ekranda: Profil | E-posta, altında Görünüm ve oturum | Şifre (sıra okuma sırasıyla aynı) */}
         <SessionCard isDark={isDark} onToggleMode={onToggleMode} onLogout={onLogout} />
+        <PasswordCard user={user} />
       </div>
     </div>
   )

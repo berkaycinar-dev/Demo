@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { THEMES } from '../rooms/themes'
 import { accessLabel } from './access'
 import { codeMatches } from './roomStore'
+import useShortcut from './useShortcut'
 import RoomShot from './RoomShot'
 import RoomMates from './RoomMates'
 import Dotted from './Dotted'
@@ -227,6 +228,12 @@ const PlusIcon = () => (
 const trLower = (t) => t.toLocaleLowerCase('tr')
 const pickRandom = (list) => list[Math.floor(Math.random() * list.length)]
 
+// Lobi araması
+const SEARCH_COPY = {
+  placeholder: 'Oda ya da tema ara',
+  key: 'Kısayol: /',
+}
+
 // Hızlı katılım ve çıkış fişi metinleri. Sayılar ayrı değişken; çeviride sıra değişebilir.
 const QUICK_COPY = {
   idle: 'Hızlı gir',
@@ -238,10 +245,15 @@ const QUICK_COPY = {
 }
 const RECEIPT_COPY = {
   title: 'Odadan çıktın',
-  session: 'Bu oturum',
-  blocks: (n) => `${n} blok`,
-  minutes: (n) => `${n} dk odak`,
-  stay: (n) => (n < 1 ? 'Odada 1 dakikadan az kaldın.' : `Odada ${n} dk kaldın.`),
+  // fişin satırları: etiket ve değer ayrı; değerdeki sayı ayrı değişken
+  blocksLabel: 'Blok',
+  blocks: (n) => `${n}`,
+  minutesLabel: 'Odak',
+  minutes: (n) => `${n} dk`,
+  stayLabel: 'Odada',
+  stay: (n) => (n < 1 ? '1 dk’dan az' : `${n} dk`),
+  // hiç blok ya da odak dakikası yoksa sıfırlar yerine tek satır
+  quiet: (n) => (n < 1 ? 'Kısa bir uğrayıştı; masan seni bekliyor.' : `Odada ${n} dk kaldın; masan seni bekliyor.`),
   again: 'Tekrar gir',
   close: 'Kapat',
 }
@@ -301,22 +313,37 @@ function QuickJoin({ rooms, onEnter }) {
   )
 }
 
-// Odadan çıkış fişi: çıkılan odanın adı ve bu oturumda sayılan bloklar, odak dakikası, odada kalınan
-// süre. Odak buraya taşınır (data-autofocus); "Tekrar gir" aynı odaya döner.
+// Odadan çıkış fişi: kâğıt bir fiş (tırtıklı alt kenar). Çıkılan odanın adı ve bu oturumda sayılan
+// bloklar, odak dakikası, odada kalınan süre; hiçbiri yoksa sıfırlar yerine tek sıcak satır. Odak fişin
+// kendisine taşınır (data-autofocus): klavyeyle gelinince halka fişin köşelerine oturur. "Tekrar gir"
+// aynı odaya döner.
 function LeaveReceipt({ receipt, onEnter, onClose }) {
   const { room, blocks, minutes, stay } = receipt
+  const worked = blocks > 0 || minutes > 0
+  const lines = [
+    [RECEIPT_COPY.blocksLabel, RECEIPT_COPY.blocks(blocks)],
+    [RECEIPT_COPY.minutesLabel, RECEIPT_COPY.minutes(minutes)],
+    [RECEIPT_COPY.stayLabel, RECEIPT_COPY.stay(stay)],
+  ]
   return (
-    <section className="leave-receipt" aria-labelledby="fisBaslik">
+    <section className="leave-receipt" aria-labelledby="fisBaslik" data-autofocus>
       <div className="leave-receipt__text">
-        <h2 id="fisBaslik" data-autofocus>
+        <h2 id="fisBaslik">
           {RECEIPT_COPY.title}
           <span className="leave-receipt__room">{room.name}</span>
         </h2>
-        <p>
-          <span className="leave-receipt__label">{RECEIPT_COPY.session}:</span>{' '}
-          <Dotted parts={[RECEIPT_COPY.blocks(blocks), RECEIPT_COPY.minutes(minutes)]} keep />
-        </p>
-        <p className="site-muted">{RECEIPT_COPY.stay(stay)}</p>
+        {worked ? (
+          <dl className="leave-receipt__lines">
+            {lines.map(([label, value]) => (
+              <div key={label} className="leave-receipt__line">
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p className="leave-receipt__quiet">{RECEIPT_COPY.quiet(stay)}</p>
+        )}
       </div>
       <div className="leave-receipt__actions">
         <button type="button" className="site-btn" onClick={() => onEnter(room)}>
@@ -336,6 +363,9 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
 export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
+  // "/": aramaya atla
+  const searchRef = useRef(null)
+  useShortcut('/', () => searchRef.current?.focus())
   const open = rooms.filter((r) => r.access === 'public')
   const hidden = rooms.filter((r) => r.access === 'invite')
   const byId = new Map(rooms.map((r) => [r.id, r]))
@@ -375,7 +405,16 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
               <label className="sr-only" htmlFor="lobbySearch">
                 Oda ara
               </label>
-              <input id="lobbySearch" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Oda ya da tema ara" />
+              <input
+                ref={searchRef}
+                id="lobbySearch"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={SEARCH_COPY.placeholder}
+                aria-keyshortcuts="/"
+                title={SEARCH_COPY.key}
+              />
             </div>
           </div>
           {shown.length === 0 ? (
@@ -415,7 +454,7 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
             <CodeJoin rooms={rooms} onEnter={onEnter} />
           </section>
 
-          <section className="site-card lobby-panel" aria-labelledby="katildigimBaslik">
+          <section className={`site-card lobby-panel${history.length === 0 ? ' lobby-panel--empty' : ''}`} aria-labelledby="katildigimBaslik">
             <h2 id="katildigimBaslik">Son girdiğin odalar</h2>
             {history.length === 0 ? (
               <div className="empty-note">
