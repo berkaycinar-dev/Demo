@@ -58,6 +58,28 @@ Bruno ile: Bruno'da **Open Collection** → `backend/bruno` → ortam olarak **l
 | `PORT` | `8080` | |
 | `CORS_ORIGINS` | `http://localhost:5173` | Frontend adresleri (virgülle ayrılır) |
 | `JWT_SECRET` | yerel geliştirme değeri | JWT imza anahtarı, **en az 32 bayt**. Sunucuda mutlaka değiştir; kısaysa uygulama açılmaz |
+| `RATE_LIMIT_ENABLED` | `true` | `false` olursa auth uçlarındaki istek sınırı kapanır |
+| `SPRING_PROFILES_ACTIVE` | boş | Sunucuda `prod` (Docker image bunu kendisi ayarlar). Aşağıya bak |
+
+### Sunucu ayarları (`prod` profili)
+
+`application-prod.yml` dosyasında yerel varsayılan değer yoktur. `DB_URL`, `DB_USER`, `DB_PASSWORD`,
+`JWT_SECRET` ya da `CORS_ORIGINS` eksikse uygulama hiç açılmaz. Bu bilerek böyle: unutulan bir
+değişken yüzünden geliştirme değeri sessizce kullanılmasın. Repodaki geliştirme `JWT_SECRET` değeri
+`prod` profilinde reddedilir. Yeni değer üretmek için: `openssl rand -hex 32`.
+
+| Değişken (yalnız `prod`) | Varsayılan | Açıklama |
+|---|---|---|
+| `DB_POOL_SIZE` | `5` | Veritabanı bağlantı havuzu. Ücretsiz planlarda küçük kalsın |
+| `RATE_LIMIT_CLIENT_IP_HEADER` | `X-Forwarded-For` | Proxy arkasında istemci IP'sinin geldiği başlık |
+
+### İstek sınırı (rate limit)
+
+`POST /api/v1/auth/login`, `register`, `refresh` ve `logout` uçları IP başına dakikada sınırlıdır:
+login 10, register 5, refresh 30, logout 30. Sınır aşılırsa cevap `429`, `code: RATE_LIMITED` ve
+`Retry-After` başlığıdır. Sayaç bellektedir: tek sunucu için yeterli, yeniden başlatınca sıfırlanır.
+Proxy arkasında IP `X-Forwarded-For` başlığının ilk adresinden okunur. İstemci bu başlığı
+değiştirebildiği için bu sınır kaba kuvvete karşı bir yavaşlatmadır, tam koruma değildir.
 
 ## Paket yapısı
 
@@ -67,6 +89,7 @@ Paketler özelliğe göre ayrılır, her özelliğin içinde katmanlar bulunur:
 com.demo.backend
 ├── common/
 │   ├── config/      Clock, CORS
+│   ├── ratelimit/   Auth uçlarına IP başına istek sınırı (429 RATE_LIMITED)
 │   └── error/       GlobalExceptionHandler, NotFoundException, BusinessRuleException, UnauthorizedException (401)
 ├── realtime/        RoomEventPublisher (arayüz). STOMP uygulamasını D yazar
 ├── ping/            H1 örneği: Controller → Service → DTO
