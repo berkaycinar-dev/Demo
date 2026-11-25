@@ -1,13 +1,16 @@
 // Kullanım koşulları ve gizlilik politikası metinleri. Sitenin bugün gerçekte yaptığını anlatır:
 // hesaplar ve ayarlar bu tarayıcıda tutulur, sunucuya veri gönderilmez (backend henüz yok).
 // Backend devreye girince "Verileri nerede saklıyoruz" bölümleri güncellenmeli.
-// NOT: Yayından önce hukuki inceleme gerekir; [köşeli parantezli] yerler doldurulmalı.
+// NOT: Yayından önce hukuki inceleme gerekir; aşağıdaki boş sabitler doldurulmalı.
 
 export const LEGAL_UPDATED = '5 Kasım 2026'
 
-// TODO(iletişim): gerçek iletişim adresi gelince bu satırı değiştir. Adres uydurulmaz; kişisel
-// e-posta kullanılmaz. Yayına çıkmadan önce doldurulmalı.
-const CONTACT_EMAIL = '[TODO: iletişim e-posta adresi]'
+// TODO(iletişim): gerçek iletişim adresi ve veri sorumlusu gelince bu sabitleri doldur. Uydurulmaz;
+// kişisel e-posta kullanılmaz. Boşken ilgili satır sayfada hiç gösterilmez (yer tutucu yayına
+// sızmaz). Yayına çıkmadan önce doldurulmalı.
+const CONTACT_EMAIL = ''
+// veri sorumlusunun adı ve adresi (şirket ya da kişi)
+const DATA_CONTROLLER = ''
 
 export const LEGAL_DOCS = {
   kosullar: {
@@ -54,7 +57,7 @@ export const LEGAL_DOCS = {
         heading: 'Değişiklikler',
         body: [
           'Bu koşulları güncelleyebiliriz. Önemli değişikliklerde sitede duyururuz; güncellemeden sonra kullanmaya devam etmen yeni koşulları kabul ettiğin anlamına gelir.',
-          `Sorular için: ${CONTACT_EMAIL}`,
+          CONTACT_EMAIL && `Sorular için: ${CONTACT_EMAIL}`,
         ],
       },
     ],
@@ -101,8 +104,10 @@ export const LEGAL_DOCS = {
         heading: 'Hakların',
         body: [
           'KVKK’nın 11. maddesi uyarınca verilerinin işlenip işlenmediğini öğrenme, bilgi isteme, düzeltilmesini ya da silinmesini isteme ve itiraz etme hakların vardır.',
-          `Bilgilerini Hesap ayarları sayfasından kendin düzeltebilirsin. Diğer talepler için: ${CONTACT_EMAIL}`,
-          'Veri sorumlusu: [şirket / kişi adı ve adresi]',
+          CONTACT_EMAIL
+            ? `Bilgilerini Hesap ayarları sayfasından kendin düzeltebilirsin. Diğer talepler için: ${CONTACT_EMAIL}`
+            : 'Bilgilerini Hesap ayarları sayfasından kendin düzeltebilirsin.',
+          DATA_CONTROLLER && `Veri sorumlusu: ${DATA_CONTROLLER}`,
         ],
       },
     ],

@@ -2,15 +2,32 @@ import AvatarPreview from '../avatars/AvatarPreview'
 import { THEMES } from '../rooms/themes'
 import { loadMyRoom } from './myRoom'
 import { formatClock, formatMinutes } from './usePomodoro'
+import RoomShot from './RoomShot'
+import RoomMates from './RoomMates'
+import Dotted from './Dotted'
 
 // Bugün henüz sayılan blok yokken: boş bir "0 dk" kartı yerine ilk adımı söyleyen tek satır.
 const TODAY_COPY = {
   zero: (min) => `Bugün henüz blok yok. İlk blok ${min} dakika; bitince burada sayılır.`,
 }
 
+// Odalar kartı. Sayı ve ad ayrı değişken; çeviride sıra değişebilir.
+const ROOMS_COPY = {
+  first: 'İlk odanı seç',
+  rooms: 'Odalar',
+  lobby: 'Lobiye git',
+  recent: 'Son girdiğin odalar',
+  open: 'Lobide açık odalar',
+  capacity: (n) => `${n} kişilik`,
+  enter: 'Gir',
+  enterLabel: (name) => `${name} odasına gir`,
+}
+// Kartta gösterilen en çok oda
+const ROOMS_SHOWN = 3
+
 const dateText = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
 
-// Sayfam: giriş yapınca açılan ilk sayfa. Tek birincil eylem "Odama git"; yanında sayacın o anki
+// Sayfam: giriş yapınca açılan ilk sayfa. Tek birincil eylem "Odama gir" (odaya giren her eylem "gir"); yanında sayacın o anki
 // durumu ve odanın adı yazar, böylece ilk gelen kişi masasının ve sayacının hazır olduğunu görür.
 // Bugünkü odak kartı ancak sayılacak bir şey olunca çıkar (ilk gün "0 dk" gösterilmez).
 // İlk kez gelen (henüz hiçbir ortak odaya girmemiş) kişide Odalar kartı ilk odayı seçmeye yönlendirir.
@@ -18,7 +35,10 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
   const roomLabel = THEMES[loadMyRoom(user).theme]?.label ?? 'Kütüphane'
   const firstName = user.displayName.split(' ')[0]
   const open = rooms.filter((r) => r.access === 'public')
-  const quick = open[0]
+  // geri dönen kişiye son girdiği odalar, ilk gelene lobideki açık odalar
+  const byId = new Map(rooms.map((r) => [r.id, r]))
+  const recent = joined.map((j) => byId.get(j.id)).filter(Boolean)
+  const listed = (recent.length ? recent : open).slice(0, ROOMS_SHOWN)
   const { minutes, pomodoros } = timer.stats
   const hasToday = minutes > 0 || pomodoros > 0
   const firstRoom = joined.length === 0
@@ -39,7 +59,7 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
           <p className="home__lead">Avatarın {roomLabel} odasında, masanda seni bekliyor.</p>
           <div className="home__go">
             <button type="button" className="site-btn site-btn--primary site-btn--lg" onClick={() => onGo('odam')}>
-              Odama git
+              Odama gir
             </button>
             <span className="home__timer" role="status">
               {timerText}
@@ -59,9 +79,9 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
 
         <section className="site-card home__rooms">
           <div className="section-head section-head--row">
-            <h2>{firstRoom ? 'İlk odanı seç' : 'Odalar'}</h2>
+            <h2>{firstRoom ? ROOMS_COPY.first : ROOMS_COPY.rooms}</h2>
             <button type="button" className="site-btn" onClick={() => onGo('lobi')}>
-              Lobiye git
+              {ROOMS_COPY.lobby}
             </button>
           </div>
           {firstRoom && (
@@ -69,14 +89,30 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
               Lobideki herkese açık odalardan birine otur; avatarın boş bir masaya geçer, sayacın seninle gelir. Davet kodun varsa gizli odaya da Lobi’den katılırsın.
             </p>
           )}
-          <p className="site-muted">
-            Şu an {open.length} herkese açık oda var.{' '}
-            {quick && (
-              <button type="button" className="link-btn" onClick={() => onEnter(quick)}>
-                Hemen gir: {quick.name}
-              </button>
-            )}
-          </p>
+          {listed.length > 0 && (
+            <>
+              <h3 id="sayfamOdalar" className="home__rooms-label">
+                {recent.length ? ROOMS_COPY.recent : ROOMS_COPY.open}
+              </h3>
+              <ul className="home__room-list" aria-labelledby="sayfamOdalar">
+                {listed.map((room) => (
+                  <li key={room.id} className="home__room">
+                    <RoomShot theme={room.theme} className="home__room-img" />
+                    <span className="home__room-text">
+                      <strong title={room.name}>{room.name}</strong>
+                      <span>
+                        <Dotted parts={[THEMES[room.theme].label, ROOMS_COPY.capacity(room.capacity)]} keep />
+                      </span>
+                      <RoomMates room={room} className="room-mates--small" />
+                    </span>
+                    <button type="button" className="site-btn" onClick={() => onEnter(room)} aria-label={ROOMS_COPY.enterLabel(room.name)}>
+                      {ROOMS_COPY.enter}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </section>
       </div>
 
