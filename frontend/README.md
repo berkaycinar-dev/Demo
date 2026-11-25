@@ -68,6 +68,8 @@ VITE_API_URL=http://localhost:8080
 
 ## Klasörler
 
+Canlı WebSocket bağlantısı için D'nin ortak yöneticisi ve entegrasyon örneği: [realtime/README.md](src/realtime/README.md). Bağlantı yaşam döngüsü testleri `npm test` ile çalışır. Ekranlara bağlama işi bu modülü kullanarak yapılır.
+
 ```
 src/
   site/       sayfalar, site kabuğu, sayaç, stil (theme.css token'ları, site.css, pages.css)

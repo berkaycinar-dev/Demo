@@ -5,6 +5,7 @@ import java.security.Principal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -18,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.messaging.support.NativeMessageHeaderAccessor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -31,8 +33,8 @@ class StompRoomAccess implements ChannelInterceptor {
 
     private static final String ROOM_PREFIX = "/topic/rooms/";
     private static final String EVENT_SUFFIX = "/events";
-    private static final Pattern ROOM_EVENTS = Pattern.compile(ROOM_PREFIX
-            + "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})" + EVENT_SUFFIX);
+    private static final Pattern ROOM_CHANNEL = Pattern.compile(ROOM_PREFIX
+            + "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(events|presence)");
 
     private final JwtDecoder jwtDecoder;
     private final RoomAccessChecker rooms;
@@ -57,7 +59,8 @@ class StompRoomAccess implements ChannelInterceptor {
             case DISCONNECT -> { }
             case SUBSCRIBE -> {
                 SessionIdentity identity = requireIdentity(frame.getSessionId());
-                if (!mayReceive(identity, frame.getDestination())) {
+                if (!StompUserEventPublisher.TIMER_SUBSCRIPTION.equals(frame.getDestination())
+                        && !mayReceiveRoom(identity, frame.getDestination())) {
                     throw new AccessDeniedException("FORBIDDEN");
                 }
             }
@@ -113,15 +116,38 @@ class StompRoomAccess implements ChannelInterceptor {
         String destination = SimpMessageHeaderAccessor.getDestination(message.getHeaders());
         // Check the receiving session again. A subscription can outlive a token or membership.
         return identity != null && identity.expiresAt().isAfter(clock.instant())
-                && mayReceive(identity, destination) ? message : null;
+                && (isOwnTimerDelivery(sessionId, message) || mayReceiveRoom(identity, destination)) ? message : null;
     }
 
-    private boolean mayReceive(SessionIdentity identity, String destination) {
+    private boolean isOwnTimerDelivery(String sessionId, Message<?> message) {
+        // Spring resolves /user/queue/timers to a queue unique to this receiving session.
+        // Require its original destination too; raw /queue subscriptions are never accepted.
+        return (StompUserEventPublisher.TIMER_QUEUE + "-user" + sessionId)
+                .equals(SimpMessageHeaderAccessor.getDestination(message.getHeaders()))
+                && StompUserEventPublisher.TIMER_SUBSCRIPTION
+                .equals(NativeMessageHeaderAccessor.getFirstNativeHeader(
+                        SimpMessageHeaderAccessor.ORIGINAL_DESTINATION, message.getHeaders()));
+    }
+
+    private boolean mayReceiveRoom(SessionIdentity identity, String destination) {
         if (destination == null) {
             return false;
         }
-        var match = ROOM_EVENTS.matcher(destination);
+        var match = ROOM_CHANNEL.matcher(destination);
         return match.matches() && rooms.isMember(identity.userId(), UUID.fromString(match.group(1)));
+    }
+
+    static Optional<UUID> presenceRoom(String destination) {
+        if (destination == null) {
+            return Optional.empty();
+        }
+        var match = ROOM_CHANNEL.matcher(destination);
+        return match.matches() && match.group(2).equals("presence")
+                ? Optional.of(UUID.fromString(match.group(1))) : Optional.empty();
+    }
+
+    static String presenceDestination(UUID roomId) {
+        return ROOM_PREFIX + roomId + "/presence";
     }
 
     static String eventDestination(UUID roomId) {

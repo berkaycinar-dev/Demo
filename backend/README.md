@@ -108,7 +108,7 @@ com.samedesk.backend
 │   ├── config/      Clock, CORS
 │   ├── ratelimit/   Auth uçlarına IP başına istek sınırı (429 RATE_LIMITED)
 │   └── error/       GlobalExceptionHandler, NotFoundException, BusinessRuleException, UnauthorizedException (401)
-├── realtime/        RoomEventPublisher (arayüz). STOMP uygulamasını D yazar
+├── realtime/        oda ve kişisel olay yayıncıları, STOMP yetkisi, presence ve bağlantı heartbeat'i (D)
 ├── ping/            H1 örneği: Controller → Service → DTO
 ├── auth/            H2: kayıt, giriş, JWT, refresh token, güvenlik ayarı
 ├── user/            H2: User entity, UserRepository, UserResponse
@@ -134,10 +134,12 @@ Her özellik paketi aynı kalıbı izler:
 2. **Zaman için `Clock`.** Servislerde `Instant.now()` kullanılmaz, `Clock` enjekte edilir. Böylece testlerde zaman sabitlenebilir.
 3. **Hatalar fırlatılır.** Servis `NotFoundException` (404) ya da `BusinessRuleException("ROOM_FULL", ...)` (409) fırlatır. JSON gövdesini `GlobalExceptionHandler` üretir.
 4. **Şema = Flyway.** Tablolar yalnızca `db/migration/V<n>__aciklama.sql` dosyalarıyla değişir. Main'e giren migration dosyası bir daha düzenlenmez.
-5. **Gerçek zamanlı yayın** yalnızca `RoomEventPublisher.publish(...)` üzerinden yapılır.
+5. **Gerçek zamanlı yayın:** Oda olayları `RoomEventPublisher`, kişisel sayaç olayları `UserEventPublisher` üzerinden, veritabanı commit'inden sonra gönderilir.
 6. **Her servis** birim testi ve bir Bruno isteğiyle gelir.
 
 ## Testler
+
+STOMP bağlantısında sunucu varsayılan 10 saniyelik heartbeat aralığı ilan eder (`app.websocket.heartbeat-ms`). İstemci de heartbeat desteğini ilan etmelidir; `0,0` kullanan istemcilerde bu kontrol devreye girmez. Bu, REST oda oturumunun heartbeat'inden ayrıdır ve kullanıcının çalışma/puan durumunu değiştirmez. Bağlantı ayrıntıları ve frontend yeniden bağlantı adımları: [STOMP sözleşmesi](../contracts/stomp-messages.md#bağlantı-sağlığı-ve-yeniden-bağlantı).
 
 | Test | Ne kontrol eder | Gerekenler |
 |---|---|---|
@@ -197,7 +199,7 @@ Her özellik paketi aynı kalıbı izler:
 - **Geçişler:** Odak bitince mola, mola bitince yeni odak otomatik başlar. Süre dolarken kimse yoksa sayaç, biten aşamalar hesaplandıktan sonra `IDLE` olur. Biten her odak `completedFocusBlocks` değerini artırır. `SKIP` ile atlanan odak sayılmaz.
 - **Komut kimliği (`commandId`):** Her komut yeni bir UUID taşır. Aynı kimlik tekrar gelirse komut yeniden uygulanmaz, ilk sonuç döner. Ağ yeniden denemesi bu yüzden güvenlidir. Kimlikler 24 saat tutulur (`app.timer.command-retention-hours`), temizleme işi saatte bir çalışır.
 - **Sürüm (`expectedVersion`):** Her değişiklik `version` değerini bir artırır. İstemcinin bildiği sürüm eskiyse 409 `STALE_VERSION` gelir. Çözüm: `GET /timer` ile oku, sonra yeni kimlikle tekrar dene. Geçersiz geçişte 409 `INVALID_TIMER_TRANSITION`, bilinmeyen ön ayarda 409 `INVALID_PRESET`.
-- **Olaylar:** `TIMER_STARTED`, `TIMER_PAUSED`, `TIMER_RESET`, `TIMER_FINISHED`. Kullanıcının açık oturumu olan her odaya, commit'ten sonra `RoomEventPublisher` ile gider. Hiçbir odada değilse olay çıkmaz. Gövde: `{userId, preset, phase, endsAt, remainingSeconds, version, occurredAt}`.
+- **Olaylar:** `TIMER_STARTED`, `TIMER_PAUSED`, `TIMER_RESET`, `TIMER_FINISHED`. Commit'ten sonra `UserEventPublisher` ile yalnızca kullanıcının `/user/queue/timers` aboneliklerine gider; odada olma şartı yoktur. Oda kanalına kişisel sayaç gönderilmez. Gövde: `{userId, preset, phase, endsAt, remainingSeconds, version, occurredAt}`. Mesaj zarfı ve yeniden bağlantı akışı: [STOMP sözleşmesi](../contracts/stomp-messages.md).
 - **Eşzamanlılık:** Komutlar sayaç satırını kilitler. Aynı kullanıcının iki komutu sırayla işlenir.
 - Bruno: `bruno/timer/` altında `GetTimer`, `StartTimer`, `PauseTimer`, `ResumeTimer`, `SkipTimer`, `ResetTimer`, `SetPreset`. `timerVersion` çalışma anı değişkenidir, ortam dosyasını değiştirmez.
 

@@ -29,6 +29,9 @@ management:
         include: health,info
 
 app:
+  websocket:
+    # STOMP connection liveness, negotiated with the client; separate from room session heartbeats.
+    heartbeat-ms: 10000
   cors:
     # Vite dev server. Add more origins comma-separated, e.g. via CORS_ORIGINS env var.
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}

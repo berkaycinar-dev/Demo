@@ -3,8 +3,7 @@ package com.samedesk.backend.timer;
 import com.samedesk.backend.common.error.BusinessRuleException;
 import com.samedesk.backend.point.PointService;
 import com.samedesk.backend.realtime.AfterCommit;
-import com.samedesk.backend.realtime.RoomEventPublisher;
-import com.samedesk.backend.room.RoomSessionRepository;
+import com.samedesk.backend.realtime.UserEventPublisher;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -25,17 +24,15 @@ public class TimerService {
 
     private final TimerStateRepository states;
     private final TimerCommandRepository commands;
-    private final RoomSessionRepository sessions;
-    private final RoomEventPublisher events;
+    private final UserEventPublisher events;
     private final PointService points;
     private final Clock clock;
 
     public TimerService(TimerStateRepository states, TimerCommandRepository commands,
-                        RoomSessionRepository sessions, RoomEventPublisher events, PointService points,
+                        UserEventPublisher events, PointService points,
                         Clock clock) {
         this.states = states;
         this.commands = commands;
-        this.sessions = sessions;
         this.events = events;
         this.points = points;
         this.clock = clock;
@@ -112,13 +109,9 @@ public class TimerService {
         }
     }
 
-    /** After the commit, to every room where the user has an open session (none: nothing is published). */
+    /** After the commit, to the user's own sessions, including when they are outside a room. */
     private void publish(UUID userId, String type, TimerEvent payload) {
-        List<UUID> rooms = sessions.findOpenRoomIds(userId);
-        if (rooms.isEmpty()) {
-            return;
-        }
-        AfterCommit.run(() -> rooms.forEach(room -> events.publish(room.toString(), type, payload)));
+        AfterCommit.run(() -> events.publish(userId, type, payload));
     }
 
     private static String eventTypeOf(TimerState.Change change) {
