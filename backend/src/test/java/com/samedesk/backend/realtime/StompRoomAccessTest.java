@@ -72,6 +72,22 @@ class StompRoomAccessTest {
         assertThat(access.authorizeDelivery(event)).isNull();
     }
 
+    @Test
+    void presenceDeliveryChecksTokenAndCurrentMembership() {
+        SimpMessageHeaderAccessor headers = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
+        headers.setSessionId(SESSION_ID);
+        headers.setDestination(StompRoomAccess.presenceDestination(ROOM_ID));
+        Message<?> snapshot = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
+        assertThat(access.authorizeDelivery(snapshot)).isSameAs(snapshot);
+
+        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(false);
+        assertThat(access.authorizeDelivery(snapshot)).isNull();
+
+        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(true);
+        when(clock.instant()).thenReturn(EXPIRY);
+        assertThat(access.authorizeDelivery(snapshot)).isNull();
+    }
+
     private Message<?> roomEvent() {
         SimpMessageHeaderAccessor headers = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
         headers.setSessionId(SESSION_ID);

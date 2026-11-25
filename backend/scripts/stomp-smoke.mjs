@@ -11,14 +11,14 @@ endpoint.protocol = 'ws:'
 const suffix = randomUUID().slice(0, 8)
 const clients = []
 
-async function post(path, body, token) {
+async function post(path, body, token, method = 'POST') {
   const headers = { 'Content-Type': 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
   const response = await fetch(new URL(`/api/v1${path}`, base), {
-    method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000),
+    method, headers, body: JSON.stringify(body), signal: AbortSignal.timeout(10_000),
   })
-  assert.ok(response.ok, `POST ${path} returned ${response.status}`)
-  return response.json()
+  assert.ok(response.ok, `${method} ${path} returned ${response.status}`)
+  return response.status === 204 ? null : response.json()
 }
 
 function register(role) {
@@ -28,11 +28,17 @@ function register(role) {
 
 async function connect(token, expected = 'CONNECTED') {
   const socket = new WebSocket(endpoint, 'v12.stomp')
-  const frames = on(socket, 'message', { signal: AbortSignal.timeout(20_000) })
+  const frames = on(socket, 'message', { signal: AbortSignal.timeout(120_000) })
   clients.push({ socket, frames })
   await once(socket, 'open', { signal: AbortSignal.timeout(10_000) })
 
   const client = {
+    async disconnect() {
+      const closed = once(socket, 'close', { signal: AbortSignal.timeout(5_000) })
+      socket.close()
+      await closed
+      await frames.return()
+    },
     send(command, headers, body = '') {
       socket.send([command, ...headers, '', `${body}\0`].join('\n'))
     },
@@ -59,6 +65,19 @@ async function expectForbidden(client, command, headers, body) {
   const reply = await client.receive()
   assert.equal(reply.command, 'ERROR')
   assert.ok(reply.headers.includes('message:FORBIDDEN'))
+}
+
+async function expectPresence(client, roomId, userIds) {
+  // Full snapshots may already be queued from before the REST change.
+  while (true) {
+    const message = await client.receive()
+    assert.equal(message.command, 'MESSAGE')
+    const event = JSON.parse(message.body)
+    assert.equal(event.type, 'PRESENCE_SNAPSHOT')
+    assert.equal(event.roomId, roomId)
+    const ids = event.payload.members.map((member) => member.userId).sort()
+    if (JSON.stringify(ids) === JSON.stringify([...userIds].sort())) return event
+  }
 }
 
 try {
@@ -96,7 +115,34 @@ try {
   assert.deepEqual(events[0].payload, {
     roomId: room.id, userId: joiningUser.user.id, username: joiningUser.user.username, role: 'MEMBER',
   })
-  console.log('STOMP smoke passed: JWT, subscription permissions, and the same room event for two members.')
+
+  const presenceDestination = `/topic/rooms/${room.id}/presence`
+  const presenceSubscription = [`destination:${presenceDestination}`, 'id:presence']
+  await expectForbidden(await connect(outsider.accessToken), 'SUBSCRIBE', presenceSubscription)
+  const presence = await connect(owner.accessToken)
+  presence.send('SUBSCRIBE', presenceSubscription)
+  await expectPresence(presence, room.id, [])
+
+  await post(`/rooms/${room.id}/sessions`, undefined, member.accessToken)
+  const entered = await expectPresence(presence, room.id, [member.user.id])
+  assert.equal(entered.payload.members[0].username, member.user.username)
+  assert.equal(entered.payload.members[0].role, 'MEMBER')
+  await post(`/rooms/${room.id}/sessions/current/heartbeat`, undefined, member.accessToken)
+  await expectPresence(presence, room.id, [member.user.id])
+
+  await presence.disconnect()
+  const reconnected = await connect(owner.accessToken)
+  reconnected.send('SUBSCRIBE', presenceSubscription)
+  await expectPresence(reconnected, room.id, [member.user.id])
+
+  await post(`/rooms/${room.id}/sessions/current`, undefined, member.accessToken, 'DELETE')
+  await expectPresence(reconnected, room.id, [])
+
+  await post(`/rooms/${room.id}/sessions`, undefined, member.accessToken)
+  await expectPresence(reconnected, room.id, [member.user.id])
+  // Stop sending heartbeats. C's session sweeper must remove the timed-out participant.
+  await expectPresence(reconnected, room.id, [])
+  console.log('STOMP smoke passed: JWT, room isolation, two-member delivery, presence, reconnect, exit and timeout.')
 } finally {
   for (const { socket, frames } of clients) {
     socket.close()
