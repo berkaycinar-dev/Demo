@@ -7,6 +7,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -26,11 +27,21 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 @EnableConfigurationProperties(JwtProperties.class)
 public class JwtConfig {
 
+    /** The local default in application.yml. Anyone can read it in the repo, so a server must not use it. */
+    static final String DEV_SECRET = "dev-only-secret-change-me-0123456789abcdef";
+
     @Bean
-    SecretKey jwtSecretKey(JwtProperties props) {
-        byte[] bytes = props.secret() == null ? new byte[0] : props.secret().getBytes(StandardCharsets.UTF_8);
+    SecretKey jwtSecretKey(JwtProperties props, Environment env) {
+        return secretKey(props.secret(), env.matchesProfiles("prod"));
+    }
+
+    static SecretKey secretKey(String secret, boolean prod) {
+        byte[] bytes = secret == null ? new byte[0] : secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
-            throw new IllegalStateException("JWT_SECRET must be at least 32 bytes long");
+            throw new IllegalStateException("JWT_SECRET is missing or shorter than 32 bytes (it must be at least 32 bytes long)");
+        }
+        if (prod && DEV_SECRET.equals(secret)) {
+            throw new IllegalStateException("JWT_SECRET is the public development value; set a new one, e.g. openssl rand -hex 32");
         }
         return new SecretKeySpec(bytes, "HmacSHA256");
     }

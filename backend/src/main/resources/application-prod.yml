@@ -1,0 +1,21 @@
+# Server settings. Active when SPRING_PROFILES_ACTIVE=prod (the Docker image sets it).
+# No local defaults here: a missing variable stops the app at startup instead of
+# silently using a development value (for example the dev JWT secret).
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      # Free database plans allow few connections; a small pool is enough for a demo.
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS}
+  jwt:
+    secret: ${JWT_SECRET}
+  rate-limit:
+    # The host's proxy puts the caller's IP here. Without it every caller would share
+    # the proxy's address and one bucket.
+    client-ip-header: ${RATE_LIMIT_CLIENT_IP_HEADER:X-Forwarded-For}
