@@ -4,11 +4,21 @@ on:
   pull_request:
     paths:
       - 'backend/**'
+      - 'frontend/src/realtime/**'
+      - 'frontend/src/site/api.js'
+      - 'frontend/scripts/realtime-smoke.mjs'
+      - 'frontend/package*.json'
+      - 'contracts/stomp-messages.md'
       - '.github/workflows/backend-ci.yml'
   push:
     branches: [main]
     paths:
       - 'backend/**'
+      - 'frontend/src/realtime/**'
+      - 'frontend/src/site/api.js'
+      - 'frontend/scripts/realtime-smoke.mjs'
+      - 'frontend/package*.json'
+      - 'contracts/stomp-messages.md'
       - '.github/workflows/backend-ci.yml'
 
 permissions:
@@ -73,6 +83,9 @@ jobs:
       - name: Run tests and package backend
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
+      - name: Install frontend dependencies for realtime client smoke test
+        run: npm ci --prefix ../frontend
+
       - name: Verify PostgreSQL startup and real STOMP connections
         run: |
           # Short timeouts apply only to this disposable CI database and process.
@@ -87,6 +100,7 @@ jobs:
             if curl --fail --silent --max-time 2 "http://127.0.0.1:$PORT/actuator/health" \
               | jq -e '.status == "UP"'; then
               node scripts/stomp-smoke.mjs "http://127.0.0.1:$PORT"
+              node ../frontend/scripts/realtime-smoke.mjs "http://127.0.0.1:$PORT"
               exit 0
             fi
             if ! kill -0 "$backend_pid" 2>/dev/null; then

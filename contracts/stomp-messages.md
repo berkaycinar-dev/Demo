@@ -1,6 +1,6 @@
 # STOMP mesaj sözleşmesi
 
-Sürüm 4 · Sahip D · Oda olayları, aktif katılımcı listesi, kişisel sayaç ve bağlantı heartbeat'i
+Sürüm 5 · Sahip D · Oda olayları, kişisel sayaç, heartbeat ve yeniden bağlantı istemcisi
 
 ## Bağlantı ve yetki
 
@@ -32,7 +32,9 @@ Frontend bağlantı yöneticisinin uygulayacağı akış:
 3. Başarılı bağlantıda abonelikleri yeniden kurun. Presence sıradaki tam listeden, sayaç `GET /api/v1/timer` ile toparlanır. Kaçırılmış olayların tekrar gönderildiğini varsaymayın.
 4. Telefon/tarayıcı arka planda zamanlayıcıları yavaşlatabilir. Sekme yeniden görünür olduğunda bağlantıyı ve REST durumunu kontrol edin.
 
-Bu teslim sunucu heartbeat'ini ve test istemcisindeki sessiz bağlantı temizliği/yeniden bağlantı doğrulamasını içerir. Ürün arayüzüne otomatik yeniden bağlanan istemci bu teslimde eklenmez.
+Sunucu heartbeat'ine ek olarak frontend için ortak bağlantı yöneticisi `frontend/src/realtime/` altında hazırdır. Ağ hatalarında tek döngüyle artan ve en fazla 30 saniye bekleyen tekrar denemeleri yapar; her denemede güncel JWT alır, her bağlantıda abonelikleri kurup `onResync` bildirir. REST ve STOMP token yenilemesi aynı mevcut isteği paylaşır. Token süresi yaklaşınca yeniden bağlantı kurulur. Yetki reddinde sınırsız döngüye girilmez; çıkışta zamanlayıcılar ve abonelikler temizlenir. Detaylar ve A'nın ekranına entegrasyon örneği: [istemci kılavuzu](../frontend/src/realtime/README.md).
+
+Bu modül ekranlara bağlanana kadar mevcut UI akışı otomatik WebSocket bağlantısı açmaz. Sekme görünürlüğü sadece bağlantıyı uyandırır; aktif/pasif çalışma bildirimi veya puan kuralı bu teslimin kapsamı dışındadır.
 
 ## Oda olayları
 
@@ -123,7 +125,9 @@ Node 24 ile çalışan bu istemci, deneme hesapları ve özel bir oda oluşturur
 
 Backend CI bu istemciyi PostgreSQL üzerinde otomatik çalıştırır. Yalnızca geçici CI sürecinde oturum timeout'u 4 saniye; STOMP heartbeat, presence ve temizleme aralıkları 200 ms olarak kısaltılır. Yerel ve yayın varsayılanları aynı kalır.
 
+Frontend bağlantı yöneticisi ayrıca `node frontend/scripts/realtime-smoke.mjs http://127.0.0.1:8080` ile denenir. Bu istemci bağlantıyı zorla keser; aboneliklerin otomatik geri kurulmasını ve kesintide kaçırılan sayaç değişikliğinin REST'ten okunmasını doğrular. Backend CI bu ikinci denemeyi de çalıştırır. Frontend CI `npm test` ile bağlantı/token yaşam döngüsünü sınar.
+
 ## Sonraki teslimler
 
 - Ortak çalışma veya mola göstergesi, kişisel sayaç akışından ayrı oda olayı olarak ele alınır.
-- Frontend bağlantı yöneticisi, sekme aktif/pasif bildirimi, hareket, sohbet ve kalıcı olay teslimi kendi aşamalarında eklenir.
+- A'nın ekranlarını ortak bağlantı yöneticisine bağlama, sekme aktif/pasif bildirimi, hareket, sohbet ve kalıcı olay teslimi kendi aşamalarında ele alınır.
