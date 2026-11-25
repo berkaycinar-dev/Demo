@@ -441,7 +441,7 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
           ) : (
             <ul className="site-rooms" aria-labelledby="gizliBaslik">
               {shownHidden.map((room) => (
-                <RoomCard key={room.id} room={room} onAction={() => setAsking(room)} />
+                <RoomCard key={room.id} room={room} onAction={() => (room.myRole ? onEnter(room) : setAsking(room))} />
               ))}
             </ul>
           )}

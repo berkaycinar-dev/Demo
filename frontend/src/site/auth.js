@@ -1,12 +1,12 @@
-// Hesaplar: backend hazır olana kadar yalnızca bu tarayıcıda tutulur (demo). Şifre düz metin
-// saklanmaz; kullanıcıya özel tuzla PBKDF2-SHA256 özeti saklanır. Backend gelince bu dosyadaki
-// register / login / logout aynı imzalarla API çağrılarına çevrilebilir.
+// Hesaplar: backend'de (contracts/openapi.yaml, tag "auth"). Kayıt, giriş, çıkış ve oturum API'den;
+// token'lar api.js'te saklanır. Backend'de henüz olmayanlar (görünen ad, hesap ayarları) bu
+// tarayıcıda kalır ya da prototipte kapalıdır; aşağıda yerinde yazıyor.
 
-const USERS_KEY = 'odakhane.users'
-const SESSION_KEY = 'odakhane.session'
-const ITERATIONS = 150_000
+import { ApiError, api, clearSession, errorText, readSession, writeSession } from './api'
 
-export const USERNAME_RE = /^[a-z0-9_.]{3,20}$/
+// Backend kuralı: harf, rakam, alt çizgi (nokta yok). Site küçük harf ister.
+export const USERNAME_RE = /^[a-z0-9_]{3,20}$/
+export const USERNAME_HINT = 'Küçük harf, rakam ve alt çizgi.'
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export const MIN_PASSWORD = 8
 
@@ -26,63 +26,32 @@ export function passwordProblem(password) {
   return `Şifre şu koşulları sağlamalı: ${missing.map((r) => r.label.toLocaleLowerCase('tr')).join(', ')}.`
 }
 
-function readUsers() {
-  try {
-    const list = JSON.parse(localStorage.getItem(USERS_KEY) ?? '[]')
-    return Array.isArray(list) ? list : []
-  } catch {
-    return []
-  }
-}
-
-function writeUsers(list) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(list))
-}
-
-const toHex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
-const fromHex = (hex) => new Uint8Array(hex.match(/../g).map((h) => parseInt(h, 16)))
-
-async function hashPassword(password, saltHex) {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: fromHex(saltHex), iterations: ITERATIONS }, key, 256)
-  return toHex(bits)
-}
-
-// Oturumdaki kullanıcının herkese açık bilgileri (şifre özeti dışarı çıkmaz).
-const publicUser = (u) => ({ displayName: u.displayName, username: u.username, email: u.email })
-
-// Oturum: "Beni hatırla" işaretliyse localStorage'da (tarayıcı kapanıp açılsa da sürer), değilse
-// sessionStorage'da (tarayıcı kapanınca biter). Hatırlanan girişte e-posta / kullanıcı adı da
-// giriş formuna önceden yazılır.
+// Görünen ad backend'de yok: kullanıcı kimliğine bağlı olarak bu tarayıcıda tutulur. Başka
+// tarayıcıda ilk girişte kullanıcı adı görünür.
+const NAMES_KEY = 'odakhane.display-names'
 const LAST_LOGIN_KEY = 'odakhane.last-login'
 
-function readSession() {
+function readNames() {
   try {
-    return localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
+    const v = JSON.parse(localStorage.getItem(NAMES_KEY) ?? '{}')
+    return v && typeof v === 'object' ? v : {}
   } catch {
-    return null
+    return {}
   }
 }
 
-function writeSession(username, remember) {
+function saveName(userId, displayName) {
   try {
-    localStorage.removeItem(SESSION_KEY)
-    sessionStorage.removeItem(SESSION_KEY)
-    ;(remember ? localStorage : sessionStorage).setItem(SESSION_KEY, username)
+    localStorage.setItem(NAMES_KEY, JSON.stringify({ ...readNames(), [userId]: displayName }))
   } catch {
-    /* depolama kapalıysa oturum yalnızca bu sayfa açıkken sürer */
+    /* yok say: ad yalnızca bu oturumda */
   }
 }
 
-const sessionIsRemembered = () => {
-  try {
-    return localStorage.getItem(SESSION_KEY) !== null
-  } catch {
-    return false
-  }
-}
+// Sayfaların kullandığı kullanıcı: { id, displayName, username, email }
+const toUser = (u) => ({ id: u.id, username: u.username, email: u.email, displayName: readNames()[u.id] || u.username })
 
-/** Son hatırlanan giriş bilgisi (e-posta ya da kullanıcı adı); yoksa boş. */
+/** Son hatırlanan giriş e-postası; yoksa boş. */
 export function lastLoginId() {
   try {
     return localStorage.getItem(LAST_LOGIN_KEY) ?? ''
@@ -92,13 +61,8 @@ export function lastLoginId() {
 }
 
 export function currentUser() {
-  try {
-    const username = readSession()
-    const user = username && readUsers().find((u) => u.username === username)
-    return user ? publicUser(user) : null
-  } catch {
-    return null
-  }
+  const session = readSession()
+  return session ? toUser(session.user) : null
 }
 
 /** Alan hatalarını döner ({ alan: mesaj }); boşsa form geçerli. */
@@ -106,7 +70,7 @@ export function validateRegistration({ displayName, username, email, password, p
   const errors = {}
   if (!displayName.trim()) errors.displayName = 'Görünen adını yaz.'
   else if (displayName.trim().length > 40) errors.displayName = 'En fazla 40 karakter olabilir.'
-  if (!USERNAME_RE.test(username)) errors.username = '3-20 karakter; küçük harf, rakam, nokta ve alt çizgi.'
+  if (!USERNAME_RE.test(username)) errors.username = `3-20 karakter; ${USERNAME_HINT.toLocaleLowerCase('tr')}`
   if (!EMAIL_RE.test(email.trim())) errors.email = 'Geçerli bir e-posta adresi yaz.'
   const weak = passwordProblem(password)
   if (weak) errors.password = weak
@@ -115,144 +79,106 @@ export function validateRegistration({ displayName, username, email, password, p
   return errors
 }
 
+// Sunucunun kayıt hatalarını form alanlarına çevirir.
+const REGISTER_CODES = {
+  EMAIL_TAKEN: { email: 'Bu e-postayla zaten bir hesap var.' },
+  USERNAME_TAKEN: { username: 'Bu kullanıcı adı alınmış.' },
+  PASSWORD_TOO_LONG: { password: 'Şifre çok uzun (en fazla 72 bayt).' },
+}
+
 export async function register({ displayName, username, email, password }) {
   // Form atlansa da kural geçerli: zayıf şifreyle hesap açılmaz.
   const weak = passwordProblem(password)
   if (weak) return { error: { password: weak } }
-  const users = readUsers()
-  const mail = email.trim().toLowerCase()
-  if (users.some((u) => u.username === username)) return { error: { username: 'Bu kullanıcı adı alınmış.' } }
-  if (users.some((u) => u.email === mail)) return { error: { email: 'Bu e-postayla zaten bir hesap var.' } }
-  const salt = toHex(crypto.getRandomValues(new Uint8Array(16)))
-  const user = { displayName: displayName.trim(), username, email: mail, salt, hash: await hashPassword(password, salt) }
-  writeUsers([...users, user])
-  writeSession(username, true)
-  return { user: publicUser(user) }
+  try {
+    const auth = await api('/api/v1/auth/register', {
+      method: 'POST',
+      auth: false,
+      body: { email: email.trim().toLowerCase(), username, password },
+    })
+    saveName(auth.user.id, displayName.trim())
+    writeSession(auth, true)
+    return { user: toUser(auth.user) }
+  } catch (e) {
+    if (e instanceof ApiError && REGISTER_CODES[e.code]) return { error: REGISTER_CODES[e.code] }
+    if (e instanceof ApiError && e.code === 'VALIDATION_ERROR' && Object.keys(e.fieldErrors).length) {
+      return { error: e.fieldErrors }
+    }
+    return { error: { form: errorText(e, 'Hesap oluşturulamadı. Tekrar dene.') } }
+  }
 }
 
-/** login: e-posta ya da kullanıcı adı + şifre. remember: oturum kalıcı mı. */
+/** login: e-posta + şifre (backend e-postayla giriş yapar). remember: oturum kalıcı mı. */
 export async function login(identifier, password, remember = true) {
-  const id = identifier.trim().toLowerCase()
-  const user = readUsers().find((u) => u.username === id || u.email === id)
-  // Hesap yoksa da aynı mesaj: hangi hesapların var olduğu sızmasın.
-  if (!user || (await hashPassword(password, user.salt)) !== user.hash) {
-    return { error: 'E-posta / kullanıcı adı ya da şifre hatalı.' }
-  }
-  writeSession(user.username, remember)
+  const email = identifier.trim().toLowerCase()
+  if (!EMAIL_RE.test(email)) return { error: 'Giriş için e-posta adresini yaz.' }
   try {
-    if (remember) localStorage.setItem(LAST_LOGIN_KEY, identifier.trim())
-    else localStorage.removeItem(LAST_LOGIN_KEY)
-  } catch {
-    /* yok say */
+    const auth = await api('/api/v1/auth/login', { method: 'POST', auth: false, body: { email, password } })
+    writeSession(auth, remember)
+    try {
+      if (remember) localStorage.setItem(LAST_LOGIN_KEY, identifier.trim())
+      else localStorage.removeItem(LAST_LOGIN_KEY)
+    } catch {
+      /* yok say */
+    }
+    return { user: toUser(auth.user) }
+  } catch (e) {
+    // Hesap yoksa da aynı mesaj: hangi hesapların var olduğu sızmasın (sunucu da aynısını yapar).
+    if (e instanceof ApiError && e.status === 401) return { error: 'E-posta ya da şifre hatalı.' }
+    return { error: errorText(e, 'Giriş yapılamadı. Tekrar dene.') }
   }
-  return { user: publicUser(user) }
 }
 
 /**
- * Şifre sıfırlama isteği. Sıfırlama bağlantısı e-postayla gönderilir; bu sürümde e-posta gönderen
- * bir sunucu yok, bu yüzden istek yalnızca doğrulanır ve { delivered: false } döner. Backend gelince
- * burası API çağrısına çevrilir. Hangi e-postaların kayıtlı olduğu sızmasın diye cevap her zaman aynı.
+ * Şifre sıfırlama isteği. Backend'de e-posta gönderimi yok; istek yalnızca doğrulanır ve
+ * { delivered: false } döner. Hangi e-postaların kayıtlı olduğu sızmasın diye cevap her zaman aynı.
  */
 export async function requestPasswordReset(email) {
   if (!EMAIL_RE.test(email.trim())) return { error: 'Geçerli bir e-posta adresi yaz.' }
   return { delivered: false }
 }
 
+/** Çıkış: refresh token sunucuda iptal edilir (cevap beklenmez), oturum hemen silinir. */
 export function logout() {
-  try {
-    localStorage.removeItem(SESSION_KEY)
-    sessionStorage.removeItem(SESSION_KEY)
-  } catch {
-    /* yok say */
+  const session = readSession()
+  clearSession()
+  if (session) {
+    api('/api/v1/auth/logout', { method: 'POST', auth: false, body: { refreshToken: session.refreshToken } }).catch(() => {})
   }
 }
 
 // ---------- hesap ayarları ----------
+// Backend'de bu uçlar henüz yok. Görünen ad bu tarayıcıda değişir; diğerleri prototipte kapalı.
 
-// Kullanıcıya bağlı başka kayıtlar (kişisel oda ayarları gibi) kullanıcı adıyla anahtarlanır;
-// kullanıcı adı değişince bunlar yeni ada taşınır.
-const PER_USER_PREFIXES = ['odakhane.myroom.', 'odakhane.joined.']
+const NOT_YET = 'Bu işlem prototipte henüz sunucuya bağlı değil.'
 
-function findIndex(users, username) {
-  return users.findIndex((u) => u.username === username)
-}
-
-/** Görünen ad ve kullanıcı adı. Dönüş: { user } ya da { error: { alan: mesaj } } */
+/** Görünen ad (bu tarayıcıda). Kullanıcı adı değişikliği henüz yok. Dönüş: { user } ya da { error } */
 export function updateProfile(currentUsername, { displayName, username }) {
+  const session = readSession()
+  if (!session) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
   const errors = {}
   if (!displayName.trim()) errors.displayName = 'Görünen adını yaz.'
   else if (displayName.trim().length > 40) errors.displayName = 'En fazla 40 karakter olabilir.'
-  if (!USERNAME_RE.test(username)) errors.username = '3-20 karakter; küçük harf, rakam, nokta ve alt çizgi.'
-  const users = readUsers()
-  const i = findIndex(users, currentUsername)
-  if (i < 0) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
-  if (!errors.username && username !== currentUsername && users.some((u) => u.username === username)) {
-    errors.username = 'Bu kullanıcı adı alınmış.'
-  }
+  if (username !== currentUsername) errors.username = 'Kullanıcı adı prototipte değiştirilemiyor.'
   if (Object.keys(errors).length) return { error: errors }
-
-  users[i] = { ...users[i], displayName: displayName.trim(), username }
-  writeUsers(users)
-  if (username !== currentUsername) {
-    for (const prefix of PER_USER_PREFIXES) {
-      const old = localStorage.getItem(prefix + currentUsername)
-      if (old !== null) {
-        localStorage.setItem(prefix + username, old)
-        localStorage.removeItem(prefix + currentUsername)
-      }
-    }
-    writeSession(username, sessionIsRemembered())
-    try {
-      if (localStorage.getItem(LAST_LOGIN_KEY) === currentUsername) localStorage.setItem(LAST_LOGIN_KEY, username)
-    } catch {
-      /* yok say */
-    }
-  }
-  return { user: publicUser(users[i]) }
+  saveName(session.user.id, displayName.trim())
+  return { user: toUser(session.user) }
 }
 
-async function verify(user, password) {
-  return (await hashPassword(password, user.salt)) === user.hash
+export async function changeEmail() {
+  return { error: { form: NOT_YET } }
 }
 
-/** E-posta değişikliği: mevcut şifre gerekir. */
-export async function changeEmail(username, { email, password }) {
-  const mail = email.trim().toLowerCase()
-  if (!EMAIL_RE.test(mail)) return { error: { email: 'Geçerli bir e-posta adresi yaz.' } }
-  const users = readUsers()
-  const i = findIndex(users, username)
-  if (i < 0) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
-  if (mail === users[i].email) return { error: { email: 'Bu zaten şu anki e-postan.' } }
-  if (users.some((u, j) => j !== i && u.email === mail)) return { error: { email: 'Bu e-postayla başka bir hesap var.' } }
-  if (!(await verify(users[i], password))) return { error: { password: 'Şifre hatalı.' } }
-  users[i] = { ...users[i], email: mail }
-  writeUsers(users)
-  return { user: publicUser(users[i]) }
-}
-
-/** Şifre değişikliği: mevcut şifre doğrulanır, yeni şifre yeni tuzla saklanır. */
-export async function changePassword(username, { current, next, next2 }) {
-  const errors = {}
-  const weak = passwordProblem(next)
-  if (weak) errors.next = weak
-  else if (next === current) errors.next = 'Yeni şifre eskisiyle aynı olamaz.'
-  if (next2 !== next) errors.next2 = 'Şifreler aynı değil.'
-  const users = readUsers()
-  const i = findIndex(users, username)
-  if (i < 0) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
-  if (!(await verify(users[i], current))) errors.current = 'Mevcut şifre hatalı.'
-  if (Object.keys(errors).length) return { error: errors }
-  const salt = toHex(crypto.getRandomValues(new Uint8Array(16)))
-  users[i] = { ...users[i], salt, hash: await hashPassword(next, salt) }
-  writeUsers(users)
-  return { ok: true }
+export async function changePassword() {
+  return { error: { form: NOT_YET } }
 }
 
 // ---------- verilerin: indir ve hesabı sil (KVKK) ----------
 
-// Bu tarayıcıda hesaba değil cihaza bağlı tutulan kişisel kayıtlar (avatar, kayıtlı görünümler, odak
-// sayısı, sayaç, son oda). Dışa aktarmada gelir; hesap silinince bunlar da silinir.
+// Bu tarayıcıda cihaza bağlı tutulan kişisel kayıtlar (avatar, kayıtlı görünümler, odak sayısı,
+// sayaç, son oda). Dışa aktarmada gelir.
 const DEVICE_KEYS = ['odakhane.avatar', 'odakhane.avatar.presets', 'odakhane.focus-stats', 'odakhane.pomodoro', 'odakhane.current-room']
+const PER_USER_PREFIXES = ['odakhane.joined.']
 
 function readJson(key) {
   try {
@@ -263,34 +189,17 @@ function readJson(key) {
   }
 }
 
-/** Hesabın ve bu tarayıcıdaki kişisel kayıtların dökümü (şifre özeti ve tuz hariç). */
+/** Hesabın ve bu tarayıcıdaki kişisel kayıtların dökümü. */
 export function exportAccountData(username) {
-  const user = readUsers().find((u) => u.username === username)
-  if (!user) return null
+  const user = currentUser()
+  if (!user || user.username !== username) return null
   const records = {}
   for (const prefix of PER_USER_PREFIXES) records[prefix.slice(0, -1)] = readJson(prefix + username)
   const thisBrowser = {}
   for (const key of DEVICE_KEYS) thisBrowser[key] = readJson(key)
-  return { exportedAt: new Date().toISOString(), account: publicUser(user), records, thisBrowser }
+  return { exportedAt: new Date().toISOString(), account: user, records, thisBrowser }
 }
 
-/** Hesabı kalıcı olarak siler: şifre doğrulanır; hesap, ona bağlı kayıtlar, bu tarayıcıdaki kişisel
- * kayıtlar ve oturum kaldırılır. Dönüş: { ok } ya da { error: { alan: mesaj } } */
-export async function deleteAccount(username, password) {
-  const users = readUsers()
-  const i = findIndex(users, username)
-  if (i < 0) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
-  if (!password) return { error: { password: 'Şifreni yaz.' } }
-  if (!(await verify(users[i], password))) return { error: { password: 'Şifre hatalı.' } }
-  writeUsers(users.filter((_, j) => j !== i))
-  try {
-    for (const prefix of PER_USER_PREFIXES) localStorage.removeItem(prefix + username)
-    for (const key of DEVICE_KEYS) localStorage.removeItem(key)
-    const last = localStorage.getItem(LAST_LOGIN_KEY)
-    if (last === username || last === users[i].email) localStorage.removeItem(LAST_LOGIN_KEY)
-  } catch {
-    /* yok say */
-  }
-  logout()
-  return { ok: true }
+export async function deleteAccount() {
+  return { error: { form: NOT_YET } }
 }

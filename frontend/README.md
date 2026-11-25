@@ -43,6 +43,29 @@ CI (`.github/workflows/frontend-ci.yml`) `main` dalına push ve pull request'ler
 Tema kimlikleri: `library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `underwater`, `bar`,
 `treehouse`, `cyber`.
 
+## Backend bağlantısı (prototip)
+
+Site backend'e `src/site/api.js` üzerinden bağlanır. Varsayılan adres canlı demo backend'idir
+(`https://demo-backend-bcns.onrender.com`). Yerel backend için `frontend/.env.local` dosyasına yaz:
+
+```
+VITE_API_URL=http://localhost:8080
+```
+
+| Sunucudan gelir | Bu tarayıcıda kalır |
+|---|---|
+| Kayıt, giriş, çıkış, oturum yenileme | Görünen ad, avatar |
+| Oda listesi, oda oluşturma, odaya katılma | Sayaç, odak istatistikleri, katılım geçmişi |
+| Odadaki oturum ve şu an odada olanlar | Kişisel oda (`#odam`) |
+
+- Giriş e-postayla yapılır. Kullanıcı adında nokta kullanılamaz (backend kuralı).
+- Oda teması backend'de ayrı bir alan değil. Prototipte odanın açıklamasında `theme:<ad>` olarak taşınır.
+- Gizli odaya yalnızca odayı açan ve üyeler girebilir. Başkası yalnız kodla katılamaz, çünkü backend'de
+  "kodla oda bul" ucu henüz yok.
+- Hesap ayarlarında e-posta, şifre değişikliği ve hesap silme prototipte kapalı.
+- Canlı backend yalnız `https://samedesk.vercel.app` adresine izin verir (CORS). Vercel önizleme
+  adreslerinden istekler reddedilir.
+
 ## Klasörler
 
 ```

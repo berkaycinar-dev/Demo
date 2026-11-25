@@ -11,6 +11,31 @@ import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
 import useFirstVisit from './useFirstVisit'
+import { activeMembers } from './roomStore'
+
+// Odadaki gerçek kişiler bu aralıkla sunucudan tazelenir.
+const MEMBERS_POLL_MS = 10_000
+
+/** Sunucuda şu an bu odada olanlar (kendin hariç): [{ id, name }] ya da yüklenene kadar []. */
+function useLiveMates(roomId, meId) {
+  const [members, setMembers] = useState([])
+  useEffect(() => {
+    let stopped = false
+    const load = () =>
+      activeMembers(roomId)
+        .then((list) => {
+          if (!stopped) setMembers(list)
+        })
+        .catch(() => {})
+    load()
+    const id = setInterval(load, MEMBERS_POLL_MS)
+    return () => {
+      stopped = true
+      clearInterval(id)
+    }
+  }, [roomId])
+  return useMemo(() => members.filter((m) => m.userId !== meId).map((m) => ({ id: m.userId, name: m.username })), [members, meId])
+}
 
 // idle: odadasın ama sayaç çalışmıyor (başlamadı ya da duraklatıldı); avatar masada oturur.
 const STATUS_LABELS = { idle: 'Masada', focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
@@ -274,7 +299,7 @@ function StatusMenu({ status, away, onAway, spotName, aside, children }) {
   )
 }
 
-function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
+function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
   const [spot, setSpot] = useState(null)
   const [spots, setSpots] = useState([])
   const [names, setNames] = useState(false)
@@ -304,11 +329,13 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
   }
   const { Room } = THEMES[room.theme]
   const [away, setAway] = useState(false)
+  const mates = useLiveMates(room.id, meId)
   const { occupants, setMyStatus, myStatus } = useRoomPeople({
     capacity: room.capacity,
     seed: seedOf(room.id),
     me: avatar,
     cheer: timer.completed,
+    people: mates,
   })
 
   // Durum sayacın aşamasından türer: molada mola yerine (seçildiyse oraya) yürür, aksi hâlde masada.
