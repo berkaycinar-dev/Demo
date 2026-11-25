@@ -1,6 +1,7 @@
 package com.samedesk.backend.realtime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.access.AccessDeniedException;
 
 class StompRoomAccessTest {
 
@@ -86,6 +88,47 @@ class StompRoomAccessTest {
         when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(true);
         when(clock.instant()).thenReturn(EXPIRY);
         assertThat(access.authorizeDelivery(snapshot)).isNull();
+    }
+
+    @Test
+    void personalTimerSubscriptionNeedsNoRoomMembership() {
+        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(false);
+        subscribe("/user/queue/timers");
+        Message<?> event = timerEvent(SESSION_ID, "/user/queue/timers");
+        assertThat(access.authorizeDelivery(event)).isSameAs(event);
+
+        when(clock.instant()).thenReturn(EXPIRY);
+        assertThat(access.authorizeDelivery(event)).isNull();
+    }
+
+    @Test
+    void rejectsRawQueuesUserIdsWildcardsAndOtherPersonalChannels() {
+        for (String destination : new String[] {"/queue/timers", "/queue/timers-user" + SESSION_ID,
+                "/user/" + USER_ID + "/queue/timers", "/user/queue/**", "/user/queue/notifications"}) {
+            assertThatThrownBy(() -> subscribe(destination)).isInstanceOf(AccessDeniedException.class);
+        }
+    }
+
+    @Test
+    void personalDeliveryRequiresTheReceivingSessionsQueueAndOriginalDestination() {
+        assertThat(access.authorizeDelivery(timerEvent("another-session", "/user/queue/timers"))).isNull();
+        assertThat(access.authorizeDelivery(timerEvent(SESSION_ID, null))).isNull();
+        assertThat(access.authorizeDelivery(timerEvent(SESSION_ID, "/user/queue/notifications"))).isNull();
+    }
+
+    private void subscribe(String destination) {
+        StompHeaderAccessor frame = StompHeaderAccessor.create(StompCommand.SUBSCRIBE);
+        frame.setSessionId(SESSION_ID);
+        frame.setDestination(destination);
+        access.preSend(MessageBuilder.createMessage(new byte[0], frame.getMessageHeaders()), null);
+    }
+
+    private Message<?> timerEvent(String queueSession, String originalDestination) {
+        SimpMessageHeaderAccessor headers = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
+        headers.setSessionId(SESSION_ID);
+        headers.setDestination("/queue/timers-user" + queueSession);
+        headers.setNativeHeader(SimpMessageHeaderAccessor.ORIGINAL_DESTINATION, originalDestination);
+        return MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
     }
 
     private Message<?> roomEvent() {

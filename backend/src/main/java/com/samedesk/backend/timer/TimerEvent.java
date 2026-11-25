@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Payload of the TIMER_* room events (see the "timer" tag in openapi.yaml).
+ * Payload of the personal TIMER_* events (see contracts/stomp-messages.md).
  * For TIMER_FINISHED, {@code phase} is the phase that ended and {@code endsAt} is when it ended.
  */
 public record TimerEvent(

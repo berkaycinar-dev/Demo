@@ -1,13 +1,13 @@
 # STOMP mesaj sözleşmesi
 
-Sürüm 2 · Sahip D · Oda olayları ve aktif katılımcı listesi
+Sürüm 3 · Sahip D · Oda olayları, aktif katılımcı listesi ve kişisel sayaç
 
 ## Bağlantı ve yetki
 
 - WebSocket adresi `/ws`. Yayın ortamında WSS kullanılır. Tarayıcı bağlantıları aynı origin veya `CORS_ORIGINS` içindeki açıkça belirtilen origin üzerinden açılır.
 - İstemci STOMP 1.2 `CONNECT` çerçevesinde `Authorization: Bearer <accessToken>` başlığını gönderir. Token URL'ye yazılmaz. HTTP el sıkışmasından sonra kimlik doğrulanır.
 - REST ve STOMP aynı `JwtDecoder` kullanır. JWT imzası, `iss` ve süre doğrulanır. Kimlik `sub` alanındaki kullanıcı UUID'sidir. Claim ve refresh davranışı [REST sözleşmesinde](openapi.yaml) tanımlanır.
-- Odayı yalnızca `RoomAccessChecker` tarafından üye olduğu doğrulanan kullanıcı dinleyebilir. Oda kimliği küçük harfli UUID olarak yazılır. Wildcard ve diğer abonelik adresleri reddedilir.
+- Oda kanallarını yalnızca `RoomAccessChecker` tarafından üye olduğu doğrulanan kullanıcı dinleyebilir. Oda kimliği küçük harfli UUID olarak yazılır. Kişisel sayaç için yalnızca `/user/queue/timers` adresi açıktır; kimlik JWT'den gelir. Wildcard, ham `/queue/...`, başka kullanıcı kimliği içeren ve diğer abonelik adresleri reddedilir.
 - İstemci `CONNECT`, `SUBSCRIBE`, `UNSUBSCRIBE` ve `DISCONNECT` kullanır. Odaya katılma ve oturum heartbeat'i REST üzerinden yapılır. İstemciden `SEND` kabul edilmez.
 - Token süresi dolduğunda açık aboneliğe olay teslimi durur. Sonraki abonelik işlemi de reddedilir. İstemci access token'ı REST üzerinden yenileyip tekrar bağlanır ve abone olur. Üyelik teslim anında yeniden kontrol edilir.
 - Hatalı işlemde `ERROR` çerçevesinin `message` başlığı `UNAUTHENTICATED`, `FORBIDDEN` veya `INVALID_FRAME` olur ve bağlantı kapanır.
@@ -44,6 +44,49 @@ Bu sürümün veri kaynağı C'nin mevcut `room_sessions` modelidir. REST üzeri
 
 Bağlantı yenilendiğinde kanal aboneliği yeniden kurulur ve sıradaki tam listeyle durum toparlanır. Kanalın hem abonelik hem teslim aşamasında mevcut oda üyeliği ve JWT süresi kontrol edilir. Bu teslim tek Spring uygulaması için mevcut PostgreSQL oturum kayıtlarını kullanır. Redis üzerinden geçici durum ve çoklu sunucu dağıtımı ilerleyen aşamalarda değerlendirilir.
 
+## Kişisel sayaç
+
+Kimliği doğrulanmış istemci `/user/queue/timers` adresine abone olur. Kullanıcı kimliği adrese eklenmez; Spring JWT kimliğiyle aynı kullanıcının bağlı ve abone olan tüm sekmelerine yayın yapar. Odada aktif oturum gerekmiyor. Başka kullanıcılar ve oda kanalları kişisel sayaç olayını almaz. Oda içindeki ortak çalışma/mola göstergesi bu kanalın kapsamı dışındadır.
+
+Komutlar mevcut REST `POST /api/v1/timer/commands` üzerinden gider. `UserEventPublisher`, başarılı veritabanı commit'inden sonra tek kişisel olay yayınlar. Sayaç, puan, ön ayar, `commandId` ve `expectedVersion` kuralları C'nin mevcut servisindedir. Tekrarlanan komut ve reddedilen eski sürüm yeni olay üretmez. JWT süresi teslim sırasında da kontrol edilir; token yenilendikten sonra yeni bağlantı kurulur.
+
+```json
+{
+  "schemaVersion": 1,
+  "eventId": "31e92432-286c-43f9-a0f2-63c7f1b31a77",
+  "type": "TIMER_STARTED",
+  "userId": "21711231-00d4-4ffc-bc72-c96190465cf3",
+  "occurredAt": "2026-11-26T12:00:00Z",
+  "payload": {
+    "userId": "21711231-00d4-4ffc-bc72-c96190465cf3",
+    "preset": "25-5",
+    "phase": "FOCUS",
+    "endsAt": "2026-11-26T12:25:00Z",
+    "remainingSeconds": 1500,
+    "version": 1,
+    "occurredAt": "2026-11-26T12:00:00Z"
+  }
+}
+```
+
+Kişisel zarfta `roomId` yerine `userId` bulunur. Olay tipleri:
+
+| Tip | Tetikleyen işlem |
+| --- | --- |
+| `TIMER_STARTED` | START, RESUME, SKIP; `phase` başlayan fazdır |
+| `TIMER_PAUSED` | PAUSE |
+| `TIMER_RESET` | RESET, SET_PRESET |
+| `TIMER_FINISHED` | Süresi dolan fazın REST okuması veya komut sırasında işlenmesi; `phase` biten faz, `endsAt` bitiş anı, kalan süre 0 |
+
+Frontend entegrasyonu:
+
+1. Bağlanıp kişisel kanala abone olun, ardından `GET /api/v1/timer` ile tam durumu okuyun. Her yeniden bağlantıda bu adımı tekrarlayın. Bellek içi broker kaçırılan olayları saklamaz.
+2. Komutun REST yanıtındaki güncel durumu kullanın. Diğer sekmeler gelen olayı güncel durumu tekrar okuma sinyali olarak kullanır. Bu olay bir snapshot değildir: `status`, `totalSeconds` ve tamamlanan blok sayısı tam REST yanıtındadır. Özellikle `TIMER_FINISHED`, sıradaki fazın tam durumunu taşımaz.
+3. `eventId` aynı olayı tanımlar; birden çok olay aynı `version` değerini taşıyabilir. Tam REST yanıtında daha düşük bir sürümü mevcut duruma uygulamayın. Bir sürüm boşluğu veya yeniden bağlantı olduğunda REST'ten toparlayın.
+4. Saniyeleri tarayıcıda `endsAt` ve REST `serverTime` değerlerinden hesaplayın. Sunucu her saniye yayın yapmaz. Süre bittiğinde `GET /timer` çağırın; mevcut servis ancak okuma veya komut geldiğinde faz geçişini işler. Bu teslim otomatik arka plan faz geçişi eklemez.
+
+Bu sürümle `TIMER_*` olayları oda `/events` kanalından kişisel kanala taşındı. REST uçları ve DTO'lar aynı kaldı. Eski oda kanalı tüketicileri kişisel sayaç için bu aboneliğe geçmelidir.
+
 ## Yerel doğrulama
 
 Java backend'i ayrı bir yerel deneme veritabanıyla başlatıp depo kökünde çalıştırın:
@@ -52,9 +95,11 @@ Java backend'i ayrı bir yerel deneme veritabanıyla başlatıp depo kökünde �
 node backend/scripts/stomp-smoke.mjs http://127.0.0.1:8080
 ```
 
-Node 24 ile çalışan bu istemci, deneme hesapları ve özel bir oda oluşturur. İki oda üyesinin aynı `MEMBER_JOINED` olayını aldığını ve üye olmayan birinin abone olamadığını kontrol eder. Eksik ve geçersiz JWT ile bağlantı, jokerli abonelik ve istemcinin oda kanalına yayın yapma denemesi de sınanır. Presence kanalında ilk boş liste, giriş, heartbeat, yeniden bağlantı, çıkış ve heartbeat kesilince timeout doğrulanır. Varsayılan timeout ile deneme yaklaşık 1–2 dakika sürer.
+Node 24 ile çalışan bu istemci, deneme hesapları ve özel bir oda oluşturur. İki oda üyesinin aynı `MEMBER_JOINED` olayını aldığını ve üye olmayan birinin abone olamadığını kontrol eder. Eksik ve geçersiz JWT ile bağlantı, jokerli abonelik ve istemcinin oda kanalına yayın yapma denemesi de sınanır. Kişisel sayaçta iki sekmeye aynı olay, odasız kullanım, başlat/duraklat/devam/faz değişimi/sıfırla/ön ayar, tekrarlanan komut, eski sürüm, kullanıcılar arası ayrım ve yeniden bağlantı doğrulanır. Presence kanalında ilk boş liste, giriş, heartbeat, yeniden bağlantı, çıkış ve heartbeat kesilince timeout doğrulanır. Varsayılan timeout ile deneme yaklaşık 1–2 dakika sürer.
+
+Backend CI bu istemciyi PostgreSQL üzerinde otomatik çalıştırır. Yalnızca geçici CI sürecinde oturum timeout'u 4 saniye, presence ve temizleme aralığı 200 ms olarak kısaltılır. Yerel ve yayın varsayılanları aynı kalır.
 
 ## Sonraki teslimler
 
-- H5 sayaç komutları ve durum sürümü C'nin REST akışından gelir. D, kişisel sayaç olaylarını kullanıcının kendi aboneliğine yayınlar. Ortak çalışma veya mola göstergesi ayrı oda olayıdır.
+- Ortak çalışma veya mola göstergesi, kişisel sayaç akışından ayrı oda olayı olarak ele alınır.
 - Uygulama heartbeat'i, yeniden bağlanma, hareket, sohbet ve kalıcı olay teslimi kendi aşamalarında eklenir.

@@ -19,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessageType;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.messaging.support.NativeMessageHeaderAccessor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -58,7 +59,8 @@ class StompRoomAccess implements ChannelInterceptor {
             case DISCONNECT -> { }
             case SUBSCRIBE -> {
                 SessionIdentity identity = requireIdentity(frame.getSessionId());
-                if (!mayReceive(identity, frame.getDestination())) {
+                if (!StompUserEventPublisher.TIMER_SUBSCRIPTION.equals(frame.getDestination())
+                        && !mayReceiveRoom(identity, frame.getDestination())) {
                     throw new AccessDeniedException("FORBIDDEN");
                 }
             }
@@ -114,10 +116,20 @@ class StompRoomAccess implements ChannelInterceptor {
         String destination = SimpMessageHeaderAccessor.getDestination(message.getHeaders());
         // Check the receiving session again. A subscription can outlive a token or membership.
         return identity != null && identity.expiresAt().isAfter(clock.instant())
-                && mayReceive(identity, destination) ? message : null;
+                && (isOwnTimerDelivery(sessionId, message) || mayReceiveRoom(identity, destination)) ? message : null;
     }
 
-    private boolean mayReceive(SessionIdentity identity, String destination) {
+    private boolean isOwnTimerDelivery(String sessionId, Message<?> message) {
+        // Spring resolves /user/queue/timers to a queue unique to this receiving session.
+        // Require its original destination too; raw /queue subscriptions are never accepted.
+        return (StompUserEventPublisher.TIMER_QUEUE + "-user" + sessionId)
+                .equals(SimpMessageHeaderAccessor.getDestination(message.getHeaders()))
+                && StompUserEventPublisher.TIMER_SUBSCRIPTION
+                .equals(NativeMessageHeaderAccessor.getFirstNativeHeader(
+                        SimpMessageHeaderAccessor.ORIGINAL_DESTINATION, message.getHeaders()));
+    }
+
+    private boolean mayReceiveRoom(SessionIdentity identity, String destination) {
         if (destination == null) {
             return false;
         }

@@ -93,8 +93,8 @@ tags:
       `commandId` again (a retry after a lost response) changes nothing and returns the result of the first
       time; no event is published twice. Command ids are remembered for 24 hours.
 
-      **Events.** Published through `RoomEventPublisher`, after the database commit, to every room where the
-      user has an open session (none if the user is in no room). Payload:
+      **Events.** Published through `UserEventPublisher`, after the database commit, to the user's own
+      `/user/queue/timers` STOMP subscriptions, including outside a room. Never sent to room topics. Payload:
       `{userId, preset, phase, endsAt, remainingSeconds, version, occurredAt}`.
       `TIMER_STARTED` (start, resume, skip; `phase` is the phase now running), `TIMER_PAUSED`,
       `TIMER_RESET` (reset, set preset), `TIMER_FINISHED` (a phase ran out; `phase` is the phase that ended,

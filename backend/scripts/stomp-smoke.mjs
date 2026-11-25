@@ -115,10 +115,92 @@ try {
   assert.deepEqual(events[0].payload, {
     roomId: room.id, userId: joiningUser.user.id, username: joiningUser.user.username, role: 'MEMBER',
   })
+  console.log('JWT and room channel scenarios passed.')
+
+  // A personal timer is shared by the user's tabs, even without an active room session.
+  const timerSubscription = ['destination:/user/queue/timers', 'id:timer']
+  for (const denied of ['/queue/timers', `/user/${owner.user.id}/queue/timers`, '/user/queue/**']) {
+    await expectForbidden(await connect(outsider.accessToken), 'SUBSCRIBE', [`destination:${denied}`, 'id:denied'])
+  }
+  const timerTabs = await Promise.all([connect(owner.accessToken), connect(owner.accessToken)])
+  const otherTimer = await connect(outsider.accessToken)
+  for (const client of [...timerTabs, otherTimer]) client.send('SUBSCRIBE', timerSubscription)
+  let timer = await post('/timer', undefined, owner.accessToken, 'GET')
+  // Allow the asynchronous broker to install the subscriptions before the first command.
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  async function command(type, expectedType, preset) {
+    const request = { commandId: randomUUID(), expectedVersion: timer.version, type, preset }
+    timer = await post('/timer/commands', request, owner.accessToken)
+    const delivered = await Promise.all(timerTabs.map((client) => client.receive()))
+    const values = delivered.map((message) => {
+      assert.equal(message.command, 'MESSAGE')
+      assert.ok(message.headers.includes('destination:/user/queue/timers'))
+      const event = JSON.parse(message.body)
+      assert.equal(event.type, expectedType)
+      assert.equal(event.userId, owner.user.id)
+      assert.equal(event.payload.version, timer.version)
+      assert.equal(event.payload.phase, timer.phase)
+      assert.equal(event.payload.endsAt, timer.endsAt)
+      assert.equal(event.roomId, undefined)
+      return event
+    })
+    if (values.length === 2) assert.deepEqual(values[0], values[1])
+    console.log(`Personal timer ${type} delivered to ${values.length} tab(s).`)
+    return request
+  }
+
+  const startRequest = await command('START', 'TIMER_STARTED')
+  const repeated = await post('/timer/commands', startRequest, owner.accessToken)
+  assert.equal(repeated.version, timer.version)
+  const stale = await fetch(new URL('/api/v1/timer/commands', base), {
+    method: 'POST', headers: { Authorization: `Bearer ${owner.accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ commandId: randomUUID(), expectedVersion: 0, type: 'PAUSE' }),
+    signal: AbortSignal.timeout(10_000),
+  })
+  assert.equal(stale.status, 409)
+  assert.equal((await stale.json()).code, 'STALE_VERSION')
+  // A duplicate or rejected command must not have queued an extra TIMER_STARTED.
+  await command('PAUSE', 'TIMER_PAUSED')
+  await command('RESUME', 'TIMER_STARTED')
+  await command('SKIP', 'TIMER_STARTED')
+  assert.equal(timer.phase, 'BREAK')
+  await command('RESET', 'TIMER_RESET')
+  await command('SET_PRESET', 'TIMER_RESET', '50-10')
+  assert.equal(timer.preset, '50-10')
+
+  await timerTabs.pop().disconnect()
+  await command('START', 'TIMER_STARTED')
+  timerTabs.push(await connect(owner.accessToken))
+  timerTabs[1].send('SUBSCRIBE', timerSubscription)
+  const restored = await post('/timer', undefined, owner.accessToken, 'GET')
+  assert.equal(restored.version, timer.version)
+  assert.equal(restored.status, 'RUNNING')
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  await command('PAUSE', 'TIMER_PAUSED')
+
+  // The other user's first queued event must be their own, never the owner's timer.
+  const otherState = await post('/timer', undefined, outsider.accessToken, 'GET')
+  await post('/timer/commands', {
+    commandId: randomUUID(), expectedVersion: otherState.version, type: 'START',
+  }, outsider.accessToken)
+  const otherEvent = JSON.parse((await otherTimer.receive()).body)
+  assert.equal(otherEvent.userId, outsider.user.id)
+  assert.equal(otherEvent.type, 'TIMER_STARTED')
+  await command('RESET', 'TIMER_RESET')
+
+  // Room listeners must receive the next membership event, with no personal timers before it.
+  await expectForbidden(await connect(outsider.accessToken), 'SUBSCRIBE', [
+    `destination:/topic/rooms/${room.id}/presence`, 'id:denied-presence',
+  ])
+  await join(outsider)
+  for (const listener of listeners) {
+    assert.equal(JSON.parse((await listener.receive()).body).type, 'MEMBER_JOINED')
+  }
+  console.log('Personal timer isolation and reconnect scenarios passed.')
 
   const presenceDestination = `/topic/rooms/${room.id}/presence`
   const presenceSubscription = [`destination:${presenceDestination}`, 'id:presence']
-  await expectForbidden(await connect(outsider.accessToken), 'SUBSCRIBE', presenceSubscription)
   const presence = await connect(owner.accessToken)
   presence.send('SUBSCRIBE', presenceSubscription)
   await expectPresence(presence, room.id, [])
@@ -142,7 +224,7 @@ try {
   await expectPresence(reconnected, room.id, [member.user.id])
   // Stop sending heartbeats. C's session sweeper must remove the timed-out participant.
   await expectPresence(reconnected, room.id, [])
-  console.log('STOMP smoke passed: JWT, room isolation, two-member delivery, presence, reconnect, exit and timeout.')
+  console.log('STOMP smoke passed: JWT, room isolation, private timers across tabs, commands, retries, reconnect, presence, exit and timeout.')
 } finally {
   for (const { socket, frames } of clients) {
     socket.close()
