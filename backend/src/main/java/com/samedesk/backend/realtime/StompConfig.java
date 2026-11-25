@@ -1,8 +1,10 @@
 package com.samedesk.backend.realtime;
 
 import java.util.Arrays;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -15,6 +17,7 @@ import org.springframework.messaging.support.ExecutorChannelInterceptor;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
@@ -27,9 +30,18 @@ class StompConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompRoomAccess access;
     private final String[] allowedOrigins;
+    private final TaskScheduler heartbeatScheduler;
+    private final long heartbeatMs;
 
-    StompConfig(StompRoomAccess access, @Value("${app.cors.allowed-origins}") String[] allowedOrigins) {
+    StompConfig(StompRoomAccess access, @Value("${app.cors.allowed-origins}") String[] allowedOrigins,
+                @Lazy @Qualifier("messageBrokerTaskScheduler") TaskScheduler heartbeatScheduler,
+                @Value("${app.websocket.heartbeat-ms:10000}") long heartbeatMs) {
         this.access = access;
+        this.heartbeatScheduler = heartbeatScheduler;
+        if (heartbeatMs < 100) {
+            throw new IllegalArgumentException("WebSocket heartbeat interval must be at least 100 ms");
+        }
+        this.heartbeatMs = heartbeatMs;
         this.allowedOrigins = Arrays.stream(allowedOrigins).map(String::trim).toArray(String[]::new);
         if (Arrays.asList(this.allowedOrigins).contains("*")) {
             throw new IllegalArgumentException("WebSocket origins must be explicit");
@@ -58,7 +70,9 @@ class StompConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        registry.enableSimpleBroker("/topic", "/queue");
+        registry.enableSimpleBroker("/topic", "/queue")
+                .setTaskScheduler(heartbeatScheduler)
+                .setHeartbeatValue(new long[] {heartbeatMs, heartbeatMs});
         registry.setUserDestinationPrefix("/user");
         registry.setPreservePublishOrder(true);
     }

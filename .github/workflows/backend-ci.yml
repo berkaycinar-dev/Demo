@@ -77,6 +77,7 @@ jobs:
         run: |
           # Short timeouts apply only to this disposable CI database and process.
           java -jar target/backend-*.jar \
+            --app.websocket.heartbeat-ms=200 \
             --app.presence.publish-interval-ms=200 \
             --app.room-sessions.sweep-interval-ms=200 > target/backend-smoke.log 2>&1 &
           backend_pid=$!
