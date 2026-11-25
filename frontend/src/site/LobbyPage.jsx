@@ -232,6 +232,11 @@ const pickRandom = (list) => list[Math.floor(Math.random() * list.length)]
 const SEARCH_COPY = {
   placeholder: 'Oda ya da tema ara',
   key: 'Kısayol: /',
+  // arama hiçbir odayla eşleşmeyince tek not; gizli odalarda eşleşme varsa yalnızca açık odalar için
+  noMatch: (q) => `“${q}” ile eşleşen oda yok.`,
+  noOpenMatch: (q) => `“${q}” ile eşleşen açık oda yok.`,
+  noHiddenMatch: (q) => `“${q}” ile eşleşen gizli oda yok.`,
+  clear: 'Aramayı temizle',
 }
 
 // Hızlı katılım ve çıkış fişi metinleri. Sayılar ayrı değişken; çeviride sıra değişebilir.
@@ -349,7 +354,7 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
         <button type="button" className="site-btn" onClick={() => onEnter(room)}>
           {RECEIPT_COPY.again}
         </button>
-        <button type="button" className="link-btn" onClick={onClose}>
+        <button type="button" className="quiet-btn" onClick={onClose}>
           {RECEIPT_COPY.close}
         </button>
       </div>
@@ -375,6 +380,13 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
   const matches = (r) => !q || trLower(r.name).includes(q) || trLower(THEMES[r.theme].label).includes(q)
   const shown = open.filter(matches)
   const shownHidden = hidden.filter(matches)
+  const searching = Boolean(q)
+  const noMatchAtAll = searching && shown.length === 0 && shownHidden.length === 0
+  // temizleyince odak aramaya döner: yeni bir şey yazmak bir tuş uzakta
+  const clearSearch = () => {
+    setQuery('')
+    searchRef.current?.focus()
+  }
 
   return (
     <>
@@ -417,9 +429,16 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
               />
             </div>
           </div>
-          {shown.length === 0 ? (
+          {shown.length === 0 && searching ? (
             <div className="empty-note">
-              <p>{open.length ? `“${query.trim()}” ile eşleşen açık oda yok.` : 'Şu an açık oda yok.'}</p>
+              <p>{noMatchAtAll ? SEARCH_COPY.noMatch(query.trim()) : SEARCH_COPY.noOpenMatch(query.trim())}</p>
+              <button type="button" className="site-btn" onClick={clearSearch}>
+                {SEARCH_COPY.clear}
+              </button>
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="empty-note">
+              <p>Şu an açık oda yok.</p>
               <button type="button" className="site-btn" onClick={onCreate}>
                 <PlusIcon />
                 Yeni oda oluştur
@@ -433,17 +452,22 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
             </ul>
           )}
 
-          <div className="section-head lobby__hidden-head">
-            <h2 id="gizliBaslik">Gizli odalar</h2>
-          </div>
-          {shownHidden.length === 0 ? (
-            <p className="site-muted">{hidden.length ? `“${query.trim()}” ile eşleşen gizli oda yok.` : 'Şu an gizli oda yok.'}</p>
-          ) : (
-            <ul className="site-rooms" aria-labelledby="gizliBaslik">
-              {shownHidden.map((room) => (
-                <RoomCard key={room.id} room={room} onAction={() => (room.myRole ? onEnter(room) : setAsking(room))} />
-              ))}
-            </ul>
+          {/* hiçbir oda eşleşmezse yukarıdaki tek not yeter; gizli odalar bölümü çıkmaz */}
+          {!noMatchAtAll && (
+            <>
+              <div className="section-head lobby__hidden-head">
+                <h2 id="gizliBaslik">Gizli odalar</h2>
+              </div>
+              {shownHidden.length === 0 ? (
+                <p className="site-muted">{searching ? SEARCH_COPY.noHiddenMatch(query.trim()) : 'Şu an gizli oda yok.'}</p>
+              ) : (
+                <ul className="site-rooms" aria-labelledby="gizliBaslik">
+                  {shownHidden.map((room) => (
+                    <RoomCard key={room.id} room={room} onAction={() => (room.myRole ? onEnter(room) : setAsking(room))} />
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </section>
 

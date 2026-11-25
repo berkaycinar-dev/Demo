@@ -23,7 +23,7 @@ export const QUOTES = [
   ['Bilgi güçtür.', 'Francis Bacon', 'Bugün biriktirdiğin her odak dakikası, yarın kullanacağın bilgiye dönüşür.'],
 ]
 
-const KEY = 'odakhane-quote'
+const KEY = 'samedesk-quote'
 let visitQuote = null
 
 /** Bu sayfa açılışının sözü: açılış başına bir kez seçilir, bir önceki açılıştakiyle aynı olmaz. */

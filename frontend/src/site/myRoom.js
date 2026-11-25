@@ -2,7 +2,7 @@ import { THEMES } from '../rooms/themes'
 
 // Kişisel odanın (Odam) ayarları: kullanıcı başına bu tarayıcıda saklanır.
 const DEFAULTS = { theme: 'library', sound: null, volume: 0.5 }
-const keyOf = (user) => `odakhane.myroom.${user.username}`
+const keyOf = (user) => `samedesk.myroom.${user.username}`
 
 export function loadMyRoom(user) {
   try {

@@ -1,12 +1,12 @@
 // Backend ile konuşan tek yer: adres, token saklama, yenileme ve hata biçimi.
 // Sözleşme: contracts/openapi.yaml. Adres VITE_API_URL ile değişir (yerelde .env.local:
-// VITE_API_URL=http://localhost:8080); verilmezse canlı demo backend'i kullanılır.
+// VITE_API_URL=http://localhost:8080); verilmezse canlı backend kullanılır.
 
 export const API_URL = (import.meta.env.VITE_API_URL || 'https://demo-backend-bcns.onrender.com').replace(/\/$/, '')
 
-const SESSION_KEY = 'odakhane.api-session'
+const SESSION_KEY = 'samedesk.api-session'
 // Oturum düşünce (yenileme başarısız) Site bunu dinleyip girişe döner.
-export const SIGNED_OUT_EVENT = 'odakhane:signed-out'
+export const SIGNED_OUT_EVENT = 'samedesk:signed-out'
 
 /** Sunucu hatası: status 0 = sunucuya ulaşılamadı. code: sözleşmedeki makine kodu (ROOM_FULL...). */
 export class ApiError extends Error {

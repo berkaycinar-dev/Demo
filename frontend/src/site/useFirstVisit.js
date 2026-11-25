@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const KEY = 'odakhane.seen-hints'
+const KEY = 'samedesk.seen-hints'
 
 function readSeen() {
   try {

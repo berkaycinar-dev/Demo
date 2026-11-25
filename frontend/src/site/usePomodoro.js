@@ -9,8 +9,8 @@ export const PRESETS = [
   { id: '90-15', label: '90 / 15', focus: 90, break: 15 },
 ]
 
-const STATS_KEY = 'odakhane.focus-stats'
-const TIMER_KEY = 'odakhane.pomodoro'
+const STATS_KEY = 'samedesk.focus-stats'
+const TIMER_KEY = 'samedesk.pomodoro'
 const TIMER_VERSION = 1
 // Aşama bu kadar geç fark edildiyse kullanıcı yoktu (sekme kapalı / donmuş): zil çalmaz, avatar
 // sevinmez, olan biten görünür bir notla anlatılır.
@@ -105,7 +105,7 @@ export default function usePomodoro({ track = true } = {}) {
   // Bugünkü sayıma eklenen son dakikalar: { id, minutes }. Sayaç kartında "+25 dk" olarak görünür.
   const [gain, setGain] = useState(null)
   const written = useRef(null)
-  const baseTitle = useRef(typeof document === 'undefined' ? 'Odakhane' : document.title)
+  const baseTitle = useRef(typeof document === 'undefined' ? 'SameDesk' : document.title)
   const p = presetOf(timer.preset)
 
   const say = (text) => setAnnouncement({ id: Date.now(), text })

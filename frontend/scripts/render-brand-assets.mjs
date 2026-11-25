@@ -57,13 +57,13 @@ h1 { font-family: 'Pixelify Sans', sans-serif; font-weight: 500; font-size: 66px
 p { margin-top: 28px; max-width: 470px; color: #d4ccc1; font-size: 26px; line-height: 1.45; }
 img { width: 640px; height: auto; margin-left: -40px; filter: drop-shadow(0 30px 40px rgba(0,0,0,.45)); }
 </style></head><body>
-<div><div class="brand">${MARK}<span>Odakhane</span></div>
+<div><div class="brand">${MARK}<span>SameDesk</span></div>
 <h1>Birlikte çalışınca odaklanmak kolaylaşır.</h1>
 <p>Kamerasız, sessiz, birlikte: avatarınla bir odaya otur, sayacını başlat.</p></div>
 <img src="${url('public/room-thumbs/library-evening.webp')}" alt="">
 </body></html>`
 
-const work = join(tmpdir(), `odakhane-brand-${process.pid}`)
+const work = join(tmpdir(), `samedesk-brand-${process.pid}`)
 mkdirSync(work, { recursive: true })
 mkdirSync(resolve(pub, 'icons'), { recursive: true })
 const browser = await puppeteer.launch({ executablePath: browserPath, headless: 'new', args: ['--allow-file-access-from-files'] })
