@@ -283,10 +283,19 @@ const EMPTY = { displayName: '', username: '', email: '', password: '', password
 // Kayıt alanlarının ekrandaki sırası: ilk hatalı alana odak bu sırayla bulunur.
 const REG_ORDER = ['displayName', 'username', 'email', 'password', 'password2', 'terms']
 
+// Kayıt formunun metinleri. Sayı ayrı değişken; çeviride sıra değişebilir.
+const REG_COPY = {
+  namePlaceholder: 'Adın Soyadın',
+  userPlaceholder: 'adin_soyadin',
+  // gönderimden sonra boş alanlardan yalnızca ilki hata gösterir; kaç alanın boş kaldığını bu satır söyler
+  remaining: (n) => `${n} alan boş kaldı.`,
+}
+
 export function RegisterPage({ onDone, onGo }) {
   const [form, setForm] = useState(EMPTY)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
+  const [tried, setTried] = useState(false)
   const [legal, setLegal] = useState(null)
   const acceptTerms = () => {
     setForm((f) => ({ ...f, terms: true }))
@@ -311,6 +320,7 @@ export function RegisterPage({ onDone, onGo }) {
   const isEmpty = (key) => (key === 'terms' ? !form.terms : !String(form[key]).trim())
   const submit = async (e) => {
     e.preventDefault()
+    setTried(true)
     const found = validateRegistration(form)
     const shown = {}
     let emptyShown = false
@@ -334,6 +344,9 @@ export function RegisterPage({ onDone, onGo }) {
     if (res.error) setErrors(res.error)
     else onDone(res.user)
   }
+
+  // ilk gönderimden sonra canlı: alan doldukça azalır, hepsi dolunca kaybolur
+  const emptyLeft = tried ? REG_ORDER.filter(isEmpty).length : 0
 
   const check = (key) => () => {
     if (isEmpty(key)) return
@@ -361,10 +374,10 @@ export function RegisterPage({ onDone, onGo }) {
       </div>
       <form className="auth__form" onSubmit={submit} noValidate>
         <Field id="reg-displayName" label="Görünen ad" error={errors.displayName} hint="Odalarda ve sayfanda böyle görünürsün.">
-          {input('displayName', { autoComplete: 'name', placeholder: 'Berkay Çınar', maxLength: 40 })}
+          {input('displayName', { autoComplete: 'name', placeholder: REG_COPY.namePlaceholder, maxLength: 40 })}
         </Field>
         <Field id="reg-username" label="Kullanıcı adı" error={errors.username} hint="Küçük harf, rakam, nokta ve alt çizgi.">
-          {input('username', { autoComplete: 'username', placeholder: 'berkay', maxLength: 20, spellCheck: false })}
+          {input('username', { autoComplete: 'username', placeholder: REG_COPY.userPlaceholder, maxLength: 20, spellCheck: false })}
         </Field>
         <Field id="reg-email" label="E-posta" error={errors.email}>
           {input('email', { type: 'email', autoComplete: 'email', placeholder: 'ornek@posta.com' })}
@@ -416,6 +429,9 @@ export function RegisterPage({ onDone, onGo }) {
             </span>
           )}
         </div>
+        <p className="form-remaining" role="status">
+          {emptyLeft > 1 ? REG_COPY.remaining(emptyLeft) : ''}
+        </p>
         <button type="submit" className="site-btn site-btn--primary site-btn--wide" disabled={busy}>
           {busy ? 'Hesap oluşturuluyor…' : 'Kayıt ol'}
         </button>

@@ -247,3 +247,50 @@ export async function changePassword(username, { current, next, next2 }) {
   writeUsers(users)
   return { ok: true }
 }
+
+// ---------- verilerin: indir ve hesabı sil (KVKK) ----------
+
+// Bu tarayıcıda hesaba değil cihaza bağlı tutulan kişisel kayıtlar (avatar, kayıtlı görünümler, odak
+// sayısı, sayaç, son oda). Dışa aktarmada gelir; hesap silinince bunlar da silinir.
+const DEVICE_KEYS = ['odakhane.avatar', 'odakhane.avatar.presets', 'odakhane.focus-stats', 'odakhane.pomodoro', 'odakhane.current-room']
+
+function readJson(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw === null ? null : JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+/** Hesabın ve bu tarayıcıdaki kişisel kayıtların dökümü (şifre özeti ve tuz hariç). */
+export function exportAccountData(username) {
+  const user = readUsers().find((u) => u.username === username)
+  if (!user) return null
+  const records = {}
+  for (const prefix of PER_USER_PREFIXES) records[prefix.slice(0, -1)] = readJson(prefix + username)
+  const thisBrowser = {}
+  for (const key of DEVICE_KEYS) thisBrowser[key] = readJson(key)
+  return { exportedAt: new Date().toISOString(), account: publicUser(user), records, thisBrowser }
+}
+
+/** Hesabı kalıcı olarak siler: şifre doğrulanır; hesap, ona bağlı kayıtlar, bu tarayıcıdaki kişisel
+ * kayıtlar ve oturum kaldırılır. Dönüş: { ok } ya da { error: { alan: mesaj } } */
+export async function deleteAccount(username, password) {
+  const users = readUsers()
+  const i = findIndex(users, username)
+  if (i < 0) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
+  if (!password) return { error: { password: 'Şifreni yaz.' } }
+  if (!(await verify(users[i], password))) return { error: { password: 'Şifre hatalı.' } }
+  writeUsers(users.filter((_, j) => j !== i))
+  try {
+    for (const prefix of PER_USER_PREFIXES) localStorage.removeItem(prefix + username)
+    for (const key of DEVICE_KEYS) localStorage.removeItem(key)
+    const last = localStorage.getItem(LAST_LOGIN_KEY)
+    if (last === username || last === users[i].email) localStorage.removeItem(LAST_LOGIN_KEY)
+  } catch {
+    /* yok say */
+  }
+  logout()
+  return { ok: true }
+}

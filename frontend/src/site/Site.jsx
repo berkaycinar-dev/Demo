@@ -22,6 +22,9 @@ import './theme.css'
 import './site.css'
 import './pages.css'
 
+const DELETED_KEY = 'odakhane.account-deleted'
+const DELETED_COPY = { note: 'Hesabın ve bu tarayıcıdaki kayıtların silindi.', close: 'Kapat' }
+
 // Sitenin kabuğu: sayfa akışı, oturum ve sitenin tasarım çerçevesi.
 // Sayfa adres çubuğundaki #sayfam, #odam... ile seçilir.
 
@@ -100,6 +103,17 @@ export default function Site() {
   // Odadan çıkış fişi: { room, blocks, minutes, stay } | null. Lobi'de görünür; başka sayfaya gidince kalkar.
   const [receipt, setReceipt] = useState(null)
   const [announce, setAnnounce] = useState('')
+  // hesap silindikten sonra sayfa yeniden yüklenir (bellekteki sayaç / avatar da gider); ana sayfada bir
+  // kez görünen not bunu söyler
+  const [deletedNote, setDeletedNote] = useState(() => {
+    try {
+      const v = sessionStorage.getItem(DELETED_KEY)
+      sessionStorage.removeItem(DELETED_KEY)
+      return v === '1'
+    } catch {
+      return false
+    }
+  })
   const mainRef = useRef(null)
   const { isDark, toggle: toggleMode } = useColorMode()
   useDaypart()
@@ -211,6 +225,14 @@ export default function Site() {
       </p>
 
       <main key={page} ref={mainRef} className={mainClass}>
+        {page === 'anasayfa' && deletedNote && (
+          <div className="site-notice" role="status">
+            <span>{DELETED_COPY.note}</span>
+            <button type="button" className="link-btn" onClick={() => setDeletedNote(false)}>
+              {DELETED_COPY.close}
+            </button>
+          </div>
+        )}
         {page === 'anasayfa' && <LandingPage user={user} avatar={myAvatar} rooms={rooms} onGo={go} onEnter={enter} isDark={isDark} onToggleMode={toggleMode} />}
         {page === 'giris' && <LoginPage onDone={signedIn} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={signedIn} onGo={go} />}
@@ -251,6 +273,15 @@ export default function Site() {
             isDark={isDark}
             onToggleMode={toggleMode}
             onLogout={signOut}
+            onDeleted={() => {
+              try {
+                sessionStorage.setItem(DELETED_KEY, '1')
+              } catch {
+                /* yok say */
+              }
+              window.location.hash = 'anasayfa'
+              window.location.reload()
+            }}
             onUserChange={(u) => {
               setUser(u)
               setJoined(loadJoined(u))
