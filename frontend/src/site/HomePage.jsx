@@ -25,6 +25,13 @@ const ROOMS_COPY = {
 // Kartta gösterilen en çok oda
 const ROOMS_SHOWN = 3
 
+// Gir / Lobiye git yanındaki ok (yazının rengini alır)
+const Arrow = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+)
+
 const dateText = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
 
 // Sayfam: giriş yapınca açılan ilk sayfa. Tek birincil eylem "Odama gir" (odaya giren her eylem "gir"); yanında sayacın o anki
@@ -80,8 +87,10 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
         <section className="site-card home__rooms">
           <div className="section-head section-head--row">
             <h2>{firstRoom ? ROOMS_COPY.first : ROOMS_COPY.rooms}</h2>
-            <button type="button" className="site-btn" onClick={() => onGo('lobi')}>
+            {/* ikincil yol: sessiz düğme; sayfadaki tek dolgulu eylem "Odama gir" kalır */}
+            <button type="button" className="quiet-btn home__lobby" onClick={() => onGo('lobi')}>
               {ROOMS_COPY.lobby}
+              <Arrow />
             </button>
           </div>
           {firstRoom && (
@@ -97,16 +106,20 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
               <ul className="home__room-list" aria-labelledby="sayfamOdalar">
                 {listed.map((room) => (
                   <li key={room.id} className="home__room">
-                    <RoomShot theme={room.theme} className="home__room-img" />
-                    <span className="home__room-text">
-                      <strong title={room.name}>{room.name}</strong>
-                      <span>
-                        <Dotted parts={[THEMES[room.theme].label, ROOMS_COPY.capacity(room.capacity)]} keep />
+                    {/* satırın tamamı tek düğme; "Gir" çerçevesiz bir işaret olarak sağda durur */}
+                    <button type="button" className="home__room-go" onClick={() => onEnter(room)} aria-label={ROOMS_COPY.enterLabel(room.name)}>
+                      <RoomShot theme={room.theme} className="home__room-img" />
+                      <span className="home__room-text">
+                        <strong title={room.name}>{room.name}</strong>
+                        <span>
+                          <Dotted parts={[THEMES[room.theme].label, ROOMS_COPY.capacity(room.capacity)]} keep />
+                        </span>
+                        <RoomMates room={room} className="room-mates--small" />
                       </span>
-                      <RoomMates room={room} className="room-mates--small" />
-                    </span>
-                    <button type="button" className="site-btn" onClick={() => onEnter(room)} aria-label={ROOMS_COPY.enterLabel(room.name)}>
-                      {ROOMS_COPY.enter}
+                      <span className="home__room-cue" aria-hidden="true">
+                        {ROOMS_COPY.enter}
+                        <Arrow />
+                      </span>
                     </button>
                   </li>
                 ))}

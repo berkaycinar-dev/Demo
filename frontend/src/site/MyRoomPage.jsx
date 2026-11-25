@@ -6,7 +6,6 @@ import { THEMES } from '../rooms/themes'
 import { accessLabel } from './access'
 import RoomStage, { FocusModeButton, FocusModeNote, ShortcutHelp } from './RoomStage'
 import TimerCard from './TimerCard'
-import { formatMinutes } from './usePomodoro'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
@@ -73,8 +72,9 @@ const SPOT_COPY = {
 
 const SCENE_HINT = 'Halkaya tıkla: mola yerini seç · Sürükle: döndür'
 const LEAVE = 'Odadan çık'
-// kişi listesi: başlık kısa kalır, çünkü görünüm seçimi aynı satırda durur
-const PEOPLE_COPY = { title: 'Odadakiler', views: 'Liste', here: 'Şu an', today: 'Bugün', todayLong: 'Bugünkü odak süresi' }
+// Kişi listesi yalnızca şu an odada olanları gösterir. Başkalarının bugünkü odak süresi sunucuda yok;
+// uydurulmaz (seninki sayaçtaki "Bugün" satırında).
+const PEOPLE_COPY = { title: 'Odadakiler', list: 'Şu an buradakiler' }
 
 // Şimdiki zaman; every ms'de bir yenilenir (listede uzaktaki dakikası).
 function useClock(every) {
@@ -305,12 +305,10 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
   const [names, setNames] = useState(false)
   const [picked, setPicked] = useState(null)
   // Geniş ekranda (≥1024 px) liste açık başlar: odada kimlerin olduğu ilk bakışta görünür; daha dar
-  // ekranda kapalı (oda odağı korur). Her açılışta "Şu an" görünümüyle gelir.
+  // ekranda kapalı (oda odağı korur).
   const [peopleOpen, setPeopleOpen] = useState(() => window.matchMedia?.('(min-width: 1024px)').matches ?? false)
   // Yardım satırları (Atla, odak modu, sahne ipucu) yalnızca ilk ziyarette görünür.
   const hints = useFirstVisit('room')
-  // 'here' (şu an buradakiler, varsayılan) | 'today' (bugünkü odak süresi, isteğe bağlı)
-  const [peopleView, setPeopleView] = useState('here')
   // null | 'ok' | 'failed'
   const [copy, setCopy] = useState(null)
   const codeRef = useRef(null)
@@ -350,9 +348,8 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
   const shownStatus = idle ? 'idle' : myStatus
   const crowd = useMemo(() => occupants.map((o) => (o.me && idle ? { ...o, shown: 'idle' } : o)), [occupants, idle])
 
-  // Varsayılan liste: şu an buradakiler, odadaki sırayla (sen en üstte). Kimse puanlanmaz; ürün
-  // gözetim değil, varlık. Bugünkü odak süresi isteğe bağlı ikinci görünüm: oda arkadaşlarınınki
-  // simülasyon (oda ve kişiye göre sabit), seninki sayaçtan gelir.
+  // Liste: şu an buradakiler, odadaki sırayla (sen en üstte). Kimse puanlanmaz; ürün gözetim değil,
+  // varlık.
   const people = useMemo(
     () =>
       occupants.map((o) => ({
@@ -362,11 +359,9 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
         avatar: o.avatar,
         status: o.me && idle ? 'idle' : o.status,
         since: o.since,
-        minutes: o.me ? timer.stats.minutes : 15 + (seedOf(room.id + o.id) % 210),
       })),
-    [occupants, idle, timer.stats.minutes, room.id],
+    [occupants, idle],
   )
-  const today = useMemo(() => [...people].sort((a, b) => b.minutes - a.minutes), [people])
 
   useEffect(() => () => clearTimeout(copyTimer.current), [])
   const flash = (state, ms) => {
@@ -397,10 +392,7 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
   // Seçili yer; seçilmediyse "en yakın boş yer".
   const spotValue = spot?.id ?? 'nearest'
   const spotName = useMemo(() => (spot ? spotOptions(spots).find((o) => o.id === spot.id)?.label : null), [spot, spots])
-  const togglePeople = () => {
-    if (!peopleOpen) setPeopleView('here')
-    setPeopleOpen((v) => !v)
-  }
+  const togglePeople = () => setPeopleOpen((v) => !v)
 
   const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} hints={hints} />
 
@@ -457,7 +449,6 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
       </div>
 
       <div className="stage-card fold people">
-        {/* başlık satırı: aç/kapa düğmesi ve (açıkken) görünüm seçimi yan yana; ayrı satır yok */}
         <div className="people__head">
           <button type="button" className="fold__toggle" aria-expanded={peopleOpen} aria-controls="peopleList" onClick={togglePeople}>
             <span>
@@ -471,50 +462,22 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
               <path d="M6 9l6 6 6-6" />
             </svg>
           </button>
-          {peopleOpen && (
-            <div className="people__views segmented" role="group" aria-label={PEOPLE_COPY.views}>
-              <button type="button" aria-pressed={peopleView === 'here'} onClick={() => setPeopleView('here')}>
-                {PEOPLE_COPY.here}
-              </button>
-              <button type="button" aria-pressed={peopleView === 'today'} onClick={() => setPeopleView('today')} title={PEOPLE_COPY.todayLong}>
-                {PEOPLE_COPY.today}
-              </button>
-            </div>
-          )}
         </div>
         <div id="peopleList" className="fold__body" hidden={!peopleOpen}>
-          {peopleView === 'here' ? (
-            <ul className="people__list" aria-label="Şu an buradakiler">
-              {people.map((p) => (
-                <li
-                  key={p.id}
-                  className={`people__row roster__item--${p.status}${p.me ? ' people__row--me' : ''}`}
-                  onPointerEnter={() => setPicked(p.id)}
-                  onPointerLeave={() => setPicked(null)}
-                >
-                  <AvatarChip avatar={p.avatar} />
-                  <span className="people__name">{p.name}</span>
-                  <StatusText person={p} now={now} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ol className="people__list" aria-label={PEOPLE_COPY.todayLong}>
-              {today.map((p, i) => (
-                <li
-                  key={p.id}
-                  className={`people__row roster__item--${p.status}${p.me ? ' people__row--me' : ''}`}
-                  onPointerEnter={() => setPicked(p.id)}
-                  onPointerLeave={() => setPicked(null)}
-                >
-                  <span className="people__no">{i + 1}</span>
-                  <AvatarChip avatar={p.avatar} />
-                  <span className="people__name">{p.name}</span>
-                  <span className="people__min">{formatMinutes(p.minutes)}</span>
-                </li>
-              ))}
-            </ol>
-          )}
+          <ul className="people__list" aria-label={PEOPLE_COPY.list}>
+            {people.map((p) => (
+              <li
+                key={p.id}
+                className={`people__row roster__item--${p.status}${p.me ? ' people__row--me' : ''}`}
+                onPointerEnter={() => setPicked(p.id)}
+                onPointerLeave={() => setPicked(null)}
+              >
+                <AvatarChip avatar={p.avatar} />
+                <span className="people__name">{p.name}</span>
+                <StatusText person={p} now={now} />
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </>

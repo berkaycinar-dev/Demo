@@ -1614,6 +1614,26 @@
     height: max(var(--pv-h), 240px);
   }
 
+  /* menüde kaydırırken önizlemedeki barlar saydamlaşır ve dokunmayı geçirir; kaydırma durunca döner */
+  .avatar-page__preview .hud-stack,
+  .avatar-page__preview .hud--bottom {
+    transition: opacity var(--dur-state) var(--ease-out);
+  }
+
+  .avatar-page__preview[data-scrolling] .hud-stack,
+  .avatar-page__preview[data-scrolling] .hud--bottom {
+    opacity: 0.15;
+    pointer-events: none;
+    transition-duration: var(--dur-fast);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .avatar-page__preview .hud-stack,
+    .avatar-page__preview .hud--bottom {
+      transition: none;
+    }
+  }
+
   .avatar-page__editor {
     padding: 0 16px 16px;
   }
@@ -1706,6 +1726,34 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+}
+
+/* yan çevrilmiş telefon: ekran alçak, üst menü ince bir şerit olur (oda ve atölye yüksekliği kazanır) */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+  .site-header {
+    padding-block: 6px;
+  }
+
+  /* atölye: önizleme solda ekran boyu yapışık, menü sağda akar (dikey telefondaki üstte yapışık önizleme
+     alçak ekranda menüye yer bırakmıyordu) */
+  .create.avatar-page {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 16px;
+  }
+
+  .avatar-page .create-preview {
+    top: 8px;
+    padding: 0;
+    background: none;
+  }
+
+  .avatar-page__preview {
+    height: calc(100svh - 16px);
+  }
+
+  .avatar-page__editor {
+    padding: 0 16px 16px;
   }
 }
 

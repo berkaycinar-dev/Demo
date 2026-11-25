@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from 'react'
+import AvatarCrowd from '../avatars/AvatarCrowd'
+import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { QUOTES, quoteForVisit } from './quotes'
 import RoomShot from './RoomShot'
@@ -8,6 +11,56 @@ import Dotted from './Dotted'
 import LandingDemo from './LandingDemo'
 
 const HERO_THEME = 'library'
+// hero'daki canlı oda: görseldekiyle aynı kapasite ve kişiler (scripts/render-room-thumbs.mjs THUMB_CAPACITY)
+const HERO_CAPACITY = 6
+// sahne ilk boyamadan sonra kurulur: hero görseli sayfanın ilk görüntüsü olarak kalır
+const HERO_LIVE_DELAY_MS = 400
+
+const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+// gün zamanı görseldeki ve altındaki yazıdakiyle aynı: açık modda gündüz, koyu modda akşam (saate bakmaz)
+function HeroLive({ dark }) {
+  const { Room } = THEMES[HERO_THEME]
+  const { occupants } = useRoomPeople({ capacity: HERO_CAPACITY, seed: HERO_CAPACITY, forced: 'focus' })
+  return (
+    <Room capacity={HERO_CAPACITY} canvasStyle={{ width: '100%' }} showcase hint={false} defaultTimeOfDay={dark ? 'evening' : 'day'}>
+      <AvatarCrowd occupants={occupants} theme={HERO_THEME} />
+    </Room>
+  )
+}
+
+// Hero odası: önce görsel; sayfa açıldıktan kısa süre sonra aynı oda canlı (avatarlar çalışır, kamera
+// yavaşça salınır) görselin yerine geçer. Hero ekrandan çıkınca canlı sahne kaldırılır, görsel kalır:
+// aşağıdaki tanıtım odasıyla aynı anda iki 3D sahne çalışmaz. "Hareketi azalt"ta yalnızca görsel.
+function HeroRoom({ dark }) {
+  const ref = useRef(null)
+  const [live, setLive] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || reducedMotion() || typeof IntersectionObserver === 'undefined') return undefined
+    let timer = 0
+    const io = new IntersectionObserver(([e]) => {
+      clearTimeout(timer)
+      if (e.isIntersecting) timer = setTimeout(() => setLive(true), HERO_LIVE_DELAY_MS)
+      else setLive(false)
+    })
+    io.observe(el)
+    return () => {
+      clearTimeout(timer)
+      io.disconnect()
+    }
+  }, [])
+  return (
+    <div ref={ref} className="lp-hero__scene" data-live={live || undefined}>
+      <RoomShot theme={HERO_THEME} className="lp-hero__img" eager people />
+      {live && (
+        <div className="lp-hero__live">
+          <HeroLive key={dark ? 'evening' : 'day'} dark={dark} />
+        </div>
+      )}
+    </div>
+  )
+}
 const OPEN_ROOMS_SHOWN = 3
 
 // Ana sayfa: lobinin kapısı. Önce oda görünür, sonra lobideki açık odalar ve on tema; en sonda bir oturum
@@ -26,7 +79,7 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
       <section className="lp-section lp-hero-wrap" aria-labelledby="lpBaslik">
         <div className="lp-hero">
           <figure className="lp-hero__room">
-            <RoomShot theme={HERO_THEME} className="lp-hero__img" eager people />
+            <HeroRoom dark={dark} />
             <figcaption>
               {THEMES[HERO_THEME].label}, {dark ? 'akşam ışığında' : 'gündüz'}
             </figcaption>

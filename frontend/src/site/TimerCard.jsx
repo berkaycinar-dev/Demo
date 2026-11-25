@@ -64,15 +64,20 @@ const LOCK_MS = 3200
 //
 // Kısa notlar (sıfırlamayı / atlamayı geri alma, kilitli süre) kartın içinde yer açmaz; kartın altına
 // yüzen bir şerit olarak biner, altındaki satırlar kaymaz.
+//
+// Sessiz satır sayacın durumunu izler: odak hiç başlamamışken yalnızca süreler (Sıfırla ve Atla'nın
+// yapacağı iş yok), seans başlayınca süreler kilitlenir ve yerlerini Sıfırla ile Atla alır. Aynı anda
+// ikisi görünmez; 1 / 2 / 3 kısayolu seans sürerken kilit notunu gösterir.
 export default function TimerCard({ timer, title = 'Sayaç', note, compact = false, showStats = true, hints = false, children }) {
   const isFocus = timer.phase === 'focus'
   const color = isFocus ? 'var(--timer)' : 'var(--break)'
   const offset = CIRC * (1 - timer.remaining / timer.total)
   const locked = !timer.fresh
+  // süre seçimi: odak aşaması, sayaç hiç başlamamış
+  const choosing = timer.fresh && isFocus
   const { notice } = timer
   useSpaceToggle(timer.toggle)
   const skipNoteId = useId()
-  const lockNoteId = useId()
 
   // Kilitli süreye basılınca görünen not; kendiliğinden kalkar.
   const [lockShown, setLockShown] = useState(0) // sayaç: her basışta yeni not (key)
@@ -147,45 +152,43 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
 
       {!compact && (
         <div className="timer-card__quiet">
-          <span className="timer-card__ctl">
-            <button type="button" className="quiet-btn" onClick={timer.reset}>
-              {TIMER_COPY.reset}
-            </button>
-            <button type="button" className="quiet-btn" onClick={timer.skip} aria-describedby={skipNoteId} title={hints ? undefined : skipNote}>
-              {TIMER_COPY.skip}
-            </button>
-          </span>
-          {/* Seans sürerken diğer süreler kilitli: basılabilir kalır, basınca nedeni kartın üstünde yazar. */}
-          <span className="timer-card__durations">
-            <span className="segmented timer-card__presets" role="group" aria-label={TIMER_COPY.presets} aria-describedby={locked ? lockNoteId : undefined}>
-              {PRESETS.map((p, i) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  aria-keyshortcuts={i < 3 ? String(i + 1) : undefined}
-                  title={i < 3 ? TIMER_COPY.presetKey(p.focus, p.break, i + 1) : undefined}
-                  aria-pressed={timer.preset === p.id}
-                  aria-disabled={locked && timer.preset !== p.id ? true : undefined}
-                  onClick={() => pickPreset(p)}
-                >
-                  {p.label}
-                </button>
-              ))}
+          {choosing ? (
+            <span className="timer-card__durations">
+              <span className="segmented timer-card__presets" role="group" aria-label={TIMER_COPY.presets}>
+                {PRESETS.map((p, i) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-keyshortcuts={i < 3 ? String(i + 1) : undefined}
+                    title={i < 3 ? TIMER_COPY.presetKey(p.focus, p.break, i + 1) : undefined}
+                    aria-pressed={timer.preset === p.id}
+                    onClick={() => pickPreset(p)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </span>
+              <span className="timer-card__unit" aria-hidden="true">
+                {TIMER_COPY.unit}
+              </span>
             </span>
-            <span className="timer-card__unit" aria-hidden="true">
-              {TIMER_COPY.unit}
+          ) : (
+            <span className="timer-card__ctl">
+              <button type="button" className="quiet-btn" onClick={timer.reset}>
+                {TIMER_COPY.reset}
+              </button>
+              <button type="button" className="quiet-btn" onClick={timer.skip} aria-describedby={skipNoteId} title={hints ? undefined : skipNote}>
+                {TIMER_COPY.skip}
+              </button>
             </span>
-          </span>
+          )}
         </div>
       )}
-      {!compact && (
+      {!compact && !choosing && (
         <p id={skipNoteId} className={hints ? 'timer-card__note' : 'sr-only'}>
           {skipNote}
         </p>
       )}
-      <p id={lockNoteId} className="sr-only">
-        {TIMER_COPY.lock}
-      </p>
 
       {!compact && showStats && (
         <p className="timer-card__stats">

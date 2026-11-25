@@ -1,3 +1,11 @@
+/* vitrin: dokunulmaz, zemin saydam (sayfanın zemini görünür), boy kabından gelir */
+.room-canvas.room-canvas--showcase {
+  min-height: 0;
+  background: none;
+  pointer-events: none;
+  cursor: default;
+}
+
 .room-canvas {
   position: relative;
   width: 100%;

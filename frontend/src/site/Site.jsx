@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEFAULT_AVATAR } from '../avatars/options'
 import { SIGNED_OUT_EVENT, errorText } from './api'
 import { currentUser, logout } from './auth'
 import AccountPage from './AccountPage'
@@ -125,7 +124,7 @@ export default function Site() {
   const page = resolvePage(requested, user)
   // Eski kayıtta avatar hâlâ varsayılan adı ("Sen") taşıyorsa sayfalarda hesabın görünen adı görünür:
   // Sayfam, Avatarım ve odalarda aynı ad.
-  const myAvatar = user && avatar.name === DEFAULT_AVATAR.name ? { ...avatar, name: user.displayName } : avatar
+  const myAvatar = user ? { ...avatar, name: user.displayName } : avatar
   const current = rooms.find((r) => r.id === currentId) ?? null
 
   // Oda listesi sunucudan: girişte, açılışta ve Lobi / Sayfam'a her gelişte tazelenir.
@@ -254,8 +253,6 @@ export default function Site() {
     return saveAvatar(next)
   }
   const signedIn = (u) => {
-    // Avatar hâlâ varsayılan adı taşıyorsa görünen adı alır (kalıcı yazılır).
-    if (avatar.name === DEFAULT_AVATAR.name) changeAvatar({ ...avatar, name: u.displayName })
     setUser(u)
     setJoined(loadJoined(u))
     setNotice('')
@@ -336,7 +333,7 @@ export default function Site() {
           />
         )}
         {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} isDark={isDark} />}
-        {page === 'avatar' && <AvatarPage avatar={myAvatar} onChange={changeAvatar} onEnterRoom={() => go('odam')} fallbackName={user?.displayName} />}
+        {page === 'avatar' && <AvatarPage avatar={myAvatar} onChange={changeAvatar} onEnterRoom={() => go('odam')} />}
         {page === 'hesap' && (
           <AccountPage
             user={user}

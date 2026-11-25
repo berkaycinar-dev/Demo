@@ -97,7 +97,7 @@ function ProfileCard({ user, onUserChange }) {
     <section className="site-card account__card" aria-labelledby="profilBaslik">
       <h2 id="profilBaslik">Profil</h2>
       <form className="auth__form" onSubmit={submit} noValidate>
-        <Field id="acc-displayName" label="Görünen ad" error={f.errors.displayName} hint="Sayfanda ve odalarda böyle görünürsün.">
+        <Field id="acc-displayName" label="Görünen ad" error={f.errors.displayName} hint="Sayfanda ve avatarının adında böyle görünür.">
           <input {...inputProps('acc-displayName', f.errors, 'displayName')} value={f.form.displayName} onChange={f.set('displayName')} autoComplete="name" maxLength={40} />
         </Field>
         <Field id="acc-username" label="Kullanıcı adı" error={f.errors.username} hint="Küçük harf, rakam ve alt çizgi. Prototipte değiştirilemez.">

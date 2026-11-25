@@ -75,12 +75,13 @@ const { hips: HIPS, torso: TORSO, head: HEAD, foreL: FORE_L, shinL: SHIN_L, shin
 
 const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
-// Önizleme sahnesinin sabit kutuları: platform, sandalye, masa ve masa üstü (etkinliğe göre).
-function sceneBoxes(withDesk, activity) {
+// Önizleme sahnesinin sabit kutuları: platform, sandalye, masa ve masa üstü (etkinliğe göre). stage false:
+// platform çizilmez (seçenek görselleri, scripts/render-avatar-thumbs.mjs).
+function sceneBoxes(withDesk, activity, stage = true) {
   const out = []
   const add = (x, y, z, w, h, d, color) => out.push({ c: [x + w / 2, y + h / 2, z + d / 2], s: [w, h, d], color })
   // basamaklı yuvarlak platform
-  for (const [r, y, color] of [[1.05, 0, '#d9d2c4'], [0.95, 0.04, '#e9e3d6']]) {
+  for (const [r, y, color] of stage ? [[1.05, 0, '#d9d2c4'], [0.95, 0.04, '#e9e3d6']] : []) {
     for (let z = -r; z < r - 1e-3; z += 0.1) {
       const c = z + 0.05
       const half = Math.sqrt(Math.max(r * r - c * c, 0))
@@ -241,11 +242,11 @@ const SHOE_CENTER = new Vector3(0, -0.2 * SCALE, 0.02 * SCALE)
 // Saç seçerken saçı örten başlık ve kafa üstü kulaklık (bant + kulak kapları) önizlemede çizilmez.
 const bareHead = (avatar) => ({ ...avatar, hat: 'none', headphones: OVER_HEAD.includes(avatar.headphones) ? 'none' : avatar.headphones })
 
-function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHeadwear, shuffle }) {
+function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, apiRef, hideHeadwear, shuffle, stage }) {
   // hideHeadwear: yalnızca önizlemede başlıksız ve kafa üstü kulaklıksız çizer (kayıtlı avatar değişmez,
   // tepki tetiklenmez)
   const parts = useMemo(() => buildAvatarParts(hideHeadwear ? bareHead(avatar) : avatar), [avatar, hideHeadwear])
-  const statics = useMemo(() => sceneBoxes(mode === 'focus' || mode === 'away', activity), [mode, activity])
+  const statics = useMemo(() => sceneBoxes(mode === 'focus' || mode === 'away', activity, stage), [mode, activity, stage])
   const meshRef = useRef(null)
   const sceneRef = useRef(null)
   const zzzRef = useRef(null)
@@ -332,7 +333,8 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
       sceneRef.current.setColorAt(i, color.set(b.color))
     })
     sceneRef.current.instanceMatrix.needsUpdate = true
-    sceneRef.current.instanceColor.needsUpdate = true
+    // kutu yoksa (stage false, masasız poz) renk tamponu hiç oluşmaz
+    if (sceneRef.current.instanceColor) sceneRef.current.instanceColor.needsUpdate = true
     invalidate()
   }, [statics, invalidate])
 
@@ -427,7 +429,7 @@ function Figure({ avatar, mode, activity, animated, view, focus, anchorsRef, api
  */
 // hint: false ise ipucu satırı çizilmez (atölye kendi kontrol barını gösterir). resetKey her değiştiğinde
 // görünüm döndürmesi sıfırlanır (çift tıkla aynı).
-export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHeadwear = false, hint = true, resetKey = 0, shuffle = null, reducedMotion, className = '' }) {
+export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read', focus = 'full', hideHeadwear = false, hint = true, resetKey = 0, shuffle = null, reducedMotion, stage = true, className = '' }) {
   const animated = !(reducedMotion ?? prefersReducedMotion())
   const view = useRef({ yaw: 0 })
   const anchors = useRef({
@@ -495,7 +497,7 @@ export default function AvatarPreview({ avatar, mode = 'focus', activity = 'read
         <CameraRig view={view} mode={mode} focus={focus} anchorsRef={anchors} animated={animated} />
         <hemisphereLight color="#fff6e8" groundColor="#8a7a68" intensity={2.2} />
         <directionalLight position={[3, 6, 4]} intensity={1.6} color="#fff1d8" />
-        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHeadwear={hideHeadwear} shuffle={shuffle} />
+        <Figure avatar={avatar} mode={mode} activity={activity} animated={animated} view={view} focus={focus} anchorsRef={anchors} apiRef={figure} hideHeadwear={hideHeadwear} shuffle={shuffle} stage={stage} />
         <Ticker animated={animated} />
       </Canvas>
       {hint && (

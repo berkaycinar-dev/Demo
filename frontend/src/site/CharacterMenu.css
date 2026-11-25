@@ -332,10 +332,6 @@
   padding-top: 4px;
 }
 
-.cmenu__lead .field {
-  margin-bottom: 4px;
-}
-
 /* geniş ekranda kart sol sütunun yüksekliğinde (site.css, contain: size): menü kartın içinde kayar,
    "Varsayılana dön" altta sabit kalır */
 @media (min-width: 901px) {
