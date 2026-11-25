@@ -1,0 +1,14 @@
+# Keep the build context small and free of local files.
+target/
+bruno/
+scripts/
+*.md
+.env
+.env.*
+*.local
+*.log
+*.txt
+.idea/
+.vscode/
+Dockerfile
+.dockerignore
