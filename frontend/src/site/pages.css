@@ -78,6 +78,18 @@
   color: #f08a6a;
 }
 
+/* kayıt: "N alan boş kaldı." Hata değil, sessiz bir sayım: Kayıt ol'un hemen üstünde, soluk yazı.
+   Boşken akıştan çıkar (boşluk bırakmaz) ama canlı bölge olarak sayfada kalır. */
+.site .form-remaining {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--text-label);
+}
+
+.site .form-remaining:empty {
+  position: absolute;
+}
+
 .form-alert {
   padding: 12px 14px;
   border-radius: var(--radius-control);
@@ -1542,6 +1554,18 @@
   padding: 0 9px;
 }
 
+/* süreler ve birimleri tek parça: satır kırılırsa birim süreden kopmaz */
+.timer-card__durations {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timer-card__unit {
+  color: var(--text-2);
+  font-size: var(--text-label);
+}
+
 /* seans sürerken diğer süreler: basılabilir (basınca nedeni yazar) ama soluk */
 .timer-card__presets button[aria-disabled='true'] {
   color: var(--muted);
@@ -1711,13 +1735,39 @@
 
 /* şu an buradakiler: avatar, ad, durum. Sıralama yok; bugünkü odak süresi isteğe bağlı ikinci görünüm.
    Renkler theme.css token'larından; senin satırın terakota tintle ayrılır, sıra numaraları düz. */
-.people__views {
+/* başlık satırı: aç/kapa düğmesi kalan yeri alır, görünüm seçimi sağda */
+.people__head {
   display: flex;
-  margin: 14px 0 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding-block: 2px;
+}
+
+/* düğme içeriğinden küçülmez: sığmazsa görünüm seçimi alt satıra iner (dar ekran, uzun çeviri) */
+.people__head .fold__toggle {
+  flex: 1 0 auto;
+  width: auto;
+}
+
+.people__head .fold__chevron {
+  flex: none;
+  margin-left: 8px;
+}
+
+.people__views {
+  flex-wrap: nowrap;
+  flex: none;
+  margin-left: auto;
+  margin-right: 12px;
 }
 
 .people__views button {
-  flex: 1;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.people .fold__body {
+  padding-top: 10px;
 }
 
 .people__list {
@@ -2573,6 +2623,65 @@
   }
 }
 
+/* Verilerin: geniş ekranda orta sütunda, Görünüm ve oturumun altında */
+@media (min-width: 1000px) {
+  .account__grid > .account__data {
+    grid-area: 3 / 2;
+  }
+}
+
+.site .account__lead {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+/* silme: dolgulu terakota değil (One Ember birincil eylem içindir); hata kırmızısı yazı ve kenar */
+.account__danger-link.link-btn,
+.account__danger.site-btn {
+  color: #b4432f;
+}
+
+.account__danger.site-btn {
+  border-color: currentColor;
+}
+
+:root[data-mode='dark'] .account__danger-link.link-btn,
+:root[data-mode='dark'] .account__danger.site-btn {
+  color: #f08a6a;
+}
+
+.account__confirm {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.site .account__confirm-title {
+  margin: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.site .account__confirm-text {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--text-label);
+  text-wrap: pretty;
+}
+
+/* ana sayfa: hesap silindikten sonra bir kez görünen not */
+.site-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 16px var(--page-inline) 0;
+  padding: 12px 18px;
+  border-radius: var(--radius-control-lg);
+  background: var(--info-soft);
+  color: var(--text);
+}
+
 .account__card {
   display: flex;
   flex-direction: column;
@@ -2829,18 +2938,96 @@
   margin-left: auto;
 }
 
-.focus-btn--icon.site-btn {
+.focus-btn--icon.site-btn,
+.keys-help__btn.site-btn {
   width: 36px;
   min-height: 36px;
   padding: 0;
 }
 
 @media (max-width: 900px) {
-  .focus-btn--icon.site-btn {
+  .focus-btn--icon.site-btn,
+  .keys-help__btn.site-btn {
     width: 44px;
     min-height: 44px;
   }
 }
+
+/* #odam masasının alt satırı: Odak modu solda, kısayol düğmesi sağda */
+.desk__foot-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* kısayol listesi: istenince açılır, bulunduğu satırın (durum satırı ya da #odam alt satırı) altına
+   biner ve masanın sağ kenarına hizalanır; panelden taşmaz, akışı itmez. Dokunmatikte ve telefonda
+   kısayol yok: düğme de yok. */
+.keys-help {
+  display: block;
+}
+
+@media (hover: none) and (pointer: coarse), (max-width: 560px) {
+  .keys-help {
+    display: none;
+  }
+}
+
+.keys-help__pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 7;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgba(30, 20, 10, 0.6);
+}
+
+/* açılış animasyonu yok, yerinde belirir: açılış animasyonuyla Chrome kutuyu sayacın altına boyadı
+   (yarı saydam göründü); başvuru listesi için hareket de gerekmiyor */
+.keys-help__pop[hidden] {
+  display: none;
+}
+
+.site .keys-help__list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.keys-help__row {
+  display: contents;
+}
+
+.keys-help__row dt {
+  display: flex;
+  gap: 4px;
+}
+
+.keys-help__row dd {
+  align-self: center;
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--text-label);
+}
+
+.keys-help kbd {
+  min-width: 26px;
+  padding: 2px 7px;
+  border-radius: var(--radius-block);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 1px 1px rgba(60, 40, 20, 0.18);
+  color: var(--text);
+  font: 600 var(--text-label) var(--font-body);
+  text-align: center;
+}
+
 
 /* dokunmatikte satır içi bağlantı düğmelerinin basılan alanı 44 px'e büyür; dolgu negatif boşlukla
    dengelenir, yerleşim değişmez */
@@ -3916,7 +4103,11 @@
 
 /* şu an buradakiler: liste tam açılır (iç kaydırma yok); uzarsa panelin kendisi kayar */
 .stage:not(.stage--focus) .people .people__views {
-  margin: 10px 0 8px;
+  margin-right: 4px;
+}
+
+.stage:not(.stage--focus) .stage__panel > .stage-card.people .fold__body {
+  padding-top: 8px;
 }
 
 /* telefon: halka bir boy küçük; oda, masa başı ve Başlat ilk ekranda birlikte durur */

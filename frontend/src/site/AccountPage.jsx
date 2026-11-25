@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { changeEmail, changePassword, updateProfile } from './auth'
+import { changeEmail, changePassword, deleteAccount, exportAccountData, updateProfile } from './auth'
 import { Field, PasswordInput, PasswordRules } from './AuthPages'
 
 // Hesap: header'daki kullanıcı adına tıklayınca açılır. Görünen ad / kullanıcı adı, e-posta ve
 // şifre ayrı kartlarda değiştirilir. E-posta ve şifre için mevcut şifre istenir.
-export default function AccountPage({ user, onUserChange, isDark, onToggleMode, onLogout }) {
+export default function AccountPage({ user, onUserChange, isDark, onToggleMode, onLogout, onDeleted }) {
   return (
     <div className="account">
       <div className="page-head">
@@ -17,6 +17,7 @@ export default function AccountPage({ user, onUserChange, isDark, onToggleMode, 
         {/* geniş ekranda: Profil | E-posta, altında Görünüm ve oturum | Şifre (sıra okuma sırasıyla aynı) */}
         <SessionCard isDark={isDark} onToggleMode={onToggleMode} onLogout={onLogout} />
         <PasswordCard user={user} />
+        <DataCard user={user} onDeleted={onDeleted} />
       </div>
     </div>
   )
@@ -214,6 +215,104 @@ function PasswordCard({ user }) {
           <Saved text={f.saved} />
         </div>
       </form>
+    </section>
+  )
+}
+
+// Verilerin: indir ve hesabı sil. Metinler tam cümle; çeviride birleştirilmez.
+const DATA_COPY = {
+  title: 'Verilerin',
+  lead: 'Hesabın ve kayıtların yalnızca bu tarayıcıda tutuluyor. İstediğin an indirebilir ya da silebilirsin.',
+  download: 'Verilerimi indir',
+  downloaded: 'Dosya indirildi.',
+  fileName: (username) => `odakhane-${username}.json`,
+  delete: 'Hesabımı sil',
+  confirmTitle: 'Hesabın kalıcı olarak silinsin mi?',
+  confirmText: 'Hesabın, kişisel odan, girdiğin odaların listesi, avatarın ve odak sayın bu tarayıcıdan silinir. Bu geri alınamaz.',
+  password: 'Şifren',
+  passwordHint: 'Silmeyi onaylamak için.',
+  confirm: 'Kalıcı olarak sil',
+  busy: 'Siliniyor…',
+  cancel: 'Vazgeç',
+}
+
+function DataCard({ user, onDeleted }) {
+  const [saved, setSaved] = useState('')
+  const [asking, setAsking] = useState(false)
+  const f = useForm({ password: '' })
+
+  const download = () => {
+    const data = exportAccountData(user.username)
+    if (!data) return
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = DATA_COPY.fileName(user.username)
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setSaved(DATA_COPY.downloaded)
+  }
+
+  // onay açılınca odak şifre alanına gelir
+  const ask = () => {
+    setAsking(true)
+    requestAnimationFrame(() => document.getElementById('acc-del-pass')?.focus())
+  }
+
+  const cancel = () => {
+    setAsking(false)
+    f.setForm({ password: '' })
+    f.setErrors({})
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    f.setBusy(true)
+    const res = await deleteAccount(user.username, f.form.password)
+    f.setBusy(false)
+    if (res.error) {
+      f.setErrors(res.error)
+      return
+    }
+    onDeleted()
+  }
+
+  return (
+    <section className="site-card account__card account__data" aria-labelledby="veriBaslik">
+      <h2 id="veriBaslik">{DATA_COPY.title}</h2>
+      <p className="site-muted account__lead">{DATA_COPY.lead}</p>
+      <div className="account__actions">
+        <button type="button" className="site-btn" onClick={download}>
+          {DATA_COPY.download}
+        </button>
+        <Saved text={saved} />
+      </div>
+      {asking ? (
+        <form className="auth__form account__confirm" onSubmit={submit} noValidate aria-labelledby="silBaslik">
+          <p id="silBaslik" className="account__confirm-title">
+            {DATA_COPY.confirmTitle}
+          </p>
+          <p className="account__confirm-text">{DATA_COPY.confirmText}</p>
+          <Field id="acc-del-pass" label={DATA_COPY.password} error={f.errors.password} hint={DATA_COPY.passwordHint}>
+            <PasswordInput id="acc-del-pass" value={f.form.password} onChange={f.set('password')} autoComplete="current-password" invalid={!!f.errors.password} />
+          </Field>
+          {f.errors.form && <div className="form-alert" role="alert">{f.errors.form}</div>}
+          <div className="account__actions">
+            <button type="submit" className="site-btn account__danger" disabled={f.busy || !f.form.password}>
+              {f.busy ? DATA_COPY.busy : DATA_COPY.confirm}
+            </button>
+            <button type="button" className="link-btn" onClick={cancel}>
+              {DATA_COPY.cancel}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="account__actions">
+          <button type="button" className="link-btn account__danger-link" onClick={ask}>
+            {DATA_COPY.delete}
+          </button>
+        </div>
+      )}
     </section>
   )
 }

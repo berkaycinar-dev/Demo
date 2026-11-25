@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { formatClock } from './usePomodoro'
 import useShortcut from './useShortcut'
 
@@ -207,6 +207,82 @@ export function FocusModeButton({ onClick, hints = false, compact = false }) {
       </svg>
       {!compact && FOCUS_MODE_COPY.button}
     </button>
+  )
+}
+
+// Kısayol listesinin metinleri. Tuş adları ve açıklamalar ayrı; çeviride tuş adı da değişebilir.
+const KEYS_COPY = {
+  button: 'Kısayollar',
+  title: 'Kısayollar (?)',
+  list: [
+    { keys: ['Boşluk'], what: 'Başlat / duraklat' },
+    { keys: ['1', '2', '3'], what: 'Süre seç' },
+    { keys: ['F'], what: 'Odak modu' },
+    { keys: ['Esc'], what: 'Odak modundan çık' },
+    { keys: ['?'], what: 'Bu liste' },
+  ],
+}
+
+// İstenince açılan kısayol listesi (görünür lejant değil): klavye simgeli küçük düğme ve altında bir
+// kutu. "?" ile de açılır/kapanır; dışarı tıklayınca ya da Esc ile kapanır, Esc odağı düğmeye verir.
+// Dokunmatik ekranda (fare yok) gizlidir: orada kısayol yoktur.
+export function ShortcutHelp() {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const btnRef = useRef(null)
+  const popId = useId()
+  useShortcut('?', () => setOpen((v) => !v))
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+      btnRef.current?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  return (
+    <span className="keys-help" ref={wrapRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="site-btn site-btn--small keys-help__btn"
+        aria-label={KEYS_COPY.button}
+        aria-expanded={open}
+        aria-controls={popId}
+        aria-keyshortcuts="?"
+        title={KEYS_COPY.title}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="12" rx="2" />
+          <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
+        </svg>
+      </button>
+      <div id={popId} className="keys-help__pop" role="group" aria-label={KEYS_COPY.button} hidden={!open}>
+        <dl className="keys-help__list">
+          {KEYS_COPY.list.map((row) => (
+            <div key={row.what} className="keys-help__row">
+              <dt>
+                {row.keys.map((k) => (
+                  <kbd key={k}>{k}</kbd>
+                ))}
+              </dt>
+              <dd>{row.what}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </span>
   )
 }
 

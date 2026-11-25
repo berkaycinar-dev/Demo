@@ -4,7 +4,7 @@ import useRoomPeople, { roomSeed as seedOf } from '../avatars/useRoomPeople'
 import { useRoom } from '../rooms/core/roomContext'
 import { THEMES } from '../rooms/themes'
 import { accessLabel } from './access'
-import RoomStage, { FocusModeButton, FocusModeNote } from './RoomStage'
+import RoomStage, { FocusModeButton, FocusModeNote, ShortcutHelp } from './RoomStage'
 import TimerCard from './TimerCard'
 import { formatMinutes } from './usePomodoro'
 import Dotted from './Dotted'
@@ -48,6 +48,8 @@ const SPOT_COPY = {
 
 const SCENE_HINT = 'Halkaya tıkla: mola yerini seç · Sürükle: döndür'
 const LEAVE = 'Odadan çık'
+// kişi listesi: başlık kısa kalır, çünkü görünüm seçimi aynı satırda durur
+const PEOPLE_COPY = { title: 'Odadakiler', views: 'Liste', here: 'Şu an', today: 'Bugün', todayLong: 'Bugünkü odak süresi' }
 
 // Şimdiki zaman; every ms'de bir yenilenir (listede uzaktaki dakikası).
 function useClock(every) {
@@ -412,6 +414,7 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
           spotName={spotName}
           aside={
             <span className="desk__quick">
+              <ShortcutHelp />
               <FocusModeButton compact onClick={() => onFocusModeChange(true)} hints={hints} />
               <button type="button" className="site-btn site-btn--small desk__leave" onClick={leave}>
                 {LEAVE}
@@ -427,27 +430,32 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
       </div>
 
       <div className="stage-card fold people">
-        <button type="button" className="fold__toggle" aria-expanded={peopleOpen} aria-controls="peopleList" onClick={togglePeople}>
-          <span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+        {/* başlık satırı: aç/kapa düğmesi ve (açıkken) görünüm seçimi yan yana; ayrı satır yok */}
+        <div className="people__head">
+          <button type="button" className="fold__toggle" aria-expanded={peopleOpen} aria-controls="peopleList" onClick={togglePeople}>
+            <span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              {PEOPLE_COPY.title}
+              <span className="fold__count">{occupants.length}</span>
+            </span>
+            <svg className="fold__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
             </svg>
-            Şu an buradakiler
-            <span className="fold__count">{occupants.length}</span>
-          </span>
-          <svg className="fold__chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
+          </button>
+          {peopleOpen && (
+            <div className="people__views segmented" role="group" aria-label={PEOPLE_COPY.views}>
+              <button type="button" aria-pressed={peopleView === 'here'} onClick={() => setPeopleView('here')}>
+                {PEOPLE_COPY.here}
+              </button>
+              <button type="button" aria-pressed={peopleView === 'today'} onClick={() => setPeopleView('today')} title={PEOPLE_COPY.todayLong}>
+                {PEOPLE_COPY.today}
+              </button>
+            </div>
+          )}
+        </div>
         <div id="peopleList" className="fold__body" hidden={!peopleOpen}>
-          <div className="people__views segmented" role="group" aria-label="Liste">
-            <button type="button" aria-pressed={peopleView === 'here'} onClick={() => setPeopleView('here')}>
-              Şu an
-            </button>
-            <button type="button" aria-pressed={peopleView === 'today'} onClick={() => setPeopleView('today')}>
-              Bugünkü odak
-            </button>
-          </div>
           {peopleView === 'here' ? (
             <ul className="people__list" aria-label="Şu an buradakiler">
               {people.map((p) => (
@@ -464,7 +472,7 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
               ))}
             </ul>
           ) : (
-            <ol className="people__list" aria-label="Bugünkü odak süresi">
+            <ol className="people__list" aria-label={PEOPLE_COPY.todayLong}>
               {today.map((p, i) => (
                 <li
                   key={p.id}

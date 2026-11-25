@@ -4,7 +4,7 @@ import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { loadMyRoom, saveMyRoom } from './myRoom'
 import { SOUNDS, playAmbient, setAmbientVolume, stopAmbient } from './ambient'
-import RoomStage, { FocusModeButton, FocusModeNote } from './RoomStage'
+import RoomStage, { FocusModeButton, FocusModeNote, ShortcutHelp } from './RoomStage'
 import TimerCard from './TimerCard'
 import { swatchOf } from './themeLook'
 import Dotted from './Dotted'
@@ -64,7 +64,10 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
         </div>
         {timerCard}
         <div className="desk__foot">
-          <FocusModeButton onClick={() => onFocusModeChange(true)} hints={hints} />
+          <div className="desk__foot-row">
+            <FocusModeButton onClick={() => onFocusModeChange(true)} hints={hints} />
+            <ShortcutHelp />
+          </div>
           <FocusModeNote hints={hints} />
         </div>
       </div>

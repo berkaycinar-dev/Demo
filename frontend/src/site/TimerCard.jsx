@@ -36,9 +36,11 @@ const TIMER_COPY = {
   resume: 'Devam et',
   reset: 'Sıfırla',
   skip: 'Atla',
-  presets: 'Süre',
-  // ön ayar düğmesinin ipucu: "Kısayol: 1"
-  presetKey: (n) => `Kısayol: ${n}`,
+  // grup adı birimi de söyler; görünürde birim grubun yanında bir kez yazar ("dk")
+  presets: 'Süre, dakika: odak / mola',
+  unit: 'dk',
+  // ön ayar düğmesinin ipucu: "25 dk odak · 5 dk mola · Kısayol: 1"
+  presetKey: (focus, rest, n) => `${focus} dk odak · ${rest} dk mola · Kısayol: ${n}`,
   ok: 'Tamam',
   undo: 'Geri al',
   // seans sürerken kilitli bir süreye basınca kartın üstünde kısa not olarak çıkar
@@ -154,20 +156,25 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
             </button>
           </span>
           {/* Seans sürerken diğer süreler kilitli: basılabilir kalır, basınca nedeni kartın üstünde yazar. */}
-          <span className="segmented timer-card__presets" role="group" aria-label={TIMER_COPY.presets} aria-describedby={locked ? lockNoteId : undefined}>
-            {PRESETS.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                aria-keyshortcuts={i < 3 ? String(i + 1) : undefined}
-                title={i < 3 ? TIMER_COPY.presetKey(i + 1) : undefined}
-                aria-pressed={timer.preset === p.id}
-                aria-disabled={locked && timer.preset !== p.id ? true : undefined}
-                onClick={() => pickPreset(p)}
-              >
-                {p.label}
-              </button>
-            ))}
+          <span className="timer-card__durations">
+            <span className="segmented timer-card__presets" role="group" aria-label={TIMER_COPY.presets} aria-describedby={locked ? lockNoteId : undefined}>
+              {PRESETS.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-keyshortcuts={i < 3 ? String(i + 1) : undefined}
+                  title={i < 3 ? TIMER_COPY.presetKey(p.focus, p.break, i + 1) : undefined}
+                  aria-pressed={timer.preset === p.id}
+                  aria-disabled={locked && timer.preset !== p.id ? true : undefined}
+                  onClick={() => pickPreset(p)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </span>
+            <span className="timer-card__unit" aria-hidden="true">
+              {TIMER_COPY.unit}
+            </span>
           </span>
         </div>
       )}
