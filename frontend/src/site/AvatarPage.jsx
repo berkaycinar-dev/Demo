@@ -13,8 +13,6 @@ import {
 import Icon from './AvatarIcons'
 import AvatarPortrait from './AvatarPortrait'
 import CharacterMenu from './CharacterMenu'
-import NameHint from './NameHint'
-import { nameStatus, textLength } from './nameRules'
 import { loadPresets, savePresets } from './avatarStore'
 import useImageState from './useImageState'
 
@@ -49,7 +47,6 @@ const metalUsersOf = (a) =>
 const listOf = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} ve ${items.at(-1)}`)
 const HISTORY_LIMIT = 50
 // görünen ad sınırı (harf sayısı); sanitizeAvatar da aynı sınırı kullanır
-const NAME_MAX = 24
 // Zar: önizleme bu aralıklarla (ms, giderek yavaşlar) rastgele görünümlerden geçer; sonuncusu kalır.
 const ROLL_STEPS = [55, 60, 70, 85, 105, 135, 170]
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
@@ -228,6 +225,36 @@ function useCompact() {
   )
 }
 
+// Sayfa kaydırılırken true, kaydırma SCROLL_IDLE_MS durunca false. Telefonda yapışkan önizlemenin üstündeki
+// kontrol barları bu sürede saydamlaşır: menüde gezinirken avatar görünür kalır. Kapalıyken (geniş ekran)
+// dinlemez.
+const SCROLL_IDLE_MS = 700
+function useScrolling(enabled) {
+  const [scrolling, setScrolling] = useState(false)
+  useEffect(() => {
+    if (!enabled) return undefined
+    let timer = 0
+    let on = false
+    const onScroll = () => {
+      if (!on) {
+        on = true
+        setScrolling(true)
+      }
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        on = false
+        setScrolling(false)
+      }, SCROLL_IDLE_MS)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [enabled])
+  return enabled && scrolling
+}
+
 // Otomatik kayıt duyurusu (ekran okuyucu): her değişiklikte değil, değişiklikler SAVE_ANNOUNCE_MS
 // durulunca bir kez; son yazışın sonucunu söyler. Metin önce boşaltılır ki aynı cümle yeniden okunsun.
 const SAVE_ANNOUNCE_MS = 1200
@@ -251,7 +278,8 @@ function useSaveAnnouncer() {
 // bölgeye yaklaşır), geri al / ileri al ve kombin slotları; sağda karakter menüsü (CharacterMenu). Her
 // değişiklik hemen kaydedilir; odalarda "Sen" olarak bu avatar oturur.
 // fallbackName: boş ad bırakılınca kullanılan ad (hesabın görünen adı).
-export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName = DEFAULT_AVATAR.name }) {
+// Avatarın adı ayrı tutulmaz: hesabın görünen adıdır (Hesap > Profil'den değişir).
+export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [mode, setMode] = useState('focus')
   const [activity, setActivity] = useState('read')
   const [zone, setZone] = useState('full')
@@ -260,6 +288,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName
   const [hatShown, setHatShown] = useState(false)
   // telefonda poz ve kombinler alt sayfada
   const compact = useCompact()
+  const scrolling = useScrolling(compact)
   const [sheetOpen, setSheetOpen] = useState(false)
   // zar: karışma sürerken önizlemede geçici görünüm; sonuç tek adımda kaydedilir (tek geri alma)
   const [roll, setRoll] = useState(null)
@@ -274,30 +303,26 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName
   }
   // her artışta önizlemenin döndürmesi sıfırlanır (kontrol barındaki Sıfırla)
   const [resetKey, setResetKey] = useState(0)
-  // last: son değişen alan; art arda yazılan ad tek adımda geri alınır
-  const [history, setHistory] = useState({ past: [], future: [], last: null })
-  // sınırı aşan görünen ad: kaydedilmez, kısaltılana dek alanda bu taslak durur
-  const [nameDraft, setNameDraft] = useState(null)
-  const nameState = nameStatus(nameDraft ?? avatar.name, NAME_MAX, `Boş bırakırsan odadakiler seni “${fallbackName}” adıyla görür.`)
+  const [history, setHistory] = useState({ past: [], future: [] })
 
   const [saveMessage, announceSave, saveStamp] = useSaveAnnouncer()
   // onChange kaydeder; false dönerse depolama yazılamadı
   const save = (next) => announceSave(onChange(next))
-  const commit = (next, key = null) => {
+  const commit = (next) => {
     if (JSON.stringify(next) === JSON.stringify(avatar)) return
-    setHistory((h) => ({ past: key === 'name' && h.last === 'name' ? h.past : [...h.past, avatar].slice(-HISTORY_LIMIT), future: [], last: key }))
+    setHistory((h) => ({ past: [...h.past, avatar].slice(-HISTORY_LIMIT), future: [] }))
     save(next)
   }
   const undo = () => {
     const prev = history.past.at(-1)
     if (!prev) return
-    setHistory((h) => ({ past: h.past.slice(0, -1), future: [avatar, ...h.future], last: null }))
+    setHistory((h) => ({ past: h.past.slice(0, -1), future: [avatar, ...h.future] }))
     save(prev)
   }
   const redo = () => {
     const next = history.future[0]
     if (!next) return
-    setHistory((h) => ({ past: [...h.past, avatar], future: h.future.slice(1), last: null }))
+    setHistory((h) => ({ past: [...h.past, avatar], future: h.future.slice(1) }))
     save(next)
   }
   // Ctrl+Z / Ctrl+Y (ve Ctrl+Shift+Z); yazı alanındayken tarayıcının kendi geri alması çalışır
@@ -361,34 +386,6 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName
   const accUsers = accessoryColorUsers(avatar)
   const metalUsers = metalUsersOf(avatar)
 
-  const nameField = (
-    <>
-    {/* sınırı aşan ad kesilmez ve kaydedilmez: alanda kalır, hata görünür; boş ad alandan çıkınca varsayılana döner */}
-    <div className="field">
-      <label className="field__label" htmlFor="avatar-name">
-        Görünen ad
-      </label>
-      <input
-        id="avatar-name"
-        value={nameDraft ?? avatar.name}
-        aria-invalid={nameState.tone === 'over' || undefined}
-        aria-describedby="avatar-name-hint"
-        autoComplete="nickname"
-        spellCheck={false}
-        onChange={(e) => {
-          const v = e.target.value
-          if (textLength(v) > NAME_MAX) return setNameDraft(v)
-          setNameDraft(null)
-          commit({ ...avatar, name: v }, 'name')
-        }}
-        onBlur={() => {
-          if (nameDraft === null && !avatar.name.trim()) commit({ ...avatar, name: fallbackName }, 'name')
-        }}
-      />
-      <NameHint id="avatar-name-hint" status={nameState} max={NAME_MAX} />
-    </div>
-    </>
-  )
 
   return (
     <div className="avatar-workshop">
@@ -418,7 +415,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName
       </div>
       <div className="create avatar-page">
         <section className="create-preview" aria-label="Önizleme" ref={previewRef}>
-          <div className="room-frame avatar-page__preview">
+          <div className="room-frame avatar-page__preview" data-scrolling={scrolling || undefined}>
             <AvatarPreview avatar={roll?.look ?? avatar} shuffle={roll?.shuffle ?? null} mode={mode} activity={activity} focus={zone} hideHeadwear={hideHeadwear} hint={false} resetKey={resetKey} />
             {/* yüzen kontrol barları. Sol üst: poz ve altında çalışma türü (oturmayan pozda yeri korunur,
                 gizlenir). Sağ üst: geri al / ileri al ve saç satırında başlık gizle. Alt: ipuçları. */}
@@ -534,7 +531,6 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom, fallbackName
               if (h !== menuHair) setHatShown(false)
               setMenuHair(h)
             }}
-            lead={<div className="cmenu__lead">{nameField}</div>}
           />
 
           {/* sessiz sıfırlama: geri al ile döner; rastgele önizlemedeki zarda */}

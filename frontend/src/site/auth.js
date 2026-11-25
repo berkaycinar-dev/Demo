@@ -129,15 +129,6 @@ export async function login(identifier, password, remember = true) {
   }
 }
 
-/**
- * Şifre sıfırlama isteği. Backend'de e-posta gönderimi yok; istek yalnızca doğrulanır ve
- * { delivered: false } döner. Hangi e-postaların kayıtlı olduğu sızmasın diye cevap her zaman aynı.
- */
-export async function requestPasswordReset(email) {
-  if (!EMAIL_RE.test(email.trim())) return { error: 'Geçerli bir e-posta adresi yaz.' }
-  return { delivered: false }
-}
-
 /** Çıkış: refresh token sunucuda iptal edilir (cevap beklenmez), oturum hemen silinir. */
 export function logout() {
   const session = readSession()

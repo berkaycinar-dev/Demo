@@ -27,8 +27,8 @@ import Icon from './AvatarIcons'
 import './CharacterMenu.css'
 
 // Karakter menüsü: avatar atölyesinin düzenleyicisi. Her kategori bir satır; satırda o kategorinin bütün
-// seçenekleri yatay kaydırılabilen bir şeritte durur (görselli alanlarda voxel görsel, renklerde nokta,
-// diğerlerinde ad). Seçili seçenek dolgu ve halkayla belirgindir, seçilince şeritte görünür alana kayar.
+// seçenekleri yatay kaydırılabilen bir şeritte durur (saç, kıyafet ve aksesuarlarda voxel görsel, renklerde
+// nokta, beden / kahkül / kaş gibi mod seçimlerinde ad). Seçili seçenek dolgu ve halkayla belirgindir, seçilince şeritte görünür alana kayar.
 //
 // Klavye: şerit satırın tek sekme durağıdır (roving). ←/→ seçeneği değiştirir (uçlarda döner), ↑/↓ satırlar
 // arasında gezer, Home/End ilk/son seçenek. Satıra gelince kamera o satırın bölgesine yaklaşır (zone).
@@ -84,12 +84,12 @@ function menuSections(a, n) {
     {
       title: 'Kıyafet',
       rows: [
-        { key: 'top', label: 'Üst', zone: 'upper', options: TOPS, note: n.topReplaced },
+        { key: 'top', label: 'Üst', zone: 'upper', options: TOPS, thumbs: 'top', note: n.topReplaced },
         { key: 'topColor', label: outfit === 'dress' ? 'Elbise rengi' : outfit === 'onesie' ? 'Tulum rengi' : 'Üst rengi', zone: 'upper', options: CLOTH_COLORS, color: true },
-        { key: 'bottom', label: 'Alt', zone: 'legs', options: BOTTOMS, note: n.bottomReplaced },
+        { key: 'bottom', label: 'Alt', zone: 'legs', options: BOTTOMS, thumbs: 'bottom', note: n.bottomReplaced },
         { key: 'bottomColor', label: outfit === 'overalls' ? 'Salopet rengi' : 'Alt rengi', zone: 'legs', options: CLOTH_COLORS, color: true },
-        { key: 'outfit', label: 'Tek parça', zone: 'full', options: OUTFITS },
-        { key: 'footwear', label: 'Ayakkabı', zone: 'feet', options: FOOTWEAR },
+        { key: 'outfit', label: 'Tek parça', zone: 'full', options: OUTFITS, thumbs: 'outfit' },
+        { key: 'footwear', label: 'Ayakkabı', zone: 'feet', options: FOOTWEAR, thumbs: 'footwear' },
         { key: 'shoes', label: 'Ayakkabı rengi', zone: 'feet', options: SHOE_COLORS, color: true },
       ],
     },
@@ -101,10 +101,10 @@ function menuSections(a, n) {
         { key: 'hat', label: 'Başlık', zone: 'hat', options: HATS, thumbs: 'hat', group: 'Başta' },
         !FIXED_COLOR_HATS.includes(a.hat) && { key: 'hatColor', label: `${hatLabel} rengi`, zone: 'hat', options: CLOTH_COLORS, color: true, group: 'Başta' },
         { key: 'glasses', label: 'Gözlük', zone: 'face', options: GLASSES, thumbs: 'glasses', group: 'Başta' },
-        { key: 'headphones', label: 'Kulaklık', zone: a.headphones === 'neck' ? 'chest' : 'face', options: HEADPHONES, note: n.phone, group: 'Başta' },
-        { key: 'earrings', label: 'Küpe', zone: 'face', options: EARRINGS, note: n.ear, group: 'Başta' },
-        { key: 'neck', label: 'Boyun', zone: 'chest', options: NECKWEAR, group: 'Boyun ve bilek' },
-        { key: 'wrist', label: 'Bilek', zone: 'wrist', options: WRISTWEAR, group: 'Boyun ve bilek' },
+        { key: 'headphones', label: 'Kulaklık', zone: a.headphones === 'neck' ? 'chest' : 'face', options: HEADPHONES, thumbs: 'headphones', note: n.phone, group: 'Başta' },
+        { key: 'earrings', label: 'Küpe', zone: 'face', options: EARRINGS, thumbs: 'earrings', note: n.ear, group: 'Başta' },
+        { key: 'neck', label: 'Boyun', zone: 'chest', options: NECKWEAR, thumbs: 'neck', group: 'Boyun ve bilek' },
+        { key: 'wrist', label: 'Bilek', zone: 'wrist', options: WRISTWEAR, thumbs: 'wrist', group: 'Boyun ve bilek' },
         n.acc && { key: 'accessoryColor', label: 'Kumaş', zone: 'upper', options: CLOTH_COLORS, color: true, note: n.acc, group: 'Renkler' },
         n.metal && { key: 'metal', label: 'Metal', zone: 'upper', options: METALS, color: true, note: n.metal, group: 'Renkler' },
       ],
@@ -169,7 +169,7 @@ function Strip({ r, value, innerRef, children, ...props }) {
 
 // avatar: şu anki görünüm. set(key)(value): AvatarPage'in çakışma çözen yazıcısı. notes: satır notları ve
 // ortak renk kullanıcıları (AvatarPage hesaplar). kit: seçenek görseli (OptionThumb, thumbOf).
-// onRow({ zone, hair }): satıra gelinince kamera ve başlık gizleme için. lead: menünün başındaki alan (ad).
+// onRow({ zone, hair }): satıra gelinince kamera ve başlık gizleme için.
 // Oklar yalnızca şeridi sığmayan satırlarda çizilir (seçeneklerin hepsi zaten görünüyorsa ok gereksiz).
 // Ölçü satırın seçici alanına göre yapılır; o alanın genişliği oklardan bağımsızdır, döngü olmaz.
 function useOverflowingStrips(rootRef, strips) {
@@ -192,7 +192,7 @@ function useOverflowingStrips(rootRef, strips) {
   return keys
 }
 
-export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) {
+export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
   const { OptionThumb, thumbOf } = kit
   const sections = menuSections(avatar, notes)
   const rows = sections.flatMap((s) => s.rows)
@@ -259,7 +259,6 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow, lead }) 
       <p id={hintId} className="sr-only">
         {KEYS_HINT}
       </p>
-      {lead}
       {sections.map((s) => (
         <section key={s.title} className="cmenu__section">
           <h2 className="opt-section__title cmenu__title">{s.title}</h2>

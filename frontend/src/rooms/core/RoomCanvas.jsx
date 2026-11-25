@@ -82,6 +82,18 @@ function frameRoom(bounds, size) {
   return { target, fit }
 }
 
+// Vitrin salınımı: kamera SWAY_YAW kadar sağa sola, SWAY_MS'de bir tur. Her karede yeni kare ister
+// (sahne zaten avatarlarla canlı); "hareketi azalt"ta hiç kurulmaz.
+const SWAY_YAW = 0.17
+const SWAY_MS = 20000
+function Sway({ viewRef }) {
+  useFrame(({ invalidate }) => {
+    viewRef.current.yaw = SWAY_YAW * Math.sin((performance.now() / SWAY_MS) * Math.PI * 2)
+    invalidate()
+  })
+  return null
+}
+
 function CameraRig({ bounds, view, arrivalRef }) {
   const size = useThree((s) => s.size)
   const { target, fit } = useMemo(() => frameRoom(bounds, size), [bounds, size])
@@ -221,6 +233,8 @@ function Lighting({ bounds, preset, lamps, lampBoost }) {
  * Sahne araç çubuğu her sayfada tek düzendedir: sağ altta, yakınlaştırma ve görünümü sıfırlama ikonları,
  * sayfaya özel düğmeler (controls) ve katlanır gün zamanı menüsü. İpucu sol altta.
  * hint: sol alttaki ipucu yazısı (varsayılan: sürükleme ve çift tık). false ya da '' verilirse çıkmaz.
+ * showcase: vitrin (tanıtım sayfası): etkileşim, araç çubuğu ve ipucu yok, zemin saydam, kamera yavaşça
+ * salınır ("hareketi azalt"ta durur). Ekran okuyucudan gizlidir; açıklamayı sayfa verir.
  * controls: sahne araç çubuğuna eklenen sayfaya özel görünüm düğmeleri (ör. ortak odada "İsimler");
  *           <button> öğeleri verilir, kendi grubunda durur.
  * canvasStyle: 3D çizim alanının stili; arka plan tüm kutuyu doldururken sahneyi daraltmak için
@@ -328,6 +342,7 @@ export default function RoomCanvas({
   controls,
   arrive = false,
   lampBoost = false,
+  showcase = false,
   children,
 }) {
   const [mode, setMode] = useState(defaultTimeOfDay)
@@ -383,16 +398,22 @@ export default function RoomCanvas({
     if (drag.current?.id === e.pointerId) drag.current = null
   }
 
+  const pointer = showcase
+    ? { 'aria-hidden': true }
+    : {
+        onPointerDown,
+        onPointerMove,
+        onPointerUp: endDrag,
+        onPointerCancel: endDrag,
+        onDoubleClick: (e) => !isUi(e.target) && resetView(),
+      }
+
   return (
     <div
-      className={`room-canvas ${className}`}
+      className={`room-canvas${showcase ? ' room-canvas--showcase' : ''} ${className}`}
       style={{ '--room-bg': preset.background, ...style }}
       data-time={timeOfDay}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onDoubleClick={(e) => !isUi(e.target) && resetView()}
+      {...pointer}
     >
       <Canvas
         orthographic
@@ -409,12 +430,14 @@ export default function RoomCanvas({
           store.current = state
         }}
       >
+        {showcase && !prefersReducedMotion() && <Sway viewRef={view} />}
         <CameraRig bounds={bounds} view={view} arrivalRef={arrival} />
         <Lighting bounds={bounds} preset={preset} lamps={lamps} lampBoost={lampBoost} />
         <TimeOfDayContext.Provider value={preset}>{children}</TimeOfDayContext.Provider>
       </Canvas>
 
       {/* alt şerit: araç çubuğu sağda, ipucu solda; sığmazsa ipucu bir satır yukarı sarar */}
+      {!showcase && (
       <div className="room-canvas__bar">
         <div className="room-canvas__ui room-canvas__toolbar" role="toolbar" aria-label="Sahne kontrolleri">
           <div className="room-canvas__group">
@@ -433,6 +456,7 @@ export default function RoomCanvas({
         </div>
         {hint && <p className="room-canvas__hint">{hint}</p>}
       </div>
+      )}
     </div>
   )
 }
