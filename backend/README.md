@@ -81,6 +81,23 @@ login 10, register 5, refresh 30, logout 30. Sınır aşılırsa cevap `429`, `c
 Proxy arkasında IP `X-Forwarded-For` başlığının ilk adresinden okunur. İstemci bu başlığı
 değiştirebildiği için bu sınır kaba kuvvete karşı bir yavaşlatmadır, tam koruma değildir.
 
+## Docker image
+
+```bash
+docker build -t demo-backend backend
+docker run --rm -p 8080:8080 \
+  -e DB_URL=jdbc:postgresql://host.docker.internal:5433/demo -e DB_USER=demo -e DB_PASSWORD=demo \
+  -e JWT_SECRET=$(openssl rand -hex 32) -e CORS_ORIGINS=http://localhost:5173 \
+  demo-backend
+```
+
+- Image `prod` profiliyle açılır. Bu yüzden yukarıdaki değişkenlerin hepsi verilmelidir.
+- `PORT` verilirse o porttan dinler (Render bunu kendisi verir).
+- JVM ayarları küçük makine için Dockerfile'da hazır. Sunucuda `JAVA_TOOL_OPTIONS` girilirse
+  bu ayarların **hepsinin yerine geçer**. Gerek yoksa girme.
+- Yerelde `--memory 512m --cpus 0.1` ile ölçüldü: açılış yaklaşık 2 dakika, bellek yaklaşık 250 MB.
+- Taban image'lar hem amd64 hem arm64 destekler.
+
 ## Paket yapısı
 
 Paketler özelliğe göre ayrılır, her özelliğin içinde katmanlar bulunur:
