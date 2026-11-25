@@ -15,12 +15,12 @@ const DATA_CONTROLLER = ''
 export const LEGAL_DOCS = {
   kosullar: {
     title: 'Kullanım koşulları',
-    intro: 'Odakhane’yi kullanarak aşağıdaki koşulları kabul etmiş olursun. Kısa ve anlaşılır tutmaya çalıştık.',
+    intro: 'SameDesk’i kullanarak aşağıdaki koşulları kabul etmiş olursun. Kısa ve anlaşılır tutmaya çalıştık.',
     sections: [
       {
         heading: 'Hizmet',
         body: [
-          'Odakhane, kamera ve mikrofon olmadan başkalarıyla aynı sanal odada çalışma hissi veren bir odaklanma aracıdır. Pomodoro sayacı, kişisel oda, ortak odalar ve avatar özellikleri sunar.',
+          'SameDesk, kamera ve mikrofon olmadan başkalarıyla aynı sanal odada çalışma hissi veren bir odaklanma aracıdır. Pomodoro sayacı, kişisel oda, ortak odalar ve avatar özellikleri sunar.',
           'Hizmet geliştirme aşamasındadır; özellikler önceden haber verilmeden değişebilir, eklenebilir ya da kaldırılabilir.',
         ],
       },
@@ -42,7 +42,7 @@ export const LEGAL_DOCS = {
       {
         heading: 'Sorumluluğun sınırı',
         body: [
-          'Odakhane olduğu gibi sunulur. Kesintisiz ya da hatasız çalışacağını garanti etmiyoruz.',
+          'SameDesk olduğu gibi sunulur. Kesintisiz ya da hatasız çalışacağını garanti etmiyoruz.',
           'Bu sürümde verilerin yalnızca kendi tarayıcında tutulur; tarayıcı verilerini silersen hesabın ve ayarların da silinir. Bu kayıptan doğan zararlardan sorumlu değiliz.',
         ],
       },

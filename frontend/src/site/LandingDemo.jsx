@@ -37,8 +37,6 @@ const DEMO_COPY = {
   tryTitle: 'Odada dene',
   trySteam: 'Semavere tıkla: buhar tüter',
   tryDrag: 'Odayı sürükle: döner',
-  dark: 'Koyu moda geç',
-  light: 'Açık moda geç',
   hint: 'Semavere tıkla · Sürükle: döndür',
   quoteLead: 'Odanın bugünkü sözü',
 }
@@ -76,7 +74,7 @@ function DemoRoom({ step, avatar, arrive }) {
   )
 }
 
-export default function LandingDemo({ avatar, quote, isDark, onToggleMode }) {
+export default function LandingDemo({ avatar, quote }) {
   const ref = useRef(null)
   const { near, visible } = useInView(ref, '300px')
   const [step, setStep] = useState(0)
@@ -194,11 +192,6 @@ export default function LandingDemo({ avatar, quote, isDark, onToggleMode }) {
             <ul>
               <li>{DEMO_COPY.trySteam}</li>
               <li>{DEMO_COPY.tryDrag}</li>
-              <li>
-                <button type="button" className="link-btn link-btn--strong" onClick={onToggleMode}>
-                  {isDark ? DEMO_COPY.light : DEMO_COPY.dark}
-                </button>
-              </li>
             </ul>
           </div>
         </div>

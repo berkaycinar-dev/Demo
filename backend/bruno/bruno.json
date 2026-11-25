@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "name": "Demo API",
+  "name": "SameDesk API",
   "type": "collection",
   "ignore": ["node_modules", ".git"]
 }

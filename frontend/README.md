@@ -1,6 +1,6 @@
-# Odakhane frontend
+# SameDesk frontend
 
-Odakhane'nin web arayüzü: React 19 + Vite, oda sahneleri için three.js (`@react-three/fiber`).
+SameDesk'in web arayüzü: React 19 + Vite, oda sahneleri için three.js (`@react-three/fiber`).
 Kullanıcı temalı bir odaya girer, avatarıyla bir masaya oturur ve pomodoro sayacıyla çalışır.
 
 Bu sürüm **backend'e bağlı değildir**. Hesaplar, odalar, sayaç ve avatar tarayıcının
@@ -45,7 +45,7 @@ Tema kimlikleri: `library`, `cabin`, `office`, `teagarden`, `camp`, `space`, `un
 
 ## Backend bağlantısı (prototip)
 
-Site backend'e `src/site/api.js` üzerinden bağlanır. Varsayılan adres canlı demo backend'idir
+Site backend'e `src/site/api.js` üzerinden bağlanır. Varsayılan adres canlı backend'dir
 (`https://demo-backend-bcns.onrender.com`). Yerel backend için `frontend/.env.local` dosyasına yaz:
 
 ```

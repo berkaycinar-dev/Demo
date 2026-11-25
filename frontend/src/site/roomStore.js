@@ -1,10 +1,10 @@
 // Odalar: backend'de (contracts/openapi.yaml, tag "rooms"). Katılım geçmişi bu tarayıcıda kalır.
-//   odakhane.joined.<kullanıcı>  katıldığın odalar: [{ id, at }] en yenisi başta
+//   samedesk.joined.<kullanıcı>  katıldığın odalar: [{ id, at }] en yenisi başta
 
 import { THEMES } from '../rooms/themes'
 import { api } from './api'
 
-const JOINED_PREFIX = 'odakhane.joined.'
+const JOINED_PREFIX = 'samedesk.joined.'
 const MAX_JOINED = 20
 const DEFAULT_THEME = 'library'
 // Backend'in kişi sınırı (CreateRoomRequest.maxMembers).

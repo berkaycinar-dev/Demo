@@ -1,4 +1,4 @@
-# Demo Backend
+# SameDesk Backend
 
 Spring Boot 4.1 · Java 21 · PostgreSQL 16 · Flyway
 
@@ -52,9 +52,9 @@ Bruno ile: Bruno'da **Open Collection** → `backend/bruno` → ortam olarak **l
 
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
-| `DB_URL` | `jdbc:postgresql://localhost:5432/demo` | Veritabanı adresi |
-| `DB_USER` | `demo` | |
-| `DB_PASSWORD` | `demo` | Sunucuda mutlaka değiştir |
+| `DB_URL` | `jdbc:postgresql://localhost:5432/samedesk` | Veritabanı adresi |
+| `DB_USER` | `samedesk` | |
+| `DB_PASSWORD` | `samedesk` | Sunucuda mutlaka değiştir |
 | `PORT` | `8080` | |
 | `CORS_ORIGINS` | `http://localhost:5173` | Frontend adresleri (virgülle ayrılır) |
 | `JWT_SECRET` | yerel geliştirme değeri | JWT imza anahtarı, **en az 32 bayt**. Sunucuda mutlaka değiştir; kısaysa uygulama açılmaz |
@@ -84,11 +84,11 @@ değiştirebildiği için bu sınır kaba kuvvete karşı bir yavaşlatmadır, t
 ## Docker image
 
 ```bash
-docker build -t demo-backend backend
+docker build -t samedesk-backend backend
 docker run --rm -p 8080:8080 \
-  -e DB_URL=jdbc:postgresql://host.docker.internal:5433/demo -e DB_USER=demo -e DB_PASSWORD=demo \
+  -e DB_URL=jdbc:postgresql://host.docker.internal:5433/samedesk -e DB_USER=samedesk -e DB_PASSWORD=samedesk \
   -e JWT_SECRET=$(openssl rand -hex 32) -e CORS_ORIGINS=http://localhost:5173 \
-  demo-backend
+  samedesk-backend
 ```
 
 - Image `prod` profiliyle açılır. Bu yüzden yukarıdaki değişkenlerin hepsi verilmelidir.
@@ -103,7 +103,7 @@ docker run --rm -p 8080:8080 \
 Paketler özelliğe göre ayrılır, her özelliğin içinde katmanlar bulunur:
 
 ```
-com.demo.backend
+com.samedesk.backend
 ├── common/
 │   ├── config/      Clock, CORS
 │   ├── ratelimit/   Auth uçlarına IP başına istek sınırı (429 RATE_LIMITED)

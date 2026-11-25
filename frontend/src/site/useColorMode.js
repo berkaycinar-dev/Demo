@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const KEY = 'odakhane-mode'
+const KEY = 'samedesk-mode'
 let fadeTimer = 0
 
 // Açık / koyu mod: kayıtlı seçim yoksa sistem tercihine uyar. Seçim <html data-mode> ile uygulanır.

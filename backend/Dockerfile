@@ -1,4 +1,4 @@
-# Backend image. Build from the backend folder:  docker build -t demo-backend backend
+# Backend image. Build from the backend folder:  docker build -t samedesk-backend backend
 # Base images are multi-arch (amd64 and arm64), so the same file works on Render and on an Arm server.
 
 # ---- 1) Build the jar ----

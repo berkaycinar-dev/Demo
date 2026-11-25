@@ -158,10 +158,7 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
             akar, eylem çubuğu (order) en sona geçip ekranın altına yapışır */}
         <div className="create-room__rail">
           {/* geniş ekranda kartlar tek satır ve açıklamasız; seçili temanın açıklaması rafın başında */}
-          <p className="create-room__theme-note">
-            <span className="create-room__theme-name">{label}</span>
-            <span>{THEMES[theme].description}</span>
-          </p>
+          <p className="create-room__theme-note">{THEMES[theme].description}</p>
           <div className="create-room__fields">
             <fieldset className="field">
               <legend className="field__label" id="capacity-label">

@@ -350,5 +350,7 @@
     scrollbar-color: var(--line-strong) transparent;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
+    /* kayan menünün üst ve alt kenarı solar: satır ortadan kesilmiş görünmez */
+    mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 28px), transparent 100%);
   }
 }

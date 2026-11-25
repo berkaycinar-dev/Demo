@@ -4182,7 +4182,15 @@
   align-items: center;
   gap: 24px 40px;
   max-width: 880px;
-  margin: 24px auto;
+  /* kart üst üçte birde kalmasın: ekranın ortasına yakın */
+  margin: clamp(24px, 14vh, 140px) auto;
+}
+
+/* telefon: başlık ve Hemen başla ilk ekranda; oda görseli altta (900 px'e kadar oda önce kalır) */
+@media (max-width: 560px) {
+  .lp-hero {
+    grid-template-areas: 'text' 'room';
+  }
 }
 
 .not-found__shot img {

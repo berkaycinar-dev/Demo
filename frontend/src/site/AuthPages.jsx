@@ -8,7 +8,7 @@ import RoomShot from './RoomShot'
 function AuthShell({ rooms = ['cabin'], children }) {
   return (
     <div className="auth">
-      <section className="auth__brand" aria-label="Odakhane hakkında">
+      <section className="auth__brand" aria-label="SameDesk hakkında">
         <div className={`auth__rooms${rooms.length > 1 ? ' auth__rooms--pair' : ''}`}>
           {rooms.map((theme, i) => (
             <RoomShot key={theme} theme={theme} className="auth__room" eager={i === 0} />
@@ -208,7 +208,7 @@ export function LoginPage({ onDone, onGo }) {
         </button>
       </form>
       <p className="auth__switch">
-        Odakhane’de yeni misin?{' '}
+        SameDesk’te yeni misin?{' '}
         <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('kayit')}>
           Hesap oluştur
         </button>

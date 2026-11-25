@@ -5,20 +5,20 @@
 services:
   db:
     image: postgres:16
-    container_name: demo-db
+    container_name: samedesk-db
     environment:
-      POSTGRES_DB: demo
-      POSTGRES_USER: demo
-      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: samedesk
+      POSTGRES_USER: samedesk
+      POSTGRES_PASSWORD: samedesk
     ports:
       - "5432:5432"
     volumes:
-      - demo-db-data:/var/lib/postgresql/data
+      - samedesk-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U demo -d demo"]
+      test: ["CMD-SHELL", "pg_isready -U samedesk -d samedesk"]
       interval: 5s
       timeout: 3s
       retries: 10
 
 volumes:
-  demo-db-data:
+  samedesk-db-data:

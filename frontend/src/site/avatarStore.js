@@ -1,7 +1,7 @@
 import { DEFAULT_AVATAR, sanitizeAvatar } from '../avatars/options'
 
 // Kullanıcının avatarı bu tarayıcıda saklanır (yalnızca kolaylık; erişilemezse varsayılan kullanılır).
-const KEY = 'odakhane.avatar'
+const KEY = 'samedesk.avatar'
 
 export function loadAvatar() {
   try {
@@ -24,7 +24,7 @@ export function saveAvatar(avatar) {
 
 // Kombin slotları (gardırop): üç kayıtlı görünüm; boş slot null. Ad kaydedilmez (yüklenince mevcut
 // ad kalır). Kayıtlar avatarla aynı biçimde okunur ve eski biçimler sanitizeAvatar'da çevrilir.
-const PRESETS_KEY = 'odakhane.avatar.presets'
+const PRESETS_KEY = 'samedesk.avatar.presets'
 export const PRESET_SLOTS = 3
 
 export function loadPresets() {

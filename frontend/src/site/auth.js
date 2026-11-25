@@ -28,8 +28,8 @@ export function passwordProblem(password) {
 
 // Görünen ad backend'de yok: kullanıcı kimliğine bağlı olarak bu tarayıcıda tutulur. Başka
 // tarayıcıda ilk girişte kullanıcı adı görünür.
-const NAMES_KEY = 'odakhane.display-names'
-const LAST_LOGIN_KEY = 'odakhane.last-login'
+const NAMES_KEY = 'samedesk.display-names'
+const LAST_LOGIN_KEY = 'samedesk.last-login'
 
 function readNames() {
   try {
@@ -177,8 +177,8 @@ export async function changePassword() {
 
 // Bu tarayıcıda cihaza bağlı tutulan kişisel kayıtlar (avatar, kayıtlı görünümler, odak sayısı,
 // sayaç, son oda). Dışa aktarmada gelir.
-const DEVICE_KEYS = ['odakhane.avatar', 'odakhane.avatar.presets', 'odakhane.focus-stats', 'odakhane.pomodoro', 'odakhane.current-room']
-const PER_USER_PREFIXES = ['odakhane.joined.']
+const DEVICE_KEYS = ['samedesk.avatar', 'samedesk.avatar.presets', 'samedesk.focus-stats', 'samedesk.pomodoro', 'samedesk.current-room']
+const PER_USER_PREFIXES = ['samedesk.joined.']
 
 function readJson(key) {
   try {

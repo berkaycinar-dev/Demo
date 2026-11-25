@@ -225,7 +225,7 @@ const DATA_COPY = {
   lead: 'Hesabın ve kayıtların yalnızca bu tarayıcıda tutuluyor. İstediğin an indirebilir ya da silebilirsin.',
   download: 'Verilerimi indir',
   downloaded: 'Dosya indirildi.',
-  fileName: (username) => `odakhane-${username}.json`,
+  fileName: (username) => `samedesk-${username}.json`,
   delete: 'Hesabımı sil',
   confirmTitle: 'Hesabın kalıcı olarak silinsin mi?',
   confirmText: 'Hesabın, kişisel odan, girdiğin odaların listesi, avatarın ve odak sayın bu tarayıcıdan silinir. Bu geri alınamaz.',

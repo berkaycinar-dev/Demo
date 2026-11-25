@@ -23,7 +23,7 @@ import './theme.css'
 import './site.css'
 import './pages.css'
 
-const DELETED_KEY = 'odakhane.account-deleted'
+const DELETED_KEY = 'samedesk.account-deleted'
 const DELETED_COPY = { note: 'Hesabın ve bu tarayıcıdaki kayıtların silindi.', close: 'Kapat' }
 
 // Sitenin kabuğu: sayfa akışı, oturum ve sitenin tasarım çerçevesi.
@@ -52,8 +52,8 @@ const hashPage = () => window.location.hash.slice(1)
 // Sayfa değişince sekme başlığı ve ekran okuyucu duyurusu sayfanın başlığından (h1) gelir. Çeviride
 // sıra değişebilsin diye kalıp tek yerde.
 const NAV_COPY = {
-  docTitle: (heading) => `${heading} · Odakhane`,
-  brand: 'Odakhane',
+  docTitle: (heading) => `${heading} · SameDesk`,
+  brand: 'SameDesk',
 }
 
 // Yeni sayfada odaklanacak öğe: önce sayfanın kendi seçtiği (data-autofocus, ör. odadan çıkış fişi),
@@ -67,7 +67,7 @@ function focusPageStart(main) {
 }
 
 // Girilen oda yenilemede kaybolmasın: kimliği saklanır, açılışta oda listesinde varsa ona dönülür.
-const ROOM_KEY = 'odakhane.current-room'
+const ROOM_KEY = 'samedesk.current-room'
 function loadCurrentId() {
   try {
     const id = JSON.parse(localStorage.getItem(ROOM_KEY) ?? 'null')?.id
@@ -302,7 +302,7 @@ export default function Site() {
             </button>
           </div>
         )}
-        {page === 'anasayfa' && <LandingPage user={user} avatar={myAvatar} rooms={rooms} onGo={go} onEnter={enter} isDark={isDark} onToggleMode={toggleMode} />}
+        {page === 'anasayfa' && <LandingPage user={user} avatar={myAvatar} rooms={rooms} onGo={go} onEnter={enter} />}
         {page === 'giris' && <LoginPage onDone={signedIn} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={signedIn} onGo={go} />}
         {page === 'sayfam' && <HomePage user={user} avatar={myAvatar} timer={timer} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}

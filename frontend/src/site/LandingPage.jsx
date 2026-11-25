@@ -14,7 +14,7 @@ const OPEN_ROOMS_SHOWN = 3
 // canlı bir odada oynar (LandingDemo). Ayrı adım kartları, özellik üçlüsü ve kapanış bandı yok.
 // Oda arkadaşları şimdilik simülasyon olduğundan "şu an N kişi" gibi canlı sayı gösterilmez; kapasite ve
 // odaya girince göreceğin yüzler (RoomMates) gösterilir. Hero'daki oda masalarında çalışan avatarlarla çizilir.
-export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, isDark, onToggleMode }) {
+export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter }) {
   const [quote, by] = QUOTES[quoteForVisit()]
   const dark = useDocumentDark()
   const start = () => onGo(user ? 'sayfam' : 'kayit')
@@ -37,7 +37,7 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, i
               Birlikte çalışınca odaklanmak kolaylaşır.
             </h1>
             <p className="lp-lead">
-              Odakhane, kamera ve mikrofon olmadan başkalarıyla aynı odada çalışma hissini verir. Bir oda seç, pomodoro sayacını başlat; masandaki avatarın sen çalışırken seninle oturur.
+              SameDesk, kamera ve mikrofon olmadan başkalarıyla aynı odada çalışma hissini verir. Bir oda seç, pomodoro sayacını başlat; masandaki avatarın sen çalışırken seninle oturur.
             </p>
             <div className="site-actions">
               <button type="button" className="site-btn site-btn--primary site-btn--xl" onClick={start}>
@@ -110,7 +110,7 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter, i
         </ul>
       </section>
 
-      <LandingDemo avatar={avatar} quote={[quote, by]} isDark={isDark} onToggleMode={onToggleMode} />
+      <LandingDemo avatar={avatar} quote={[quote, by]} />
     </div>
   )
 }

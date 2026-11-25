@@ -70,7 +70,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
     <header className={`site-header${wide ? ' site-header--wide' : ''}`} ref={ref}>
       <button type="button" className="site-brand" onClick={() => onGo(user ? 'sayfam' : 'anasayfa')}>
         <BrandMark />
-        <span className="site-brand__text">Odakhane</span>
+        <span className="site-brand__text">SameDesk</span>
       </button>
 
       {user && (
@@ -131,7 +131,7 @@ export function SiteFooter({ onGo }) {
         <div className="site-footer__about">
           <span className="site-footer__brand">
             <BrandMark size={22} />
-            Odakhane
+            SameDesk
           </span>
           <span>Kamerasız, sessiz, birlikte.</span>
         </div>
@@ -143,7 +143,7 @@ export function SiteFooter({ onGo }) {
             Gizlilik politikası
           </button>
         </nav>
-        <span className="site-footer__copy">© 2026 Odakhane</span>
+        <span className="site-footer__copy">© 2026 SameDesk</span>
       </div>
     </footer>
   )
