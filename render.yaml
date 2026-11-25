@@ -1,0 +1,32 @@
+# Render Blueprint: the backend web service. Render → New → Blueprint → pick this repo.
+# The database is on Neon (Render's free database expires after 30 days).
+services:
+  - type: web
+    name: demo-backend
+    runtime: docker
+    plan: free
+    # Same region as the Neon project (AWS eu-central-1, Frankfurt).
+    region: frankfurt
+    # Paths from the repo root.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    # Deploy again only when backend files change.
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      # Asked once when the Blueprint is created. Use Neon's direct (not -pooler) host:
+      # jdbc:postgresql://<host>/<db>?sslmode=require  (no user or password in the URL)
+      - key: DB_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Render makes a random value once and keeps it.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://samedesk.vercel.app
+      # Do not add JAVA_TOOL_OPTIONS here: it would replace the JVM flags in the Dockerfile.
