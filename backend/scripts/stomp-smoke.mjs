@@ -26,13 +26,22 @@ function register(role) {
   return post('/auth/register', { username, email: `${username}@example.test`, password: randomUUID() })
 }
 
-async function connect(token, expected = 'CONNECTED') {
+async function connect(token, expected = 'CONNECTED', heartbeat = '0,0') {
   const socket = new WebSocket(endpoint, 'v12.stomp')
   const frames = on(socket, 'message', { signal: AbortSignal.timeout(120_000) })
   clients.push({ socket, frames })
   await once(socket, 'open', { signal: AbortSignal.timeout(10_000) })
 
   const client = {
+    get isOpen() { return socket.readyState === WebSocket.OPEN },
+    sendHeartbeat() {
+      if (socket.readyState === WebSocket.OPEN) socket.send('\n')
+    },
+    async waitForClose(timeoutMs) {
+      if (socket.readyState !== WebSocket.CLOSED) {
+        await once(socket, 'close', { signal: AbortSignal.timeout(timeoutMs) })
+      }
+    },
     async disconnect() {
       const closed = once(socket, 'close', { signal: AbortSignal.timeout(5_000) })
       socket.close()
@@ -45,19 +54,52 @@ async function connect(token, expected = 'CONNECTED') {
     async receive() {
       const { value: [message] } = await frames.next()
       const text = typeof message.data === 'string' ? message.data : await message.data.text()
+      if (/^[\r\n]+$/.test(text)) return { command: 'HEARTBEAT', headers: [], body: '' }
       const separator = text.indexOf('\n\n')
       const [command, ...headers] = text.slice(0, separator).split('\n')
       return { command, headers, body: text.slice(separator + 2, -1) }
     },
   }
 
-  const headers = ['accept-version:1.2', `host:${base.host}`, 'heart-beat:0,0']
+  const headers = ['accept-version:1.2', `host:${base.host}`, `heart-beat:${heartbeat}`]
   if (token) headers.push(`Authorization:Bearer ${token}`)
   client.send('CONNECT', headers)
   const reply = await client.receive()
   assert.equal(reply.command, expected)
   if (expected === 'ERROR') assert.ok(reply.headers.includes('message:UNAUTHENTICATED'))
+  else client.serverHeartbeat = reply.headers.find((header) => header.startsWith('heart-beat:'))
   return client
+}
+
+async function verifyHeartbeats(token) {
+  const silent = await connect(token, 'CONNECTED', '100,100')
+  assert.match(silent.serverHeartbeat ?? '', /^heart-beat:[1-9]\d*,[1-9]\d*$/)
+  const [serverSend, serverReceive] = silent.serverHeartbeat.slice('heart-beat:'.length).split(',').map(Number)
+  assert.ok(serverSend >= 100 && serverReceive >= 100)
+  // Spring allows a margin for scheduling delay before disconnecting a silent peer.
+  const staleClosed = silent.waitForClose(serverReceive * 6 + 5000)
+  staleClosed.catch(() => {})
+  const live = await connect(token, 'CONNECTED', '100,100')
+  let beat = setInterval(() => live.sendHeartbeat(), Math.max(50, Math.floor(serverReceive / 2)))
+  try {
+    assert.equal((await live.receive()).command, 'HEARTBEAT')
+    await staleClosed
+    assert.equal(live.isOpen, true, 'A peer sending heartbeats must stay connected')
+    assert.equal((await live.receive()).command, 'HEARTBEAT')
+    clearInterval(beat)
+    await live.disconnect()
+
+    const reconnected = await connect(token, 'CONNECTED', '100,100')
+    beat = setInterval(() => reconnected.sendHeartbeat(), Math.max(50, Math.floor(serverReceive / 2)))
+    assert.equal((await reconnected.receive()).command, 'HEARTBEAT')
+    assert.equal(reconnected.isOpen, true)
+    await reconnected.disconnect()
+  } finally {
+    clearInterval(beat)
+    // Attach a rejection handler even if another assertion failed before the stale close.
+    await staleClosed.catch(() => {})
+  }
+  console.log('STOMP heartbeat negotiation, live peer, stale peer cleanup and reconnect passed.')
 }
 
 async function expectForbidden(client, command, headers, body) {
@@ -224,6 +266,7 @@ try {
   await expectPresence(reconnected, room.id, [member.user.id])
   // Stop sending heartbeats. C's session sweeper must remove the timed-out participant.
   await expectPresence(reconnected, room.id, [])
+  await verifyHeartbeats(owner.accessToken)
   console.log('STOMP smoke passed: JWT, room isolation, private timers across tabs, commands, retries, reconnect, presence, exit and timeout.')
 } finally {
   for (const { socket, frames } of clients) {

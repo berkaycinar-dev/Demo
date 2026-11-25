@@ -1,6 +1,6 @@
 # STOMP mesaj sözleşmesi
 
-Sürüm 3 · Sahip D · Oda olayları, aktif katılımcı listesi ve kişisel sayaç
+Sürüm 4 · Sahip D · Oda olayları, aktif katılımcı listesi, kişisel sayaç ve bağlantı heartbeat'i
 
 ## Bağlantı ve yetki
 
@@ -11,6 +11,28 @@ Sürüm 3 · Sahip D · Oda olayları, aktif katılımcı listesi ve kişisel sa
 - İstemci `CONNECT`, `SUBSCRIBE`, `UNSUBSCRIBE` ve `DISCONNECT` kullanır. Odaya katılma ve oturum heartbeat'i REST üzerinden yapılır. İstemciden `SEND` kabul edilmez.
 - Token süresi dolduğunda açık aboneliğe olay teslimi durur. Sonraki abonelik işlemi de reddedilir. İstemci access token'ı REST üzerinden yenileyip tekrar bağlanır ve abone olur. Üyelik teslim anında yeniden kontrol edilir.
 - Hatalı işlemde `ERROR` çerçevesinin `message` başlığı `UNAUTHENTICATED`, `FORBIDDEN` veya `INVALID_FRAME` olur ve bağlantı kapanır.
+
+## Bağlantı sağlığı ve yeniden bağlantı
+
+Sunucu STOMP `CONNECTED` çerçevesinde varsayılan `heart-beat:10000,10000` ilan eder. Bu süre `app.websocket.heartbeat-ms` ile ayarlanır; en az 100 ms olmalıdır. İstemci de `CONNECT` sırasında örneğin `heart-beat:10000,10000` gönderir. STOMP'un uzlaşmasına göre iki tarafın desteklediği aralıklardan büyük olan kullanılır. Bir yönde 0 varsa o yönde heartbeat beklenmez; mevcut `0,0` istemcileri çalışmaya devam eder.
+
+Sessizken heartbeat bir satır sonudur (`\n`); JSON veya yeni bir olay tipi değildir. Normal STOMP trafiği de bağlantının canlı olduğunu gösterir. Spring, zamanlama gecikmelerine tolerans tanır ve heartbeat göndermeyi kabul ettiği hâlde veri göndermeyen bağlantıyı bir süre sonra kapatır. İstemci de sunucudan trafik kesilmesini izlemelidir. Bu, kullanıcının ekran başında olduğunun veya çalıştığının kanıtı değildir.
+
+| Sinyal | Amaç | Sonuç |
+| --- | --- | --- |
+| STOMP heartbeat | WebSocket/STOMP bağlantısının canlı olması | Sessiz bağlantının kapatılması ve bellekteki aboneliklerinin temizlenmesi |
+| REST `sessions/current/heartbeat` | Mevcut oda oturumunun sürmesi | C'nin oturum timeout'u ve aktif katılımcı listesi |
+
+STOMP heartbeat, REST oturum heartbeat'inin yerine geçmez ve veritabanındaki `lastSeenAt` değerini değiştirmez. Bağlantı kapanması tek başına çalışma oturumunu bitirmez. Sekmenin gizlenmesi de bu sinyallerden doğrudan çalışma/puan kararı üretmez; aktif/pasif iş kuralı ayrı entegrasyondur.
+
+Frontend bağlantı yöneticisinin uygulayacağı akış:
+
+1. Bağlantı veya heartbeat kaybında tek bir yeniden deneme döngüsü kullanın; artan bekleme ve rastgele küçük gecikme ekleyin (örneğin 1, 2, 4, 8, en fazla 30 saniye). Kullanıcı çıkış yaptığında veya bileşen kapandığında döngüyü durdurun.
+2. Her bağlantıda güncel access token'ı `CONNECT` başlığında gönderin. Gerekirse mevcut REST yenileme akışını kullanın. Heartbeat, JWT süresini uzatmaz. Yetki reddini kesintisiz tekrar denemeyin.
+3. Başarılı bağlantıda abonelikleri yeniden kurun. Presence sıradaki tam listeden, sayaç `GET /api/v1/timer` ile toparlanır. Kaçırılmış olayların tekrar gönderildiğini varsaymayın.
+4. Telefon/tarayıcı arka planda zamanlayıcıları yavaşlatabilir. Sekme yeniden görünür olduğunda bağlantıyı ve REST durumunu kontrol edin.
+
+Bu teslim sunucu heartbeat'ini ve test istemcisindeki sessiz bağlantı temizliği/yeniden bağlantı doğrulamasını içerir. Ürün arayüzüne otomatik yeniden bağlanan istemci bu teslimde eklenmez.
 
 ## Oda olayları
 
@@ -97,9 +119,11 @@ node backend/scripts/stomp-smoke.mjs http://127.0.0.1:8080
 
 Node 24 ile çalışan bu istemci, deneme hesapları ve özel bir oda oluşturur. İki oda üyesinin aynı `MEMBER_JOINED` olayını aldığını ve üye olmayan birinin abone olamadığını kontrol eder. Eksik ve geçersiz JWT ile bağlantı, jokerli abonelik ve istemcinin oda kanalına yayın yapma denemesi de sınanır. Kişisel sayaçta iki sekmeye aynı olay, odasız kullanım, başlat/duraklat/devam/faz değişimi/sıfırla/ön ayar, tekrarlanan komut, eski sürüm, kullanıcılar arası ayrım ve yeniden bağlantı doğrulanır. Presence kanalında ilk boş liste, giriş, heartbeat, yeniden bağlantı, çıkış ve heartbeat kesilince timeout doğrulanır. Varsayılan timeout ile deneme yaklaşık 1–2 dakika sürer.
 
-Backend CI bu istemciyi PostgreSQL üzerinde otomatik çalıştırır. Yalnızca geçici CI sürecinde oturum timeout'u 4 saniye, presence ve temizleme aralığı 200 ms olarak kısaltılır. Yerel ve yayın varsayılanları aynı kalır.
+İstemci ayrıca STOMP heartbeat aralığının ilanını, heartbeat gönderen bağlantının açık kalmasını, göndermeyen bağlantının kapanmasını ve aynı JWT ile yeniden bağlanmayı doğrular. Varsayılan STOMP aralığıyla bu aşama yaklaşık 30–50 saniye daha sürer.
+
+Backend CI bu istemciyi PostgreSQL üzerinde otomatik çalıştırır. Yalnızca geçici CI sürecinde oturum timeout'u 4 saniye; STOMP heartbeat, presence ve temizleme aralıkları 200 ms olarak kısaltılır. Yerel ve yayın varsayılanları aynı kalır.
 
 ## Sonraki teslimler
 
 - Ortak çalışma veya mola göstergesi, kişisel sayaç akışından ayrı oda olayı olarak ele alınır.
-- Uygulama heartbeat'i, yeniden bağlanma, hareket, sohbet ve kalıcı olay teslimi kendi aşamalarında eklenir.
+- Frontend bağlantı yöneticisi, sekme aktif/pasif bildirimi, hareket, sohbet ve kalıcı olay teslimi kendi aşamalarında eklenir.
