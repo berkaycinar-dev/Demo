@@ -3,7 +3,7 @@ import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import Icon from './AvatarIcons'
 import NameHint from './NameHint'
 import { nameStatus, textLength } from './nameRules'
-import { normalizeCode } from './roomStore'
+import { MIN_MEMBERS } from './roomStore'
 // tema görseli: yüklenirken iskelet, yüklenemezse temanın renginde kutu ve tema adı
 import { ThemeShot } from './RoomShot'
 import Dotted from './Dotted'
@@ -18,27 +18,14 @@ const NAME_MAX = 60
 const EMOJI_PARTS = /\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣/gu
 const EMOJI_NOTE = 'Tabelaya emoji yazılamaz; harf, rakam ve noktalama kullan.'
 
-// Oda oluşturulamadığında: ne oldu ve ne yapılabilir
-const FAILURE_TEXT = {
-  full: 'Oda kaydedilemedi: tarayıcının bu siteye ayırdığı depolama alanı dolu. Tarayıcı ayarlarından site verilerini temizleyip tekrar dene ya da odaya kaydetmeden gir; sayfayı yenileyince ya da kapatınca oda silinir.',
-  blocked: 'Oda kaydedilemedi: tarayıcı bu sitenin veri saklamasına izin vermiyor (gizli pencere ya da kapalı site verileri olabilir). İzin verip tekrar dene ya da odaya kaydetmeden gir; sayfayı yenileyince ya da kapatınca oda silinir.',
-  failed: 'Oda oluşturulamadı, beklenmeyen bir hata oldu. Seçimlerin duruyor; tekrar dene.',
-}
-
-// Gizli odaların davet kodu: tema adından kısa önek + 4 rakam (ORMAN-4821 gibi).
-function inviteCode(name) {
-  const prefix =
-    normalizeCode(name)
-      .replace(/[^A-Z]/g, '')
-      .slice(0, 5) || 'ODA'
-  return `${prefix}-${String(Math.floor(1000 + Math.random() * 9000))}`
-}
+// Oda oluşturulamadığında, sunucu bir neden vermediyse
+const FAILURE_TEXT = 'Oda oluşturulamadı, beklenmeyen bir hata oldu. Seçimlerin duruyor; tekrar dene.'
 
 // Kapasite adım seçici: − / + ve kişi ikonları (dolu: oda kapasitesi, soluk: temanın üst sınırına kadar).
 function CapacityStepper({ value, max, onChange }) {
   return (
     <div className="stepper" role="group" aria-labelledby="capacity-label">
-      <button type="button" className="stepper__btn" onClick={() => onChange(value - 1)} disabled={value <= 1} aria-label="Bir kişi azalt">
+      <button type="button" className="stepper__btn" onClick={() => onChange(value - 1)} disabled={value <= MIN_MEMBERS} aria-label="Bir kişi azalt">
         <Icon name="minus" size={20} />
       </button>
       <div className="stepper__value">
@@ -71,8 +58,9 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
   const [capacity, setCapacity] = useState(DEFAULT_CAPACITY)
   const [access, setAccess] = useState('public')
   const [spot, setSpot] = useState(null)
-  // oluşturma başarısızsa { reason: 'full' | 'blocked' | 'failed', room }
+  // oluşturma başarısızsa hata metni; sunucu cevabı beklenirken busy
   const [failure, setFailure] = useState(null)
+  const [busy, setBusy] = useState(false)
   // son yazışta emoji ayıklandıysa tabela altındaki not bunu söyler; emojisiz ilk yazışta kalkar
   const [emojiDropped, setEmojiDropped] = useState(false)
   const { label, Room, max } = THEMES[theme]
@@ -95,23 +83,21 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
     el.style.height = `${el.scrollHeight}px`
   }, [name])
 
-  const submit = (e) => {
+  // Oda sunucuda oluşturulur (davet kodunu da sunucu üretir). onCreate hata metni ya da null döner.
+  const submit = async (e) => {
     e.preventDefault()
+    if (busy) return
     if (status.tone === 'over') {
       nameRef.current?.focus()
       return
     }
-    const room = { id: `room-${Date.now()}`, name: roomName, theme, capacity, access, code: access === 'invite' ? inviteCode(roomName) : undefined }
-    const reason = onCreate(room)
-    setFailure(reason ? { reason, room } : null)
-  }
-  // depolama yazılamadıysa: oda yalnızca bu oturumda tutulup girilir
-  const enterForSession = () => {
-    const reason = onCreate(failure.room, { keepForSession: true })
-    setFailure(reason ? { reason: 'failed', room: failure.room } : null)
+    setBusy(true)
+    const message = await onCreate({ name: roomName, theme, capacity, access })
+    setBusy(false)
+    setFailure(message == null ? null : message || FAILURE_TEXT)
   }
   const changeCapacity = (n) => {
-    setCapacity(Math.max(1, Math.min(max, n)))
+    setCapacity(Math.max(MIN_MEMBERS, Math.min(max, n)))
     setSpot(null)
   }
 
@@ -217,19 +203,10 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
               {spot && <span className="create-room__spot">Seçilen mola noktası: {spot.label}</span>}
             </p>
             <div className="create-room__error" role="alert">
-              {failure && (
-                <>
-                  <p>{FAILURE_TEXT[failure.reason]}</p>
-                  {failure.reason !== 'failed' && (
-                    <button type="button" className="link-btn link-btn--strong" onClick={enterForSession}>
-                      Kaydetmeden, bu oturumluk gir
-                    </button>
-                  )}
-                </>
-              )}
+              {failure && <p>{failure}</p>}
             </div>
-            <button type="submit" className="site-btn site-btn--primary site-btn--wide">
-              {failure ? 'Tekrar dene' : 'Odayı oluştur ve gir'}
+            <button type="submit" className="site-btn site-btn--primary site-btn--wide" disabled={busy}>
+              {busy ? 'Oda oluşturuluyor…' : failure ? 'Tekrar dene' : 'Odayı oluştur ve gir'}
             </button>
           </div>
         </div>

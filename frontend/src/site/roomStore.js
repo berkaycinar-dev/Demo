@@ -1,19 +1,83 @@
-// Odalar ve katılım geçmişi: backend gelene kadar bu tarayıcıda saklanır.
-//   odakhane.rooms               oluşturulan odalar (örnek odalar kodda sabit)
+// Odalar: backend'de (contracts/openapi.yaml, tag "rooms"). Katılım geçmişi bu tarayıcıda kalır.
 //   odakhane.joined.<kullanıcı>  katıldığın odalar: [{ id, at }] en yenisi başta
 
-const ROOMS_KEY = 'odakhane.rooms'
+import { THEMES } from '../rooms/themes'
+import { api } from './api'
+
 const JOINED_PREFIX = 'odakhane.joined.'
 const MAX_JOINED = 20
+const DEFAULT_THEME = 'library'
+// Backend'in kişi sınırı (CreateRoomRequest.maxMembers).
+export const MIN_MEMBERS = 2
+export const MAX_MEMBERS = 10
 
-// Örnek odalar: listeler boş görünmesin diye. Gizli odalara davet koduyla girilir.
+// Örnek odalar: giriş yapmamış ziyaretçiye ana sayfada gösterilir (oda listesi oturum ister).
+// Giriş yapınca yerlerini sunucudaki odalar alır.
 export const SAMPLE_ROOMS = [
   { id: 'sample-1', name: 'Merkez Kütüphane · Okuma Salonu', theme: 'library', capacity: 7, access: 'public' },
   { id: 'sample-2', name: 'Kod Lab · Açık Ofis', theme: 'office', capacity: 7, access: 'public' },
   { id: 'sample-4', name: 'Şömine Başında Uzun Bloklar', theme: 'cabin', capacity: 5, access: 'public' },
-  { id: 'sample-3', name: 'Ormanda Sessizlik', theme: 'treehouse', capacity: 4, access: 'invite', code: 'ORMAN-2741' },
-  { id: 'sample-5', name: 'Gece Vardiyası · Uzay', theme: 'space', capacity: 6, access: 'invite', code: 'UZAY-5308' },
 ]
+
+// Tema backend'de ayrı alan değil. Prototipte odanın açıklamasında "theme:<ad>" olarak taşınır;
+// böylece odayı açan herkes aynı temayı görür. Backend'e tema alanı gelince burası değişir.
+const THEME_PREFIX = 'theme:'
+const themeOf = (description) => {
+  const name = description?.startsWith(THEME_PREFIX) ? description.slice(THEME_PREFIX.length).trim() : ''
+  return THEMES[name] ? name : DEFAULT_THEME
+}
+
+/** Sunucudaki oda (RoomResponse) → sitenin oda biçimi. */
+export function fromApi(r) {
+  return {
+    id: r.id,
+    name: r.name,
+    theme: themeOf(r.description),
+    capacity: r.maxMembers,
+    access: r.visibility === 'PRIVATE' ? 'invite' : 'public',
+    code: r.inviteCode ?? undefined,
+    memberCount: r.memberCount,
+    myRole: r.myRole ?? null,
+  }
+}
+
+/** Herkese açık odalar + üyesi olduğun (gizliler dahil) odalar; en yeni başta, tekrarsız. */
+export async function fetchRooms() {
+  const [open, mine] = await Promise.all([api('/api/v1/rooms?scope=PUBLIC'), api('/api/v1/rooms?scope=MINE')])
+  const byId = new Map()
+  for (const r of [...mine, ...open]) if (!byId.has(r.id)) byId.set(r.id, fromApi(r))
+  return [...byId.values()]
+}
+
+/** Odayı sunucuda oluşturur (oluşturan otomatik üye olur). Dönüş: sitenin oda biçimi. */
+export async function createRoom({ name, theme, capacity, access }) {
+  const r = await api('/api/v1/rooms', {
+    method: 'POST',
+    body: {
+      name,
+      description: THEME_PREFIX + theme,
+      visibility: access === 'invite' ? 'PRIVATE' : 'PUBLIC',
+      maxMembers: Math.max(MIN_MEMBERS, Math.min(MAX_MEMBERS, capacity)),
+    },
+  })
+  return fromApi(r)
+}
+
+/** Odaya üye olur (zaten üyeysen bir şey değişmez). Gizli oda için davet kodu gerekir. */
+export async function joinRoom(room, code) {
+  const r = await api(`/api/v1/rooms/${room.id}/join`, { method: 'POST', body: code ? { inviteCode: code } : undefined })
+  return fromApi(r)
+}
+
+// Odada bulunma (room_sessions): girince oturum açılır, açıkken düzenli "buradayım" denir,
+// çıkınca kapanır. Sunucu 60 sn sinyal almazsa oturumu kendisi kapatır.
+export const HEARTBEAT_MS = 20_000
+
+export const enterRoom = (roomId) => api(`/api/v1/rooms/${roomId}/sessions`, { method: 'POST' })
+export const heartbeat = (roomId) => api(`/api/v1/rooms/${roomId}/sessions/current/heartbeat`, { method: 'POST' })
+export const exitRoom = (roomId) => api(`/api/v1/rooms/${roomId}/sessions/current`, { method: 'DELETE' })
+/** Şu an odada olanlar: [{ userId, username, role, startedAt }] */
+export const activeMembers = (roomId) => api(`/api/v1/rooms/${roomId}/sessions/active`)
 
 function read(key, fallback) {
   try {
@@ -24,26 +88,12 @@ function read(key, fallback) {
   }
 }
 
-// Yazıldıysa null; yazılamadıysa neden: 'full' (kota doldu) ya da 'blocked' (depolama kapalı / erişilemez).
-// Çağıran yok sayarsa veri yalnızca bu oturumda kalır.
 function write(key, value) {
   try {
     localStorage.setItem(key, JSON.stringify(value))
-    return null
-  } catch (e) {
-    const full = e?.name === 'QuotaExceededError' || e?.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e?.code === 22 || e?.code === 1014
-    return full ? 'full' : 'blocked'
+  } catch {
+    /* yazılamazsa geçmiş yalnızca bu oturumda kalır */
   }
-}
-
-/** Oluşturulan odalar + örnek odalar (en yeni oluşturulan başta). */
-export function loadRooms() {
-  return [...read(ROOMS_KEY, []), ...SAMPLE_ROOMS]
-}
-
-/** Odayı kaydeder; yazılamazsa nedeni döner ('full' | 'blocked'), yazıldıysa null. */
-export function saveCreatedRoom(room) {
-  return write(ROOMS_KEY, [room, ...read(ROOMS_KEY, []).filter((r) => r.id !== room.id)])
 }
 
 export function loadJoined(user) {

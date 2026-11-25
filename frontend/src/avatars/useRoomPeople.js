@@ -51,8 +51,23 @@ export const roomMates = (capacity, seed) => roomBots(capacity, seed).slice(1)
  * cheer: kendi avatarının sevinme sayacı (usePomodoro completed); artınca avatar yerinde kollarını
  * kaldırıp sevinir, sonra molaya kalkar.
  */
-export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0 }) {
-  const bots = useMemo(() => roomBots(capacity, seed), [capacity, seed])
+export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0, people = null }) {
+  const simulated = useMemo(() => roomBots(capacity, seed), [capacity, seed])
+  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name }]) simüle kişilerin yerine onlar
+  // oturur: koltuk sırası aynı, avatar kimlikten sabit üretilir. Durumları uydurulmaz, hep masada.
+  const bots = useMemo(() => {
+    if (!people) return simulated
+    const seats = simulated.map((b) => b.seat)
+    const real = people.slice(0, Math.max(0, capacity - 1)).map((p, i) => ({
+      id: `user-${p.id}`,
+      name: p.name,
+      avatar: randomAvatar(seededRandom(roomSeed(p.id)), p.name),
+      seat: seats[i + 1],
+      rnd: seededRandom(roomSeed(p.id) * 31),
+      real: true,
+    }))
+    return [simulated[0], ...real]
+  }, [simulated, people, capacity])
 
   const [status, setStatus] = useState(() => {
     const now = Date.now()
@@ -73,7 +88,7 @@ export default function useRoomPeople({ capacity, seed = 1, me = null, forced = 
         let next = prev
         for (const b of bots) {
           const cur = prev[b.id]
-          if (!cur || now < cur.until) continue
+          if (b.real || !cur || now < cur.until) continue
           const s = pickStatus(b.rnd, cur.status)
           const [lo, hi] = DURATION[s]
           next = next === prev ? { ...prev } : next

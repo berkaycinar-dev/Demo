@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_AVATAR } from '../avatars/options'
+import { SIGNED_OUT_EVENT, errorText } from './api'
 import { currentUser, logout } from './auth'
 import AccountPage from './AccountPage'
 import { LoginPage, RegisterPage } from './AuthPages'
@@ -12,7 +13,7 @@ import LobbyPage from './LobbyPage'
 import { LegalPage } from './LegalPages'
 import MyRoomPage from './MyRoomPage'
 import NotFoundPage from './NotFoundPage'
-import { forgetJoin, loadJoined, loadRooms, recordJoin, saveCreatedRoom } from './roomStore'
+import { HEARTBEAT_MS, SAMPLE_ROOMS, createRoom, enterRoom, exitRoom, fetchRooms, forgetJoin, heartbeat, joinRoom, loadJoined, recordJoin } from './roomStore'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import SoloRoomPage from './SoloRoomPage'
 import useColorMode from './useColorMode'
@@ -92,7 +93,10 @@ function resolvePage(requestedId, user) {
 export default function Site() {
   const [user, setUser] = useState(currentUser)
   const [requested, setRequested] = useState(hashPage)
-  const [rooms, setRooms] = useState(loadRooms)
+  // Oturum varken sunucudaki odalar (açılışta yüklenir), yokken ana sayfadaki örnek odalar.
+  const [rooms, setRooms] = useState(() => (user ? [] : SAMPLE_ROOMS))
+  // Sunucu hatası gibi kısa bildirimler (sayfanın üstünde, kapatılabilir).
+  const [notice, setNotice] = useState('')
   const [joined, setJoined] = useState(() => (user ? loadJoined(user) : []))
   const [currentId, setCurrentId] = useState(() => (user ? loadCurrentId() : null))
   const [avatar, setAvatar] = useState(loadAvatar)
@@ -123,6 +127,48 @@ export default function Site() {
   // Sayfam, Avatarım ve odalarda aynı ad.
   const myAvatar = user && avatar.name === DEFAULT_AVATAR.name ? { ...avatar, name: user.displayName } : avatar
   const current = rooms.find((r) => r.id === currentId) ?? null
+
+  // Oda listesi sunucudan: girişte, açılışta ve Lobi / Sayfam'a her gelişte tazelenir.
+  const listsRooms = Boolean(user) && (page === 'lobi' || page === 'sayfam' || page === 'oda')
+  useEffect(() => {
+    if (!listsRooms) return undefined
+    let stale = false
+    fetchRooms()
+      .then((list) => {
+        if (!stale) setRooms(list)
+      })
+      .catch((e) => {
+        if (!stale) setNotice(errorText(e, 'Odalar yüklenemedi.'))
+      })
+    return () => {
+      stale = true
+    }
+  }, [listsRooms, page])
+
+  // Token yenilenemezse (oturum sunucuda bitti) giriş sayfasına dönülür.
+  useEffect(() => {
+    const out = () => {
+      setUser(null)
+      setRooms(SAMPLE_ROOMS)
+      setCurrentId(null)
+      setNotice('Oturumun sona erdi; yeniden giriş yap.')
+    }
+    window.addEventListener(SIGNED_OUT_EVENT, out)
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, out)
+  }, [])
+
+  // Ortak odadayken sunucuda oturum açık tutulur: girişte açılır, düzenli sinyal gider, çıkınca kapanır.
+  // Böylece odadaki gerçek kişiler (aktif üyeler) listelenebilir.
+  const inRoomId = user && page === 'oda' && current ? current.id : null
+  useEffect(() => {
+    if (!inRoomId) return undefined
+    enterRoom(inRoomId).catch((e) => setNotice(errorText(e, 'Odaya girilemedi.')))
+    const beat = setInterval(() => heartbeat(inRoomId).catch(() => {}), HEARTBEAT_MS)
+    return () => {
+      clearInterval(beat)
+      exitRoom(inRoomId).catch(() => {})
+    }
+  }, [inRoomId])
 
   // Geri / ileri düğmeleri ve elle değiştirilen adres.
   useEffect(() => {
@@ -171,23 +217,36 @@ export default function Site() {
     setFocusMode(false)
     window.scrollTo(0, 0)
   }
-  // Odaya giriş katılım geçmişine yazılır (kullanıcı başına).
-  const enter = (room) => {
-    if (user) setJoined(recordJoin(user, room.id))
+  // Odaya giriş: önce sunucuda üye olunur (zaten üyeysen bir şey değişmez), sonra girilir.
+  // Giriş yapmamış ziyaretçi (ana sayfadaki örnek odalar) girişe yönlendirilir.
+  const enter = async (room) => {
+    if (!user) {
+      go('giris')
+      return
+    }
+    try {
+      const fresh = await joinRoom(room, room.code)
+      setRooms((list) => list.map((r) => (r.id === fresh.id ? { ...r, ...fresh, code: fresh.code ?? r.code } : r)))
+    } catch (e) {
+      const why = { ROOM_FULL: 'Oda dolu.', ROOM_NOT_FOUND: 'Oda bulunamadı ya da davet kodu yanlış.' }[e.code]
+      setNotice(why ?? errorText(e, 'Odaya girilemedi.'))
+      return
+    }
+    setJoined(recordJoin(user, room.id))
     setCurrentId(room.id)
     go('oda')
   }
-  // Oda kaydedilemezse girilmez; neden oluşturma sayfasına döner ('full' | 'blocked' | 'failed').
-  // keepForSession: kullanıcı yine de girmek isterse oda yalnızca bu oturumda (sekme kapanınca kaybolur).
-  const create = (room, { keepForSession = false } = {}) => {
+  // Oda sunucuda oluşturulur; başarısızsa hata metni oluşturma sayfasına döner, başarılıysa null.
+  const create = async (draft) => {
     try {
-      const failed = keepForSession ? null : saveCreatedRoom(room)
-      if (failed) return failed
+      const room = await createRoom(draft)
       setRooms((list) => [room, ...list.filter((r) => r.id !== room.id)])
-      enter(room)
+      setJoined(recordJoin(user, room.id))
+      setCurrentId(room.id)
+      go('oda')
       return null
-    } catch {
-      return 'failed'
+    } catch (e) {
+      return errorText(e, '')
     }
   }
   const changeAvatar = (next) => {
@@ -199,6 +258,7 @@ export default function Site() {
     if (avatar.name === DEFAULT_AVATAR.name) changeAvatar({ ...avatar, name: u.displayName })
     setUser(u)
     setJoined(loadJoined(u))
+    setNotice('')
     go('sayfam')
   }
   const signOut = () => {
@@ -206,6 +266,7 @@ export default function Site() {
     setUser(null)
     setJoined([])
     setCurrentId(null)
+    setRooms(SAMPLE_ROOMS)
     go('anasayfa')
   }
 
@@ -225,6 +286,14 @@ export default function Site() {
       </p>
 
       <main key={page} ref={mainRef} className={mainClass}>
+        {notice && (
+          <div className="site-notice" role="alert">
+            <span>{notice}</span>
+            <button type="button" className="link-btn" onClick={() => setNotice('')}>
+              {DELETED_COPY.close}
+            </button>
+          </div>
+        )}
         {page === 'anasayfa' && deletedNote && (
           <div className="site-notice" role="status">
             <span>{DELETED_COPY.note}</span>
@@ -241,6 +310,7 @@ export default function Site() {
         {page === 'oda' && (
           <MyRoomPage
             room={current}
+            meId={user?.id}
             avatar={myAvatar}
             timer={timer}
             focusMode={focusMode}

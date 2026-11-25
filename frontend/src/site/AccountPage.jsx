@@ -100,7 +100,7 @@ function ProfileCard({ user, onUserChange }) {
         <Field id="acc-displayName" label="Görünen ad" error={f.errors.displayName} hint="Sayfanda ve odalarda böyle görünürsün.">
           <input {...inputProps('acc-displayName', f.errors, 'displayName')} value={f.form.displayName} onChange={f.set('displayName')} autoComplete="name" maxLength={40} />
         </Field>
-        <Field id="acc-username" label="Kullanıcı adı" error={f.errors.username} hint="Küçük harf, rakam, nokta ve alt çizgi. Girişte kullanılır.">
+        <Field id="acc-username" label="Kullanıcı adı" error={f.errors.username} hint="Küçük harf, rakam ve alt çizgi. Prototipte değiştirilemez.">
           <span className="prefixed">
             <span aria-hidden="true">@</span>
             <input

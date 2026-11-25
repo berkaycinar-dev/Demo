@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PASSWORD_RULES, lastLoginId, login, register, requestPasswordReset, validateRegistration } from './auth'
+import { PASSWORD_RULES, USERNAME_HINT, lastLoginId, login, register, requestPasswordReset, validateRegistration } from './auth'
 import { LegalDialog } from './LegalPages'
 import RoomShot from './RoomShot'
 
@@ -109,7 +109,7 @@ export function PasswordInput({ id, value, onChange, onBlur, autoComplete, inval
 }
 
 const LOGIN_COPY = {
-  empty: 'E-posta / kullanıcı adı ve şifreni yaz.',
+  empty: 'E-posta adresini ve şifreni yaz.',
 }
 
 export function LoginPage({ onDone, onGo }) {
@@ -164,7 +164,7 @@ export function LoginPage({ onDone, onGo }) {
             {error}
           </div>
         )}
-        <Field id="loginId" label="E-posta veya kullanıcı adı">
+        <Field id="loginId" label="E-posta">
           <input
             id="loginId"
             value={identifier}
@@ -173,7 +173,8 @@ export function LoginPage({ onDone, onGo }) {
               clear('id')
             }}
             autoComplete="username"
-            placeholder="ornek@posta.com ya da kullanici_adi"
+            type="email"
+            placeholder="ornek@posta.com"
             aria-invalid={bad.id || undefined}
             aria-describedby={bad.id && error ? 'loginErr' : undefined}
           />
@@ -376,7 +377,7 @@ export function RegisterPage({ onDone, onGo }) {
         <Field id="reg-displayName" label="Görünen ad" error={errors.displayName} hint="Odalarda ve sayfanda böyle görünürsün.">
           {input('displayName', { autoComplete: 'name', placeholder: REG_COPY.namePlaceholder, maxLength: 40 })}
         </Field>
-        <Field id="reg-username" label="Kullanıcı adı" error={errors.username} hint="Küçük harf, rakam, nokta ve alt çizgi.">
+        <Field id="reg-username" label="Kullanıcı adı" error={errors.username} hint={USERNAME_HINT}>
           {input('username', { autoComplete: 'username', placeholder: REG_COPY.userPlaceholder, maxLength: 20, spellCheck: false })}
         </Field>
         <Field id="reg-email" label="E-posta" error={errors.email}>
@@ -432,6 +433,11 @@ export function RegisterPage({ onDone, onGo }) {
         <p className="form-remaining" role="status">
           {emptyLeft > 1 ? REG_COPY.remaining(emptyLeft) : ''}
         </p>
+        {errors.form && (
+          <div className="form-alert" role="alert">
+            {errors.form}
+          </div>
+        )}
         <button type="submit" className="site-btn site-btn--primary site-btn--wide" disabled={busy}>
           {busy ? 'Hesap oluşturuluyor…' : 'Kayıt ol'}
         </button>
