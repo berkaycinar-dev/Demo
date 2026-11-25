@@ -2,7 +2,7 @@
 // Sözleşme: contracts/openapi.yaml. Adres VITE_API_URL ile değişir (yerelde .env.local:
 // VITE_API_URL=http://localhost:8080); verilmezse canlı backend kullanılır.
 
-export const API_URL = (import.meta.env.VITE_API_URL || 'https://demo-backend-bcns.onrender.com').replace(/\/$/, '')
+export const API_URL = (import.meta.env?.VITE_API_URL || 'https://demo-backend-bcns.onrender.com').replace(/\/$/, '')
 
 const SESSION_KEY = 'samedesk.api-session'
 // Oturum düşünce (yenileme başarısız) Site bunu dinleyip girişe döner.
@@ -108,12 +108,14 @@ async function refresh() {
   if (!refreshing) {
     refreshing = send('/api/v1/auth/refresh', { method: 'POST', body: { refreshToken: session.refreshToken } })
       .then((auth) => {
+        // A completed refresh must not restore a session after logout or replace a different account.
+        if (readSession()?.refreshToken !== session.refreshToken) return null
         writeSession(auth)
         return auth.accessToken
       })
       .catch((e) => {
         // Yalnızca sunucu reddederse oturum biter; ağ hatasında oturum kalır.
-        if (e.status === 401) {
+        if (e.status === 401 && readSession()?.refreshToken === session.refreshToken) {
           clearSession()
           window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
         }
@@ -124,6 +126,26 @@ async function refresh() {
       })
   }
   return refreshing
+}
+
+function accessExpiresAt(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const exp = JSON.parse(atob(payload)).exp
+    return Number.isFinite(exp) ? exp * 1000 : 0
+  } catch {
+    return 0
+  }
+}
+
+/** Uses the same single-flight refresh as REST. JWT expiry is read only to schedule renewal. */
+export async function getRealtimeSession({ forceRefresh = false } = {}) {
+  const original = readSession()
+  if (!original) return null
+  if (forceRefresh || accessExpiresAt(original.accessToken) - Date.now() <= 30_000) await refresh()
+  const current = readSession()
+  if (!current || current.user.id !== original.user.id) return null
+  return { accessToken: current.accessToken, userId: current.user.id, expiresAt: accessExpiresAt(current.accessToken) }
 }
 
 /**
