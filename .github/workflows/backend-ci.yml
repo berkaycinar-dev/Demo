@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Test and verify PostgreSQL startup
+    name: Test backend, PostgreSQL startup and STOMP
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -49,6 +49,7 @@ jobs:
       DB_USER: samedesk
       DB_PASSWORD: ci-test-password
       PORT: '8080'
+      ROOM_SESSION_TIMEOUT_SECONDS: '4'
 
     steps:
       - name: Check out repository
@@ -64,18 +65,27 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
+      - name: Set up Node.js for STOMP smoke test
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: '24'
+
       - name: Run tests and package backend
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
-      - name: Verify startup and Flyway migrations on PostgreSQL
+      - name: Verify PostgreSQL startup and real STOMP connections
         run: |
-          java -jar target/backend-*.jar > target/backend-smoke.log 2>&1 &
+          # Short timeouts apply only to this disposable CI database and process.
+          java -jar target/backend-*.jar \
+            --app.presence.publish-interval-ms=200 \
+            --app.room-sessions.sweep-interval-ms=200 > target/backend-smoke.log 2>&1 &
           backend_pid=$!
           trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
 
           for attempt in {1..30}; do
             if curl --fail --silent --max-time 2 "http://127.0.0.1:$PORT/actuator/health" \
               | jq -e '.status == "UP"'; then
+              node scripts/stomp-smoke.mjs "http://127.0.0.1:$PORT"
               exit 0
             fi
             if ! kill -0 "$backend_pid" 2>/dev/null; then
