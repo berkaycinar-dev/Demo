@@ -12,14 +12,18 @@ import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
 import useFirstVisit from './useFirstVisit'
 
-const STATUS_LABELS = { focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
+// idle: odadasın ama sayaç çalışmıyor (başlamadı ya da duraklatıldı); avatar masada oturur.
+const STATUS_LABELS = { idle: 'Masada', focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
 
-// Durum sayaçtan gelir (odak bloku: Odakta, mola: Molada); elle yalnızca Uzakta seçilir.
+// Durum sayaçtan gelir (sayaç durmuşken: Masada, odak bloku: Odakta, mola: Molada); elle yalnızca
+// Uzakta seçilir.
 const STATUS_COPY = {
   label: 'Durumun',
   // çipin ekran okuyucu adı: "Durumun: Odakta"
   chip: (status) => `Durumun: ${status}`,
   fromTimer: 'Durumun sayaçla değişir.',
+  // sayaç durmuşken (Masada) popover notu
+  idleNote: 'Sayaç çalışınca Odakta olursun.',
   away: 'Uzaktayım',
   awayNote: 'Döndüğünde tekrar bas.',
   // molada değilken seçilen mola yeri: sıradaki molada oraya gidilir
@@ -198,7 +202,8 @@ function SpotPicker({ spots, value, onPick, note }) {
 // Durum çipi: şu anki durum (sayaçtan ya da Uzakta) ve küçük bir açılır kutu. Kutuda Uzaktayım ve
 // mola yeri seçimi durur; panelde yer kaplamaz. Dışarı tıklayınca ya da Esc ile kapanır, Esc odağı
 // çipe geri verir. Kutu sayfanın akışında değil, çipin altına biner.
-function StatusMenu({ status, away, onAway, spotName, children }) {
+// aside: satırın sağ ucunda duran ek eylem (telefonda Odadan çık)
+function StatusMenu({ status, away, onAway, spotName, aside, children }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
   const chipRef = useRef(null)
@@ -251,6 +256,7 @@ function StatusMenu({ status, away, onAway, spotName, children }) {
             <span aria-hidden="true">{spotName}</span>
           </span>
         )}
+        {aside}
       </div>
       <div id={popId} className="status-menu__pop" role="group" aria-label={STATUS_COPY.label} hidden={!open}>
         <div className="status-menu__away">
@@ -258,7 +264,7 @@ function StatusMenu({ status, away, onAway, spotName, children }) {
             <span className="roster__dot" aria-hidden="true" />
             {STATUS_COPY.away}
           </button>
-          <p className="status-menu__note">{away ? STATUS_COPY.awayNote : STATUS_COPY.fromTimer}</p>
+          <p className="status-menu__note">{away ? STATUS_COPY.awayNote : status === 'idle' ? STATUS_COPY.idleNote : STATUS_COPY.fromTimer}</p>
         </div>
         {children}
       </div>
@@ -309,6 +315,11 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
   useEffect(() => {
     setMyStatus(derived, derived === 'break' ? (spot?.id ?? null) : null)
   }, [derived, spot, setMyStatus])
+  // Gösterilen durum: sayaç durmuşken odak aşamasında "Masada" (avatarın pozu aynı kalır, masada
+  // oturur). Çip, kişi listesi ve odadaki ad etiketi bunu okur.
+  const idle = derived === 'focus' && !timer.running
+  const shownStatus = idle ? 'idle' : myStatus
+  const crowd = useMemo(() => occupants.map((o) => (o.me && idle ? { ...o, shown: 'idle' } : o)), [occupants, idle])
 
   // Varsayılan liste: şu an buradakiler, odadaki sırayla (sen en üstte). Kimse puanlanmaz; ürün
   // gözetim değil, varlık. Bugünkü odak süresi isteğe bağlı ikinci görünüm: oda arkadaşlarınınki
@@ -320,11 +331,11 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
         name: o.me ? 'Sen' : o.name,
         me: !!o.me,
         avatar: o.avatar,
-        status: o.status,
+        status: o.me && idle ? 'idle' : o.status,
         since: o.since,
         minutes: o.me ? timer.stats.minutes : 15 + (seedOf(room.id + o.id) % 210),
       })),
-    [occupants, timer.stats.minutes, room.id],
+    [occupants, idle, timer.stats.minutes, room.id],
   )
   const today = useMemo(() => [...people].sort((a, b) => b.minutes - a.minutes), [people])
 
@@ -394,19 +405,25 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
             </p>
           )}
         </div>
-        <StatusMenu status={myStatus} away={away} onAway={() => setAway((v) => !v)} spotName={spotName}>
+        <StatusMenu
+          status={shownStatus}
+          away={away}
+          onAway={() => setAway((v) => !v)}
+          spotName={spotName}
+          aside={
+            <span className="desk__quick">
+              <FocusModeButton compact onClick={() => onFocusModeChange(true)} hints={hints} />
+              <button type="button" className="site-btn site-btn--small desk__leave" onClick={leave}>
+                {LEAVE}
+              </button>
+            </span>
+          }
+        >
           <SpotPicker spots={spots} value={spotValue} onPick={pickSpot} note={myStatus !== 'break' && spot ? STATUS_COPY.nextBreak : null} />
         </StatusMenu>
+        {/* odak modunun açıklaması: ilk ziyarette görünür, sonra yalnızca ekran okuyucuya */}
+        <FocusModeNote hints={hints} />
         {timerCard}
-        <div className="desk__foot">
-          <div className="stage-card__actions">
-            <FocusModeButton onClick={() => onFocusModeChange(true)} hints={hints} />
-            <button type="button" className="site-btn" onClick={leave}>
-              {LEAVE}
-            </button>
-          </div>
-          <FocusModeNote hints={hints} />
-        </div>
       </div>
 
       <div className="stage-card fold people">
@@ -489,7 +506,7 @@ function RoomView({ room, avatar, timer, onLeave, focusMode, onFocusModeChange, 
           onSpotClick={goToSpot}
         >
           <SpotsReporter onSpots={setSpots} />
-          <AvatarCrowd occupants={occupants} theme={room.theme} showNames={names} highlight={picked} />
+          <AvatarCrowd occupants={crowd} theme={room.theme} showNames={names} highlight={picked} />
         </Room>
       )}
       panel={panel}

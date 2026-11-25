@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import AvatarCrowd from '../avatars/AvatarCrowd'
 import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
@@ -20,6 +20,9 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { label, Room } = THEMES[settings.theme]
   const { occupants, setMyStatus } = useRoomPeople({ capacity: 1, seed: 7, me: avatar, cheer: timer.completed })
+  // Sayaç durmuşken (odak aşamasında) ad etiketi "Masada" okur; avatar yine masada oturur.
+  const idle = timer.phase === 'focus' && !timer.running
+  const crowd = useMemo(() => occupants.map((o) => (o.me && idle ? { ...o, shown: 'idle' } : o)), [occupants, idle])
 
   useEffect(() => saveMyRoom(user, settings), [settings, user])
 
@@ -145,7 +148,7 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
       arrival={arriving ? { lead: ARRIVE_LEAD, name: label } : null}
       renderRoom={(canvasStyle) => (
         <Room capacity={1} canvasStyle={canvasStyle} arrive={arriving} lampBoost={timer.running && timer.phase === 'focus'} hint={hints ? undefined : false}>
-          <AvatarCrowd occupants={occupants} theme={settings.theme} />
+          <AvatarCrowd occupants={crowd} theme={settings.theme} />
         </Room>
       )}
       panel={panel}

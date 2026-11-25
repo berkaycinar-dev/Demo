@@ -794,6 +794,14 @@
   box-shadow: inset 0 0 0 3px var(--status-away);
 }
 
+/* Masada (sayaç durmuş): kısa yatay çizgi; daire (odak), elmas (mola) ve halkadan (uzakta) şekliyle ayrılır */
+.roster__item--idle .roster__dot {
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--status-away);
+}
+
 /* avatar atölyesi */
 
 .avatar-page__preview {

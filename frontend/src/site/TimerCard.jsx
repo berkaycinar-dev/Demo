@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { PRESETS, formatClock, formatMinutes } from './usePomodoro'
+import useShortcut from './useShortcut'
 
 const R = 104
 const CIRC = 2 * Math.PI * R
@@ -36,6 +37,8 @@ const TIMER_COPY = {
   reset: 'Sıfırla',
   skip: 'Atla',
   presets: 'Süre',
+  // ön ayar düğmesinin ipucu: "Kısayol: 1"
+  presetKey: (n) => `Kısayol: ${n}`,
   ok: 'Tamam',
   undo: 'Geri al',
   // seans sürerken kilitli bir süreye basınca kartın üstünde kısa not olarak çıkar
@@ -83,6 +86,11 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
     if (locked) return showLock()
     timer.setPreset(p.id)
   }
+  // 1 / 2 / 3: ön ayarlar (tıklamayla aynı: seans sürerken kilit notu çıkar). Ön ayarlar yalnızca tam
+  // kartta görünür; kısayol da yalnızca orada.
+  useShortcut('1', () => pickPreset(PRESETS[0]), !compact && PRESETS.length > 0)
+  useShortcut('2', () => pickPreset(PRESETS[1]), !compact && PRESETS.length > 1)
+  useShortcut('3', () => pickPreset(PRESETS[2]), !compact && PRESETS.length > 2)
 
   const hold = {
     onPointerEnter: () => timer.holdNotice(true),
@@ -147,10 +155,12 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
           </span>
           {/* Seans sürerken diğer süreler kilitli: basılabilir kalır, basınca nedeni kartın üstünde yazar. */}
           <span className="segmented timer-card__presets" role="group" aria-label={TIMER_COPY.presets} aria-describedby={locked ? lockNoteId : undefined}>
-            {PRESETS.map((p) => (
+            {PRESETS.map((p, i) => (
               <button
                 key={p.id}
                 type="button"
+                aria-keyshortcuts={i < 3 ? String(i + 1) : undefined}
+                title={i < 3 ? TIMER_COPY.presetKey(i + 1) : undefined}
                 aria-pressed={timer.preset === p.id}
                 aria-disabled={locked && timer.preset !== p.id ? true : undefined}
                 onClick={() => pickPreset(p)}
