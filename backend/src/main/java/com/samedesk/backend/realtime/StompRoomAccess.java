@@ -5,6 +5,7 @@ import java.security.Principal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -31,8 +32,8 @@ class StompRoomAccess implements ChannelInterceptor {
 
     private static final String ROOM_PREFIX = "/topic/rooms/";
     private static final String EVENT_SUFFIX = "/events";
-    private static final Pattern ROOM_EVENTS = Pattern.compile(ROOM_PREFIX
-            + "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})" + EVENT_SUFFIX);
+    private static final Pattern ROOM_CHANNEL = Pattern.compile(ROOM_PREFIX
+            + "([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/(events|presence)");
 
     private final JwtDecoder jwtDecoder;
     private final RoomAccessChecker rooms;
@@ -120,8 +121,21 @@ class StompRoomAccess implements ChannelInterceptor {
         if (destination == null) {
             return false;
         }
-        var match = ROOM_EVENTS.matcher(destination);
+        var match = ROOM_CHANNEL.matcher(destination);
         return match.matches() && rooms.isMember(identity.userId(), UUID.fromString(match.group(1)));
+    }
+
+    static Optional<UUID> presenceRoom(String destination) {
+        if (destination == null) {
+            return Optional.empty();
+        }
+        var match = ROOM_CHANNEL.matcher(destination);
+        return match.matches() && match.group(2).equals("presence")
+                ? Optional.of(UUID.fromString(match.group(1))) : Optional.empty();
+    }
+
+    static String presenceDestination(UUID roomId) {
+        return ROOM_PREFIX + roomId + "/presence";
     }
 
     static String eventDestination(UUID roomId) {
