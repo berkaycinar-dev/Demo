@@ -1,4 +1,4 @@
-# Odakhane
+# SameDesk
 
 Kamerasız sanal birlikte çalışma odaları. Bu adım **D0.1 lokal bağımlılıklarını**
 kurar: PostgreSQL ve Redis. Aşağıdaki komut backend veya frontend'i başlatmaz.
@@ -47,7 +47,7 @@ test -f .env || cp .env.example .env
 docker compose up -d --wait
 ```
 
-`.env.example` içindeki `demo` bilgileri yalnızca yerel örnek değerlerdir;
+`.env.example` içindeki `samedesk` bilgileri yalnızca yerel örnek değerlerdir;
 sunucuda kullanılmaz. Gerçek `.env` Git tarafından yok sayılır.
 İlk başlangıçta image indirme süresi bağlantıya bağlıdır.
 
@@ -64,7 +64,7 @@ Healthcheck tek başına uygulama entegrasyonu veya migration testi değildir.
 
 | Servis | Bilgisayardan adres | Aynı Compose ağına sonradan eklenen uygulamadan |
 |---|---|---|
-| PostgreSQL | `127.0.0.1:5432`, DB/user: `demo` | `postgres:5432` |
+| PostgreSQL | `127.0.0.1:5432`, DB/user: `samedesk` | `postgres:5432` |
 | Redis | `127.0.0.1:6379` | `redis:6379` |
 
 Portlar `.env` içindeki `POSTGRES_PORT` ve `REDIS_PORT` ile değiştirilebilir.
@@ -72,7 +72,7 @@ Yalnızca `127.0.0.1` üzerinde yayınlanırlar. Redis bu lokal kurulumda parola
 kullanmaz; bu Compose dosyası üretim dağıtımı için tasarlanmamıştır.
 
 C'nin backend'i bilgisayarda çalışırken varsayılan DB adresi
-`jdbc:postgresql://localhost:5432/demo`, kullanıcı/parola `demo` ile uyumludur.
+`jdbc:postgresql://localhost:5432/samedesk`, kullanıcı/parola `samedesk` ile uyumludur.
 Yerel değerleri değiştirirseniz backend sürecinde de `DB_URL`, `DB_USER`,
 `DB_PASSWORD` ayarlayın. Compose `.env` dosyasını okur; bilgisayarda başlatılan
 Java süreci bu dosyayı kendiliğinden okumaz.
@@ -86,8 +86,8 @@ Bu adım C'nin Compose dosyasını silmez veya değiştirmez.
 ## Veri politikası ve durdurma
 
 - PostgreSQL verisi adlandırılmış `postgres-data` volume'ünde kalır. Varsayılan
-  proje adı `odakhane-local` olduğu için volume adı genellikle
-  `odakhane-local_postgres-data` olur.
+  proje adı `samedesk-local` olduğu için volume adı genellikle
+  `samedesk-local_postgres-data` olur.
 - `docker compose stop` / `start` ve `down` / `up` PostgreSQL volume'ünü korur.
 - Redis yalnızca geçici durum içindir: RDB ve AOF kapalıdır, Compose içinde kalıcı volume tanımlanmaz.
   Yeniden başlatıldığında durumun kaybolması beklenir. Kazanılmış puan veya

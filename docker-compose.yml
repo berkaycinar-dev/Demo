@@ -1,13 +1,13 @@
 # D0.1: local dependencies only. Run from the repository root.
-name: odakhane-local
+name: samedesk-local
 
 services:
   postgres:
     # Keep PostgreSQL 16 compatibility with C's backend-skeleton branch.
     image: postgres:16.15-bookworm
     environment:
-      POSTGRES_DB: ${DB_NAME:-demo}
-      POSTGRES_USER: ${DB_USER:-demo}
+      POSTGRES_DB: ${DB_NAME:-samedesk}
+      POSTGRES_USER: ${DB_USER:-samedesk}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Copy .env.example to .env and set DB_PASSWORD}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"

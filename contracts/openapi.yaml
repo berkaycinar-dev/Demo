@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Demo API
+  title: SameDesk API
   version: 0.1.0
   description: |
-    REST contract for the Demo backend. Owner: C (backend business logic).
+    REST contract for the SameDesk backend. Owner: C (backend business logic).
 
     Workflow for every new endpoint:
       1. Add it here first and open a PR (frontend can start against this file).
@@ -26,7 +26,7 @@ tags:
     description: |
       Accounts and tokens. DRAFT for review by D and A; decisions below are proposals until merged.
 
-      **Access token.** Signed JWT (HS256), valid 15 minutes. Claims: `iss` = `demo-backend`,
+      **Access token.** Signed JWT (HS256), valid 15 minutes. Claims: `iss` = `samedesk-backend`,
       `sub` = user id (UUID), `iat`, `exp`, `jti`, `username`. No roles inside the token:
       room roles are looked up on the server (room membership), so a role change applies at once.
 

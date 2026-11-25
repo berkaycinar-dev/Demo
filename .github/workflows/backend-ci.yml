@@ -33,20 +33,20 @@ jobs:
       postgres:
         image: postgres:16.15-bookworm
         env:
-          POSTGRES_DB: demo
-          POSTGRES_USER: demo
+          POSTGRES_DB: samedesk
+          POSTGRES_USER: samedesk
           POSTGRES_PASSWORD: ci-test-password
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U demo -d demo"
+          --health-cmd "pg_isready -U samedesk -d samedesk"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 12
 
     env:
-      DB_URL: jdbc:postgresql://127.0.0.1:5432/demo
-      DB_USER: demo
+      DB_URL: jdbc:postgresql://127.0.0.1:5432/samedesk
+      DB_USER: samedesk
       DB_PASSWORD: ci-test-password
       PORT: '8080'
 
