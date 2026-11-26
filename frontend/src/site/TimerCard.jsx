@@ -117,7 +117,7 @@ export default function TimerCard({ timer, title = 'Sayaç', note, compact = fal
       {/* data-state: run (çalışıyor; başlarken bir kez nabız), paused (halka söner), idle */}
       <div className="timer-ring" data-state={timer.running ? 'run' : timer.fresh ? 'idle' : 'paused'}>
         <svg viewBox="0 0 240 240" aria-hidden="true">
-          <circle cx="120" cy="120" r={R} fill="none" strokeWidth="12" stroke="var(--surface-2)" />
+          <circle cx="120" cy="120" r={R} fill="none" strokeWidth="12" stroke="var(--ring-track, var(--surface-2))" />
           <circle
             cx="120"
             cy="120"

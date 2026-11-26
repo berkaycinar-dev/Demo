@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AvatarCrowd from '../avatars/AvatarCrowd'
 import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
@@ -10,6 +10,7 @@ import { swatchOf } from './themeLook'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import useFirstVisit from './useFirstVisit'
+import { revealEl } from './scroll'
 
 // Odam: tek kişilik kişisel oda. Sağda sayaç ve oda ayarları (tasarım, ortam sesi).
 // Varış levhasının metni (bkz. RoomStage).
@@ -42,6 +43,16 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
   useEffect(() => () => stopAmbient(), [])
 
   const update = (patch) => setSettings((s) => ({ ...s, ...patch }))
+  const settingsRef = useRef(null)
+  // "Tasarımı değiştir": ayarlar açılır, bölüm görünür alana kayar, odak seçili tasarıma gider
+  const openDesign = () => {
+    setSettingsOpen(true)
+    requestAnimationFrame(() => {
+      const box = settingsRef.current
+      revealEl(box, 'nearest')
+      box?.querySelector('.design-option[aria-pressed="true"]')?.focus({ preventScroll: true })
+    })
+  }
   const playing = SOUNDS.find((s) => s.id === settings.sound)
 
   // Yardım satırları (Atla, odak modu, sahne ipucu) yalnızca ilk ziyarette görünür.
@@ -60,7 +71,13 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
           </h1>
         </div>
         <div className="desk__info">
-          <p className="site-muted">Tek kişilik, yalnızca sana ait.</p>
+          <p className="site-muted">
+            Tek kişilik, yalnızca sana ait.{' '}
+            {/* tasarım değişikliği masadan bulunur: ayarlar açılır ve görünür alana gelir */}
+            <button type="button" className="link-btn" aria-controls="roomSettings" onClick={openDesign}>
+              Tasarımı değiştir
+            </button>
+          </p>
         </div>
         {timerCard}
         <div className="desk__foot">
@@ -74,7 +91,7 @@ export default function SoloRoomPage({ user, avatar, timer, focusMode, onFocusMo
 
       {/* Ayarlar seyrek değişir: kapalı başlar, panel 1440×900'de kaydırmadan sığar. Özet satırı
           kapalıyken de seçili tasarımı ve sesi söyler. */}
-      <section className="stage-card fold" aria-labelledby="ayarBaslik">
+      <section ref={settingsRef} className="stage-card fold" aria-labelledby="ayarBaslik">
         <h2 id="ayarBaslik" className="fold__heading">
           <button type="button" className="fold__toggle" aria-expanded={settingsOpen} aria-controls="roomSettings" onClick={() => setSettingsOpen((v) => !v)}>
             <span>
