@@ -8,6 +8,19 @@ html {
   background: var(--page-base);
 }
 
+/* oda sahnesi (Odam, oda, odak modu) tam ekran: sağda boş krem şerit kalmasın diye orada şerit ayrılmaz.
+   Header yine kaymasın diye geniş header, ayrılmayan şerit kadar (--sbw, Site.jsx ölçer) sağdan içeri
+   alınır; logo ve araçlar diğer sayfalardaki yerinde kalır. */
+html:has(.site-stage-main) {
+  scrollbar-gutter: auto;
+}
+
+.site-header.site-header--wide {
+  --wide-inline: max(var(--page-gutter), calc((100% - var(--sbw, 0px) - var(--page-max)) / 2));
+  padding-left: var(--wide-inline);
+  padding-right: calc(var(--wide-inline) + var(--sbw, 0px));
+}
+
 /* viewport-fit=cover (index.html): yatay telefonda çentik payı yanlarda; alt pay (ev göstergesi) altta
    yapışan öğelerin kendisinde (sayaç çubuğu, oda oluştur eylem çubuğu, odak modu paneli) */
 .site {
@@ -1860,6 +1873,11 @@ html {
     flex-wrap: nowrap;
     gap: 6px;
     padding: 6px 12px;
+  }
+
+  .site-header.site-header--wide {
+    padding-left: 12px;
+    padding-right: calc(12px + var(--sbw, 0px));
   }
 
   .site-header .site-brand__text {

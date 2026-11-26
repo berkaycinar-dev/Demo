@@ -127,6 +127,30 @@ export default function Site() {
   const myAvatar = user ? { ...avatar, name: user.displayName } : avatar
   const current = rooms.find((r) => r.id === currentId) ?? null
 
+  // Oda sahnesinde kaydırma şeridi ayrılmaz (site.css); ayrılmayan genişlik --sbw olarak ölçülür, geniş
+  // header o kadar sağdan içeri alınır. Sahne kaydırıyorsa (alçak pencere) şerit zaten dolu, --sbw 0.
+  useEffect(() => {
+    const root = document.documentElement
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll'
+    document.body.appendChild(probe)
+    const bar = probe.offsetWidth - probe.clientWidth
+    probe.remove()
+    if (!bar) return undefined
+    const sync = () => {
+      const used = window.innerWidth - root.clientWidth
+      root.style.setProperty('--sbw', `${Math.max(0, bar - used)}px`)
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(document.body)
+    window.addEventListener('resize', sync)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', sync)
+    }
+  }, [])
+
   // Oda listesi sunucudan: girişte, açılışta ve Lobi / Sayfam / Ana sayfaya her gelişte tazelenir.
   const listsRooms = Boolean(user) && (page === 'lobi' || page === 'sayfam' || page === 'oda' || page === 'anasayfa')
   useEffect(() => {
