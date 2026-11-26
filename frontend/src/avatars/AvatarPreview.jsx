@@ -80,8 +80,8 @@ const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion:
 function sceneBoxes(withDesk, activity, stage = true) {
   const out = []
   const add = (x, y, z, w, h, d, color) => out.push({ c: [x + w / 2, y + h / 2, z + d / 2], s: [w, h, d], color })
-  // basamaklı yuvarlak platform
-  for (const [r, y, color] of stage ? [[1.05, 0, '#d9d2c4'], [0.95, 0.04, '#e9e3d6']] : []) {
+  // basamaklı yuvarlak platform; üst katın yüzü y = 0 (ayak tabanı, sandalye ve masa ayakları burada durur)
+  for (const [r, y, color] of stage ? [[1.05, -0.04, '#d9d2c4'], [0.95, 0, '#e9e3d6']] : []) {
     for (let z = -r; z < r - 1e-3; z += 0.1) {
       const c = z + 0.05
       const half = Math.sqrt(Math.max(r * r - c * c, 0))
