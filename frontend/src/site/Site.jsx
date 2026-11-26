@@ -4,6 +4,7 @@ import { currentUser, logout } from './auth'
 import AccountPage from './AccountPage'
 import { LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
+import Icon from './AvatarIcons'
 import { loadAvatar, saveAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import HomePage from './HomePage'
@@ -312,16 +313,22 @@ export default function Site() {
         {notice && (
           <div className="site-notice" role="alert">
             <span>{notice}</span>
-            <button type="button" className="link-btn" onClick={() => setNotice('')}>
-              {DELETED_COPY.close}
+            <button type="button" className="icon-btn" onClick={() => setNotice('')} aria-label={DELETED_COPY.close}>
+              <Icon name="close" size={16} />
+              <span className="icon-btn__tip" aria-hidden="true">
+                {DELETED_COPY.close}
+              </span>
             </button>
           </div>
         )}
         {page === 'anasayfa' && deletedNote && (
           <div className="site-notice" role="status">
             <span>{DELETED_COPY.note}</span>
-            <button type="button" className="link-btn" onClick={() => setDeletedNote(false)}>
-              {DELETED_COPY.close}
+            <button type="button" className="icon-btn" onClick={() => setDeletedNote(false)} aria-label={DELETED_COPY.close}>
+              <Icon name="close" size={16} />
+              <span className="icon-btn__tip" aria-hidden="true">
+                {DELETED_COPY.close}
+              </span>
             </button>
           </div>
         )}

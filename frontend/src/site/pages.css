@@ -1402,6 +1402,11 @@
   font-size: var(--text-label);
 }
 
+/* kopyala simge düğmesi: 40 px hedef, satırı yükseltmez */
+.invite-code .icon-btn {
+  margin-block: -10px;
+}
+
 .invite-code code {
   padding: 3px 8px;
   border-radius: var(--radius-sm);
@@ -2984,11 +2989,7 @@
     min-height: 44px;
   }
 
-  .invite-code .link-btn {
-    min-height: 44px;
-    padding: 0 6px;
-  }
-
+  
   .stage__panel .site-btn--small {
     min-height: 44px;
   }
@@ -4366,8 +4367,8 @@ button.people__row.people__row--me {
 .site .working-on__head {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 14px;
+  align-items: center;
+  gap: 0 8px;
   margin: 0;
 }
 
@@ -4390,6 +4391,12 @@ button.people__row.people__row--me {
   display: inline-flex;
   align-items: center;
   gap: 14px;
+}
+
+/* düzenle / sil simge düğmeleri: 40 px hedef, satırı yükseltmesin diye dikeyde içeri çekilir */
+.working-on__row .working-on__actions {
+  gap: 2px;
+  margin-block: -11px;
 }
 
 .working-on__form {

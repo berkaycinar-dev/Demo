@@ -9,6 +9,7 @@ import TimerCard from './TimerCard'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
+import Icon from './AvatarIcons'
 import useFirstVisit from './useFirstVisit'
 import { activeMembers } from './roomStore'
 import PersonCard from './PersonCard'
@@ -487,8 +488,11 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
               <code ref={codeRef} key={copy === 'ok' ? 'copied' : 'code'} data-copied={copy === 'ok' ? '' : undefined}>
                 {room.code}
               </code>
-              <button type="button" className="link-btn" onClick={copyCode}>
-                {copy === 'ok' ? 'Kopyalandı' : 'Kopyala'}
+              <button type="button" className="icon-btn" onClick={copyCode} aria-label="Davet kodunu kopyala" data-done={copy === 'ok' || undefined}>
+                <Icon name={copy === 'ok' ? 'check' : 'copy'} size={16} />
+                <span className="icon-btn__tip" aria-hidden="true">
+                  {copy === 'ok' ? 'Kopyalandı' : 'Kopyala'}
+                </span>
               </button>
               <span className={copy === 'failed' ? 'invite-code__msg' : 'sr-only'} role="status">
                 {copy === 'ok' && 'Davet kodu kopyalandı.'}

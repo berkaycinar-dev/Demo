@@ -1,4 +1,4 @@
-import { Fragment, useId, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import {
   BEARDS,
   BODIES,
@@ -53,6 +53,7 @@ function menuSections(a, n) {
   return [
     {
       title: 'Beden',
+      icon: 'body',
       rows: [
         { key: 'body', label: 'Beden', zone: 'full', options: BODIES },
         { key: 'skin', label: 'Ten rengi', zone: 'face', options: SKIN_TONES, color: true },
@@ -61,6 +62,7 @@ function menuSections(a, n) {
     },
     {
       title: 'Saç ve yüz',
+      icon: 'hair',
       rows: [
         { key: 'hairStyle', label: 'Saç modeli', zone: 'face', options: HAIR_STYLES, thumbs: 'hair', hair: true },
         {
@@ -84,6 +86,7 @@ function menuSections(a, n) {
     },
     {
       title: 'Kıyafet',
+      icon: 'clothes',
       rows: [
         { key: 'top', label: 'Üst', zone: 'upper', options: TOPS, thumbs: 'top', note: n.topReplaced },
         { key: 'topColor', label: outfit === 'dress' ? 'Elbise rengi' : outfit === 'onesie' ? 'Tulum rengi' : 'Üst rengi', zone: 'upper', options: CLOTH_COLORS, color: true },
@@ -98,6 +101,7 @@ function menuSections(a, n) {
     // bir öğe takılıyken görünür: başlık rengi başlığın, ortak renkler ise kullandığı öğelerin grubunda.
     {
       title: 'Aksesuar',
+      icon: 'extras',
       rows: [
         { key: 'hat', label: 'Başlık', zone: 'hat', options: HATS, thumbs: 'hat', group: 'Başta' },
         !FIXED_COLOR_HATS.includes(a.hat) && { key: 'hatColor', label: `${hatLabel} rengi`, zone: 'hat', options: CLOTH_COLORS, color: true, group: 'Başta' },
@@ -193,6 +197,90 @@ function useOverflowingStrips(rootRef, strips) {
   return keys
 }
 
+// Bölüm çubuğunun scrollspy'ı: IntersectionObserver, kaydırma olayı dinlenmez. Kayan alan geniş ekranda
+// menünün gövdesi (.cmenu__body), dar ekranda sayfa. Gözlem bandı çubuğun alt kenarından kayan alanın
+// %45'ine kadar; bandın en üstündeki bölüm etkin. Menünün sonu görününce (son bölüm banda hiç çıkamayabilir)
+// son bölüm etkin. Tıklamayla atlarken (lock) gösterge hedefte kalır; kaydırma bitince (scrollend, yoksa
+// süre dolunca) gözlem yeniden söz alır.
+const LOCK_MS = 1000
+const BAND_GAP = 20
+function useBarSpy(sectionRefs, count) {
+  const [index, setIndex] = useState(0)
+  const barRef = useRef(null)
+  const lock = useRef(false)
+  const lockTimer = useRef(0)
+  useEffect(() => {
+    const bar = barRef.current
+    const els = sectionRefs.current.slice(0, count)
+    if (!bar || els.some((el) => !el)) return
+    const body = bar.nextElementSibling
+    const end = body?.querySelector('.cmenu__end')
+    const seen = new Map()
+    let atEnd = false
+    let io
+    let endIo
+    const pick = () => {
+      if (lock.current) return
+      const i = atEnd ? count - 1 : els.findIndex((el) => seen.get(el))
+      if (i >= 0) setIndex(i)
+    }
+    const build = () => {
+      io?.disconnect()
+      endIo?.disconnect()
+      seen.clear()
+      const inner = body && /auto|scroll/.test(getComputedStyle(body).overflowY)
+      const root = inner ? body : null
+      // bant çubuğun 20 px altından başlar: atlanan bölümün başı scroll-margin kadar boşlukla durur, bir
+      // önceki bölümün son pikselleri banda girip göstergeyi geri çekmez
+      const top = BAND_GAP + (inner ? 0 : Math.round((parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight))
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) seen.set(e.target, e.isIntersecting)
+          pick()
+        },
+        { root, rootMargin: `-${top}px 0px -55% 0px` },
+      )
+      els.forEach((el) => io.observe(el))
+      if (!end) return
+      endIo = new IntersectionObserver(
+        ([e]) => {
+          atEnd = e.isIntersecting
+          pick()
+        },
+        { root },
+      )
+      endIo.observe(end)
+    }
+    build()
+    // çubuğun yüksekliği ya da yapışma payı (telefonda önizleme boyu) değişince bant yeniden ölçülür
+    const ro = new ResizeObserver(build)
+    ro.observe(bar)
+    window.addEventListener('resize', build)
+    return () => {
+      io?.disconnect()
+      endIo?.disconnect()
+      ro.disconnect()
+      window.removeEventListener('resize', build)
+    }
+  }, [sectionRefs, count])
+  useEffect(() => () => clearTimeout(lockTimer.current), [])
+  const set = (i, hold) => {
+    setIndex(i)
+    if (!hold) return
+    lock.current = true
+    clearTimeout(lockTimer.current)
+    // scrollend kabarmaz: yakalama evresinde hem sayfanın hem menü gövdesinin bitişi duyulur
+    const release = () => {
+      clearTimeout(lockTimer.current)
+      document.removeEventListener('scrollend', release, true)
+      lock.current = false
+    }
+    document.addEventListener('scrollend', release, { capture: true, once: true })
+    lockTimer.current = setTimeout(release, LOCK_MS)
+  }
+  return [Math.min(index, count - 1), set, barRef]
+}
+
 export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
   const { OptionThumb, thumbOf } = kit
   const sections = menuSections(avatar, notes)
@@ -207,10 +295,13 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
   const hintId = useId()
   const baseId = useId()
   const sectionRefs = useRef([])
-  // bölüme atla: bölüm başı görünür alana gelir, odak başlığa geçer (klavye oradan devam eder)
+  const [spy, setSpy, barRef] = useBarSpy(sectionRefs, sections.length)
+  // bölüme atla: bölüm başı görünür alana gelir, odak başlığa geçer (klavye oradan devam eder). Gösterge
+  // hemen hedefe kayar; kaydırma sürerken aradan geçilen bölümler onu oynatmaz.
   const jumpTo = (i) => {
     const el = sectionRefs.current[i]
     if (!el) return
+    setSpy(i, true)
     revealEl(el)
     el.querySelector('h2')?.focus({ preventScroll: true })
   }
@@ -268,14 +359,19 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
       <p id={hintId} className="sr-only">
         {KEYS_HINT}
       </p>
-      {/* bölüm atlama: uzun menüde (telefonda ~3700 px) bölüme tek dokunuşla gidilir */}
-      <nav className="cmenu__jumps" aria-label="Menü bölümleri">
+      {/* bölüm çubuğu: yapışkan; uzun menüde (telefonda ~3700 px) bölüme tek dokunuşla gidilir, kaydırırken
+          görünen bölüm işaretlenir (aria-current + alttaki gösterge + koyu yazı) */}
+      <nav ref={barRef} className="cmenu__jumps" aria-label="Menü bölümleri" style={{ '--count': sections.length, '--at': spy }}>
         {sections.map((s, i) => (
-          <button key={s.title} type="button" onClick={() => jumpTo(i)}>
-            {s.title}
+          <button key={s.title} type="button" onClick={() => jumpTo(i)} aria-current={spy === i ? 'true' : undefined}>
+            <Icon name={s.icon} />
+            <span>{s.title}</span>
           </button>
         ))}
+        <span className="cmenu__mark" aria-hidden="true" />
       </nav>
+      {/* geniş ekranda kartın içinde kayan alan; dar ekranda sayfayla akar */}
+      <div className="cmenu__body">
       {sections.map((s, i) => (
         <section key={s.title} className="cmenu__section" ref={(el) => (sectionRefs.current[i] = el)}>
           <h2 className="opt-section__title cmenu__title" tabIndex={-1}>
@@ -361,6 +457,8 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
           </ul>
         </section>
       ))}
+      <span className="cmenu__end" aria-hidden="true" />
+      </div>
     </div>
   )
 }

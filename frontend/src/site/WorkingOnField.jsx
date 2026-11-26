@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import Icon from './AvatarIcons'
 import useWorkingOn, { WORKING_ON_MAX } from './workingOn'
 
 // Metinler: sayılar ayrı değişken, çeviride sıra değişebilir.
@@ -96,11 +97,17 @@ export default function WorkingOnField({ username, className = '' }) {
         <p className="working-on__head">
           <span className="working-on__label">{WORKING_COPY.label}</span>
           <span className="working-on__actions">
-            <button ref={backRef} type="button" className="link-btn" onClick={() => setDraft(text)}>
-              {WORKING_COPY.edit}
+            <button ref={backRef} type="button" className="icon-btn" onClick={() => setDraft(text)} aria-label={WORKING_COPY.edit}>
+              <Icon name="pencil" size={16} />
+              <span className="icon-btn__tip" aria-hidden="true">
+                {WORKING_COPY.edit}
+              </span>
             </button>
-            <button type="button" className="link-btn" onClick={remove}>
-              {WORKING_COPY.remove}
+            <button type="button" className="icon-btn" onClick={remove} aria-label={WORKING_COPY.remove}>
+              <Icon name="trash" size={16} />
+              <span className="icon-btn__tip" aria-hidden="true">
+                {WORKING_COPY.remove}
+              </span>
             </button>
           </span>
         </p>
