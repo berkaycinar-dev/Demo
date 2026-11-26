@@ -10,59 +10,122 @@
 .cmenu__section {
   padding: 20px 0 8px;
   border-top: 1px solid var(--line);
-  scroll-margin-top: 8px;
+  /* bölüme atlayınca başlık yapışkan çubuğun altında kalmasın */
+  scroll-margin-top: calc(var(--pv-top, 0px) + var(--jump-h) + 12px);
 }
 
-/* bölüm atlama şeridi: menünün başında, sığmazsa yana kayar */
+/* bölüm çubuğu: menünün başında, kaydırınca yapışık kalır (telefonda önizlemenin hemen altında). Kartın
+   tam genişliği, sekmeler eşit; görünen bölümün altında gösterge kayar. */
+.cmenu {
+  --jump-h: 48px;
+}
+
 .cmenu__jumps {
-  display: flex;
-  gap: 6px;
-  margin: 0 0 4px;
-  padding: 4px 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  position: sticky;
+  top: var(--pv-top, 0px);
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+  margin: 0 calc(-1 * var(--pad-card)) 4px;
+  background: var(--grain, none), var(--surface);
+  box-shadow: 0 1px 0 var(--line);
 }
 
 .cmenu__jumps button {
-  flex: none;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: var(--jump-h);
+  padding: 4px 6px;
+  border: 0;
+  background: none;
   color: var(--text-2);
   font: inherit;
   font-size: var(--text-label);
   font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
 }
 
+.cmenu__jumps button .icon {
+  flex: none;
+  color: var(--muted);
+  transition: color var(--dur-fast) var(--ease-standard);
+}
+
 .cmenu__jumps button:hover {
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   color: var(--text);
 }
 
-/* telefonda şerit önizlemenin hemen altına yapışır: menünün her yerinden bölüm değişir; bölüm başı
-   önizleme ve şeridin altında durur */
-@media (max-width: 900px) {
-  .cmenu__jumps {
-    position: sticky;
-    top: var(--pv-top, 0);
-    z-index: 3;
-    margin-inline: -16px;
-    padding: 8px 16px;
-    background: var(--surface);
-    box-shadow: 0 1px 0 var(--line);
+.cmenu__jumps button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+/* etkin bölüm: koyu yazı, dolu ikon rengi ve alttaki gösterge (renk tek işaret değil) */
+.cmenu__jumps button[aria-current] {
+  color: var(--text);
+}
+
+.cmenu__jumps button[aria-current] .icon {
+  color: currentColor;
+}
+
+.cmenu__mark {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: calc(100% / var(--count));
+  height: 3px;
+  padding-inline: 14px;
+  background: var(--sel-ring) content-box;
+  transform: translateX(calc(var(--at) * 100%));
+  transition: transform var(--dur-state) var(--ease-out);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmenu__mark,
+  .cmenu__jumps button,
+  .cmenu__jumps button .icon {
+    transition: none;
+  }
+}
+
+/* dar menü (telefon): ikon üstte, ad altta; hedef 56 px. Önizleme yapışık, çubuk onun altına yapışır. */
+@container cmenu (max-width: 520px) {
+  .cmenu__jumps,
+  .cmenu__section {
+    --jump-h: 56px;
   }
 
   .cmenu__jumps button {
-    min-height: 44px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 2px 5px;
+    font-size: var(--text-micro);
   }
 
-  .cmenu__section {
-    scroll-margin-top: calc(var(--pv-top, 0px) + 68px);
+  .cmenu__mark {
+    padding-inline: 10px;
   }
+}
+
+@media (max-width: 900px) {
+  .cmenu__jumps {
+    margin-inline: -16px;
+  }
+}
+
+/* menünün sonu: görünürse son bölüm etkin (scrollspy) */
+.cmenu__end {
+  display: block;
+  height: 1px;
 }
 
 .cmenu__section:first-of-type {
@@ -389,17 +452,36 @@
    "Varsayılana dön" altta sabit kalır */
 @media (min-width: 901px) {
   .avatar-page__editor--menu .cmenu {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    margin: 0 -24px;
+    padding: 0;
+  }
+
+  /* bölüm çubuğu kayan alanın dışında: kartın tam genişliği, hep üstte */
+  .avatar-page__editor--menu .cmenu__jumps {
+    position: relative;
+    flex: none;
+    margin: 0;
+  }
+
+  .avatar-page__editor--menu .cmenu__body {
     position: relative;
     flex: 1 1 auto;
     min-height: 0;
-    margin: 0 -24px;
-    padding: 20px 24px 20px;
+    padding: 8px 24px 20px;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-color: var(--line-strong) transparent;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    /* kayan menünün üst ve alt kenarı solar: satır ortadan kesilmiş görünmez */
-    mask-image: linear-gradient(to bottom, transparent 0, #000 20px, #000 calc(100% - 28px), transparent 100%);
+    /* kayan menünün alt kenarı solar: satır ortadan kesilmiş görünmez (üstte çubuğun çizgisi var) */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+  }
+
+  .avatar-page__editor--menu .cmenu__section {
+    scroll-margin-top: 8px;
   }
 }

@@ -56,6 +56,15 @@ const PATHS = {
   minus: <path d="M5 12h14" />,
   plus: <path d="M5 12h14M12 5v14" />,
   close: <path d="M18 6 6 18M6 6l12 12" />,
+  // simge düğmeleri: davet kodunu kopyala, çalışma notunu düzenle / sil
+  copy: (
+    <>
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" />
+    </>
+  ),
+  pencil: <path d="M21.17 6.81a2.83 2.83 0 0 0-4-4L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4" />,
+  trash: <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" />,
   // karakter menüsü (deneme): önceki / sonraki öğe ve "Hepsi" ızgarası
   chevronLeft: <path d="m15 18-6-6 6-6" />,
   chevronRight: <path d="m9 18 6-6-6-6" />,

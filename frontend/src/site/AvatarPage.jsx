@@ -423,17 +423,21 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
             <div className="hud-stack hud-stack--start">
               <div className="hud" role="group" aria-label="Poz">
                 {MODES.map((m) => (
-                  <button key={m.id} type="button" className="hud__opt" aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>
-                    <Icon name={m.icon} size={16} />
-                    <span>{m.label}</span>
+                  <button key={m.id} type="button" className="hud__icon hud__opt" aria-pressed={mode === m.id} aria-label={m.label} onClick={() => setMode(m.id)}>
+                    <Icon name={m.icon} />
+                    <span className="hud__label" aria-hidden="true">
+                      {m.label}
+                    </span>
                   </button>
                 ))}
               </div>
               <div className="hud hud--sub" role="group" aria-label="Çalışma türü" data-off={!seated || undefined} inert={!seated} aria-hidden={!seated || undefined}>
                 {ACTIVITIES.map((a) => (
-                  <button key={a.id} type="button" className="hud__opt" aria-pressed={activity === a.id} onClick={() => setActivity(a.id)}>
-                    <Icon name={a.icon} size={16} />
-                    <span>{a.label}</span>
+                  <button key={a.id} type="button" className="hud__icon hud__opt" aria-pressed={activity === a.id} aria-label={a.label} onClick={() => setActivity(a.id)}>
+                    <Icon name={a.icon} />
+                    <span className="hud__label" aria-hidden="true">
+                      {a.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -497,9 +501,11 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
                 Tıkla: selam
               </span>
               <span className="hud__divider" aria-hidden="true" />
-              <button type="button" className="hud__text" onClick={() => setResetKey((k) => k + 1)} title="Görünümü sıfırla (çift tık)">
-                <Icon name="reset" size={16} />
-                Sıfırla
+              <button type="button" className="hud__icon" onClick={() => setResetKey((k) => k + 1)} aria-label="Görünümü sıfırla">
+                <Icon name="reset" />
+                <span className="hud__label" aria-hidden="true">
+                  Görünümü sıfırla<kbd className="hud__key">Çift tık</kbd>
+                </span>
               </button>
             </div>
           </div>

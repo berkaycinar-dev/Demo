@@ -8,6 +8,19 @@ html {
   background: var(--page-base);
 }
 
+/* oda sahnesi (Odam, oda, odak modu) tam ekran: sağda boş krem şerit kalmasın diye orada şerit ayrılmaz.
+   Header yine kaymasın diye geniş header, ayrılmayan şerit kadar (--sbw, Site.jsx ölçer) sağdan içeri
+   alınır; logo ve araçlar diğer sayfalardaki yerinde kalır. */
+html:has(.site-stage-main) {
+  scrollbar-gutter: auto;
+}
+
+.site-header.site-header--wide {
+  --wide-inline: max(var(--page-gutter), calc((100% - var(--sbw, 0px) - var(--page-max)) / 2));
+  padding-left: var(--wide-inline);
+  padding-right: calc(var(--wide-inline) + var(--sbw, 0px));
+}
+
 /* viewport-fit=cover (index.html): yatay telefonda çentik payı yanlarda; alt pay (ev göstergesi) altta
    yapışan öğelerin kendisinde (sayaç çubuğu, oda oluştur eylem çubuğu, odak modu paneli) */
 .site {
@@ -208,6 +221,94 @@ html {
 
 .mode-btn:hover {
   border-color: var(--line-strong);
+}
+
+/* tema kutusu: düğmenin altına biner, sağ kenara hizalı */
+.mode-menu {
+  position: relative;
+}
+
+.mode-menu__pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  padding: 8px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgba(30, 20, 10, 0.6);
+  animation: motion-drop var(--dur-state) var(--ease-out);
+}
+
+.mode-menu__pop[hidden] {
+  display: none;
+}
+
+/* dar ekranda düğme sağ kenarda değil: kutu ekranın sağ kenarına hizalanır, taşmaz */
+@media (max-width: 640px) {
+  .mode-menu__pop {
+    position: fixed;
+    top: calc(var(--header-h, 64px) + 4px);
+    right: 16px;
+  }
+}
+
+/* Açık / Koyu / Sistem: üç eşit parça */
+.mode-choice {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.mode-choice button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-block);
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--text-label);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mode-choice button[aria-pressed='true'] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+  box-shadow: inset 0 0 0 1px var(--sel-ring), var(--voxel-face);
+  color: var(--chip-on-fg);
+}
+
+.account__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.account__mode-label {
+  font-weight: 600;
+}
+
+.account__mode-hint {
+  font-size: var(--text-label);
+}
+
+@media (max-width: 420px) {
+  .account__mode .mode-choice {
+    display: flex;
+  }
+
+  .account__mode .mode-choice button {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 /* sayfa gövdesi */
@@ -884,7 +985,7 @@ html {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 34px;
+  height: 40px;
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
@@ -895,7 +996,7 @@ html {
 
 .hud__icon {
   position: relative;
-  width: 34px;
+  width: 40px;
 }
 
 /* simge düğmesinin adı: fareli cihazda üstüne gelince ya da klavye odağında altta ipucu balonu */
@@ -937,6 +1038,81 @@ html {
 
 .hud__icon:focus-visible .hud__label {
   transition-delay: 0ms;
+}
+
+/* simge düğmesi (HUD dışı): davet kodunu kopyala, çalışma notunu düzenle / sil, bildirimi kapat.
+   40 px dokunma hedefi; adı aria-label'da, fareyle üstüne gelince ya da klavye odağında üstte balon.
+   Balon üstte açılır: oda panelinin kayan kutusunda alta taşıp kaydırma çubuğu açmasın. */
+.icon-btn {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.icon-btn:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* kopyalandı: ikon check'e döner, renk tek işaret değil */
+.icon-btn[data-done] {
+  color: var(--text);
+}
+
+.icon-btn__tip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 4;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--text);
+  box-shadow: 0 6px 14px -8px rgba(40, 26, 12, 0.5);
+  color: var(--surface);
+  font-size: var(--text-label);
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity var(--dur-press) var(--ease-standard), transform var(--dur-fast) var(--ease-out);
+}
+
+.icon-btn:hover .icon-btn__tip,
+.icon-btn:focus-visible .icon-btn__tip,
+.icon-btn[data-done] .icon-btn__tip {
+  opacity: 1;
+  transform: none;
+  transition-delay: var(--delay-intent);
+}
+
+.icon-btn:focus-visible .icon-btn__tip,
+.icon-btn[data-done] .icon-btn__tip {
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-btn__tip {
+    transform: none;
+  }
 }
 
 /* balon sonraki HUD çubuğunun altında kalmasın */
@@ -988,13 +1164,8 @@ html {
   font-weight: 600;
 }
 
-/* poz ve çalışma türü seçeneği: ikon + etiket */
-.hud__opt {
-  padding: 0 12px 0 10px;
-  font-size: var(--text-label);
-  font-weight: 600;
-}
-
+/* poz ve çalışma türü seçeneği: yalnızca ikon, adı balonda (dokunmatikte ikonun altında). Seçili: dolgu,
+   ince kenar ve ikonun altında nokta; renk tek işaret değil. */
 .hud__opt .icon {
   flex: none;
   color: var(--muted);
@@ -1004,22 +1175,42 @@ html {
   color: currentColor;
 }
 
-/* dar önizleme (telefon): etiket ikonun altına iner, dört poz ve geçmiş çubuğu tek sırada kalır */
-@container (max-width: 480px) {
-  .hud .hud__opt {
-    flex-direction: column;
-    gap: 2px;
-    height: auto;
-    min-width: 52px;
-    padding: 5px 4px 4px;
-    border-radius: var(--radius-control-lg);
-    font-size: var(--text-label);
-    line-height: 1.1;
+@media (hover: hover) {
+  .hud__opt[aria-pressed='true']::after {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    content: '';
+    transform: translateX(-50%);
   }
 
-  .hud-stack .hud:has(.hud__opt) {
-    border-radius: calc(var(--radius-control-lg) + 3px);
+  .hud__opt .icon {
+    margin-top: -3px;
   }
+}
+
+@media (hover: none) {
+  .hud__opt[aria-pressed='true'] .hud__label {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 2px;
+  }
+}
+
+/* sol yığının balonu sola, alt çubuğunki üste açılır: önizlemenin dışına taşmasın */
+.hud-stack--start .hud__label {
+  right: auto;
+  left: 0;
+}
+
+.hud--bottom .hud__label {
+  top: auto;
+  bottom: calc(100% + 8px);
+  transform: translateY(3px);
 }
 
 /* çok dar önizleme: "Tıkla: selam" ipucu düşer, Sıfırla sığar */
@@ -1747,6 +1938,8 @@ html {
   .create.avatar-page {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
     gap: 16px;
+    /* önizleme yanda: menü çubuğu sayfanın en üstüne yapışır */
+    --pv-top: 0px;
   }
 
   .avatar-page .create-preview {
@@ -1772,6 +1965,11 @@ html {
     flex-wrap: nowrap;
     gap: 6px;
     padding: 6px 12px;
+  }
+
+  .site-header.site-header--wide {
+    padding-left: 12px;
+    padding-right: calc(12px + var(--sbw, 0px));
   }
 
   .site-header .site-brand__text {

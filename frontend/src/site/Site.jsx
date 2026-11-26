@@ -4,6 +4,7 @@ import { currentUser, logout } from './auth'
 import AccountPage from './AccountPage'
 import { LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
+import Icon from './AvatarIcons'
 import { loadAvatar, saveAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import HomePage from './HomePage'
@@ -118,7 +119,7 @@ export default function Site() {
     }
   })
   const mainRef = useRef(null)
-  const { isDark, toggle: toggleMode } = useColorMode()
+  const { pref: modePref, isDark, setPref: setModePref } = useColorMode()
   useDaypart()
   const timer = usePomodoro()
   const page = resolvePage(requested, user)
@@ -126,6 +127,30 @@ export default function Site() {
   // Sayfam, Avatarım ve odalarda aynı ad.
   const myAvatar = user ? { ...avatar, name: user.displayName } : avatar
   const current = rooms.find((r) => r.id === currentId) ?? null
+
+  // Oda sahnesinde kaydırma şeridi ayrılmaz (site.css); ayrılmayan genişlik --sbw olarak ölçülür, geniş
+  // header o kadar sağdan içeri alınır. Sahne kaydırıyorsa (alçak pencere) şerit zaten dolu, --sbw 0.
+  useEffect(() => {
+    const root = document.documentElement
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll'
+    document.body.appendChild(probe)
+    const bar = probe.offsetWidth - probe.clientWidth
+    probe.remove()
+    if (!bar) return undefined
+    const sync = () => {
+      const used = window.innerWidth - root.clientWidth
+      root.style.setProperty('--sbw', `${Math.max(0, bar - used)}px`)
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(document.body)
+    window.addEventListener('resize', sync)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', sync)
+    }
+  }, [])
 
   // Oda listesi sunucudan: girişte, açılışta ve Lobi / Sayfam / Ana sayfaya her gelişte tazelenir.
   const listsRooms = Boolean(user) && (page === 'lobi' || page === 'sayfam' || page === 'oda' || page === 'anasayfa')
@@ -277,7 +302,7 @@ export default function Site() {
 
   return (
     <div className={`site${focusMode ? ' site--focus' : ''}`}>
-      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} wide={Boolean(roomPage)} />}
+      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} modePref={modePref} onModeChange={setModePref} wide={Boolean(roomPage)} />}
 
       {/* Sayfa adı gezinmeden sonra burada duyurulur; aynı ad tekrar gelirse önce boşaltılır (go). */}
       <p className="sr-only" role="status" aria-live="polite">
@@ -288,16 +313,22 @@ export default function Site() {
         {notice && (
           <div className="site-notice" role="alert">
             <span>{notice}</span>
-            <button type="button" className="link-btn" onClick={() => setNotice('')}>
-              {DELETED_COPY.close}
+            <button type="button" className="icon-btn" onClick={() => setNotice('')} aria-label={DELETED_COPY.close}>
+              <Icon name="close" size={16} />
+              <span className="icon-btn__tip" aria-hidden="true">
+                {DELETED_COPY.close}
+              </span>
             </button>
           </div>
         )}
         {page === 'anasayfa' && deletedNote && (
           <div className="site-notice" role="status">
             <span>{DELETED_COPY.note}</span>
-            <button type="button" className="link-btn" onClick={() => setDeletedNote(false)}>
-              {DELETED_COPY.close}
+            <button type="button" className="icon-btn" onClick={() => setDeletedNote(false)} aria-label={DELETED_COPY.close}>
+              <Icon name="close" size={16} />
+              <span className="icon-btn__tip" aria-hidden="true">
+                {DELETED_COPY.close}
+              </span>
             </button>
           </div>
         )}
@@ -341,8 +372,8 @@ export default function Site() {
         {page === 'hesap' && (
           <AccountPage
             user={user}
-            isDark={isDark}
-            onToggleMode={toggleMode}
+            modePref={modePref}
+            onModeChange={setModePref}
             onLogout={signOut}
             onDeleted={() => {
               try {
