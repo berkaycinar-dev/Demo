@@ -141,7 +141,7 @@ export default function MyRoomPage({ room, onBrowse, ...rest }) {
       <div className="site-main">
         <section className="site-card empty-state">
           <h1>Henüz bir odaya girmedin</h1>
-          <p className="site-muted">Herkese açık odalardan birine katıl ya da davet koduyla gizli bir odaya gir.</p>
+          <p className="site-muted">Herkese açık odalardan birine katıl ya da kodla davetli bir odaya gir.</p>
           <button type="button" className="site-btn site-btn--primary" onClick={onBrowse}>
             Odalara göz at
           </button>

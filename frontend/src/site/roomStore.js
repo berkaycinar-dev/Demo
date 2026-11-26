@@ -11,14 +11,6 @@ const DEFAULT_THEME = 'library'
 export const MIN_MEMBERS = 2
 export const MAX_MEMBERS = 10
 
-// Örnek odalar: giriş yapmamış ziyaretçiye ana sayfada gösterilir (oda listesi oturum ister).
-// Giriş yapınca yerlerini sunucudaki odalar alır.
-export const SAMPLE_ROOMS = [
-  { id: 'sample-1', name: 'Merkez Kütüphane · Okuma Salonu', theme: 'library', capacity: 7, access: 'public' },
-  { id: 'sample-2', name: 'Kod Lab · Açık Ofis', theme: 'office', capacity: 7, access: 'public' },
-  { id: 'sample-4', name: 'Şömine Başında Uzun Bloklar', theme: 'cabin', capacity: 5, access: 'public' },
-]
-
 // Tema backend'de ayrı alan değil. Prototipte odanın açıklamasında "theme:<ad>" olarak taşınır;
 // böylece odayı açan herkes aynı temayı görür. Backend'e tema alanı gelince burası değişir.
 const THEME_PREFIX = 'theme:'
@@ -63,7 +55,7 @@ export async function createRoom({ name, theme, capacity, access }) {
   return fromApi(r)
 }
 
-/** Odaya üye olur (zaten üyeysen bir şey değişmez). Gizli oda için davet kodu gerekir. */
+/** Odaya üye olur (zaten üyeysen bir şey değişmez). Davetli oda için davet kodu gerekir. */
 export async function joinRoom(room, code) {
   const r = await api(`/api/v1/rooms/${room.id}/join`, { method: 'POST', body: code ? { inviteCode: code } : undefined })
   return fromApi(r)

@@ -3,8 +3,8 @@ import { THEMES } from '../rooms/themes'
 import { loadMyRoom } from './myRoom'
 import { formatClock, formatMinutes } from './usePomodoro'
 import RoomShot from './RoomShot'
-import RoomMates from './RoomMates'
 import Dotted from './Dotted'
+import { membersLabel } from './access'
 
 // Bugün henüz sayılan blok yokken: boş bir "0 dk" kartı yerine ilk adımı söyleyen tek satır.
 const TODAY_COPY = {
@@ -95,7 +95,7 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
           </div>
           {firstRoom && (
             <p className="home__first">
-              Lobideki herkese açık odalardan birine otur; avatarın boş bir masaya geçer, sayacın seninle gelir. Davet kodun varsa gizli odaya da Lobi’den katılırsın.
+              Lobideki herkese açık odalardan birine otur; avatarın boş bir masaya geçer, sayacın seninle gelir. Davet kodun varsa davetli odaya da Lobi’den katılırsın.
             </p>
           )}
           {listed.length > 0 && (
@@ -112,9 +112,8 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
                       <span className="home__room-text">
                         <strong title={room.name}>{room.name}</strong>
                         <span>
-                          <Dotted parts={[THEMES[room.theme].label, ROOMS_COPY.capacity(room.capacity)]} keep />
+                          <Dotted parts={[THEMES[room.theme].label, ROOMS_COPY.capacity(room.capacity), membersLabel(room)].filter(Boolean)} keep />
                         </span>
-                        <RoomMates room={room} className="room-mates--small" />
                       </span>
                       <span className="home__room-cue" aria-hidden="true">
                         {ROOMS_COPY.enter}

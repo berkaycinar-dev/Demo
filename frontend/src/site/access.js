@@ -1,12 +1,17 @@
 // Odaya kimlerin girebileceği. Etiket her yerde (oda oluşturma seçimi, oda kartı, oda paneli, özet
-// çubuğu) bu tek kaynaktan okunur; yazımı ve harf büyüklüğü her yerde aynı kalır. Çeviri için
+// çubuğu) bu tek kaynaktan okunur. Kod isteyen odanın tek adı "Davetli", tek eylemi "Kodla gir"; yazımı ve harf büyüklüğü her yerde aynı kalır. Çeviri için
 // label ve hint tam metinlerdir, başka dizelerle birleştirilmez.
 export const ACCESS = {
   public: { label: 'Herkese açık', hint: 'Oda lobide listelenir, herkes girebilir.' },
-  invite: { label: 'Davetle', hint: 'Bir davet kodu üretilir; yalnızca kodu bilenler girebilir.' },
+  invite: { label: 'Davetli', hint: 'Bir davet kodu üretilir; yalnızca kodu bilenler girebilir.' },
 }
 
 // Seçim listesindeki sıra.
 export const ACCESS_IDS = ['public', 'invite']
 
 export const accessLabel = (id) => ACCESS[id]?.label ?? ACCESS.public.label
+
+// Odaya katılmış kişi sayısı (sunucudaki memberCount). "Şu an odada" demez: üyelik sayısıdır.
+// Sayı yoksa (eski kayıt) hiçbir şey yazılmaz; uydurma sayı gösterilmez.
+const MEMBERS_COPY = { count: (n) => `${n} üye` }
+export const membersLabel = (room) => (Number.isFinite(room?.memberCount) ? MEMBERS_COPY.count(room.memberCount) : null)

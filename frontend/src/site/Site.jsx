@@ -12,7 +12,7 @@ import LobbyPage from './LobbyPage'
 import { LegalPage } from './LegalPages'
 import MyRoomPage from './MyRoomPage'
 import NotFoundPage from './NotFoundPage'
-import { HEARTBEAT_MS, SAMPLE_ROOMS, createRoom, enterRoom, exitRoom, fetchRooms, forgetJoin, heartbeat, joinRoom, loadJoined, recordJoin } from './roomStore'
+import { HEARTBEAT_MS, createRoom, enterRoom, exitRoom, fetchRooms, forgetJoin, heartbeat, joinRoom, loadJoined, recordJoin } from './roomStore'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import SoloRoomPage from './SoloRoomPage'
 import useColorMode from './useColorMode'
@@ -92,8 +92,8 @@ function resolvePage(requestedId, user) {
 export default function Site() {
   const [user, setUser] = useState(currentUser)
   const [requested, setRequested] = useState(hashPage)
-  // Oturum varken sunucudaki odalar (açılışta yüklenir), yokken ana sayfadaki örnek odalar.
-  const [rooms, setRooms] = useState(() => (user ? [] : SAMPLE_ROOMS))
+  // Sunucudaki odalar; yalnızca oturum varken yüklenir. Misafire uydurma oda gösterilmez.
+  const [rooms, setRooms] = useState([])
   // Sunucu hatası gibi kısa bildirimler (sayfanın üstünde, kapatılabilir).
   const [notice, setNotice] = useState('')
   const [joined, setJoined] = useState(() => (user ? loadJoined(user) : []))
@@ -127,8 +127,8 @@ export default function Site() {
   const myAvatar = user ? { ...avatar, name: user.displayName } : avatar
   const current = rooms.find((r) => r.id === currentId) ?? null
 
-  // Oda listesi sunucudan: girişte, açılışta ve Lobi / Sayfam'a her gelişte tazelenir.
-  const listsRooms = Boolean(user) && (page === 'lobi' || page === 'sayfam' || page === 'oda')
+  // Oda listesi sunucudan: girişte, açılışta ve Lobi / Sayfam / Ana sayfaya her gelişte tazelenir.
+  const listsRooms = Boolean(user) && (page === 'lobi' || page === 'sayfam' || page === 'oda' || page === 'anasayfa')
   useEffect(() => {
     if (!listsRooms) return undefined
     let stale = false
@@ -148,7 +148,7 @@ export default function Site() {
   useEffect(() => {
     const out = () => {
       setUser(null)
-      setRooms(SAMPLE_ROOMS)
+      setRooms([])
       setCurrentId(null)
       setNotice('Oturumun sona erdi; yeniden giriş yap.')
     }
@@ -200,12 +200,14 @@ export default function Site() {
   }, [page])
 
   // Gezinmeden sonra: odak yeni sayfanın başına taşınır, sekme başlığı ve canlı bölge sayfanın adını
-  // söyler. Açılışta yalnızca sekme başlığı yazılır (odak tarayıcıda kalır).
+  // söyler. Açılışta yalnızca sekme başlığı yazılır (odak tarayıcıda kalır). Oda listesi sonradan
+  // gelince (#oda'da yeniden yükleme) başlık odanın adıyla yenilenir: bağımlılıkta odanın adı da var.
+  const currentName = current?.name
   useEffect(() => {
     const heading = navTarget ? focusPageStart(mainRef.current) : mainRef.current?.querySelector('h1')?.textContent.trim()
     document.title = heading ? NAV_COPY.docTitle(heading) : NAV_COPY.brand
     if (navTarget && heading) setAnnounce(heading)
-  }, [page, navTarget, currentId])
+  }, [page, navTarget, currentId, currentName])
 
   const go = (id) => {
     if (window.location.hash !== `#${id}`) window.history.pushState(null, '', `#${id}`)
@@ -263,7 +265,7 @@ export default function Site() {
     setUser(null)
     setJoined([])
     setCurrentId(null)
-    setRooms(SAMPLE_ROOMS)
+    setRooms([])
     go('anasayfa')
   }
 

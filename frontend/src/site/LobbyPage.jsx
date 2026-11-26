@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { THEMES } from '../rooms/themes'
-import { accessLabel } from './access'
+import { accessLabel, membersLabel } from './access'
 import { codeMatches } from './roomStore'
 import useShortcut from './useShortcut'
 import RoomShot from './RoomShot'
-import RoomMates from './RoomMates'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 
@@ -24,8 +23,8 @@ function sinceText(at) {
   return new Date(at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
 }
 
-// Oda kartı: temanın oda görseli, ad, kapasite ve giriş düğmesi. Gizli odada "Gizli" etiketi ve kilitli
-// "Kodla gir" düğmesi; tıklayınca kod sorulur.
+// Oda kartı: temanın oda görseli, ad, kapasite ve giriş düğmesi. Davetli odada "Davetli" etiketi ve kilitli
+// "Kodla gir" düğmesi; tıklayınca kod sorulur. Etiket erişimi söylediği için bilgi satırı onu tekrarlamaz.
 function RoomCard({ room, onAction }) {
   const locked = room.access === 'invite'
   return (
@@ -36,11 +35,11 @@ function RoomCard({ room, onAction }) {
       <div className="room-card__body">
         <div className="room-card__top">
           <ThemeLabel theme={room.theme} className="room-card__theme" />
-          {/* açık oda rozet taşımaz (bölüm başlığı zaten "Aktif odalar"); yalnızca gizli oda işaretlenir */}
+          {/* açık oda rozet taşımaz (bölüm başlığı zaten "Aktif odalar"); yalnızca davetli oda işaretlenir */}
           {locked && (
             <span className="tag tag--lock">
               <LockIcon />
-              Gizli
+              {accessLabel('invite')}
             </span>
           )}
         </div>
@@ -48,9 +47,8 @@ function RoomCard({ room, onAction }) {
           <Dotted text={room.name} />
         </h3>
         <p className="site-muted">
-          <Dotted parts={[`${room.capacity} kişilik`, accessLabel(room.access)]} keep />
+          <Dotted parts={[`${room.capacity} kişilik`, membersLabel(room), !locked && accessLabel(room.access)].filter(Boolean)} keep />
         </p>
-        <RoomMates room={room} />
         <div className="room-card__actions">
           {locked ? (
             <button type="button" className="site-btn" onClick={onAction}>
@@ -68,7 +66,7 @@ function RoomCard({ room, onAction }) {
   )
 }
 
-// Gizli oda için davet kodu penceresi.
+// Davetli oda için davet kodu penceresi.
 function CodeDialog({ room, onClose, onSuccess }) {
   const ref = useRef(null)
   const inputRef = useRef(null)
@@ -123,7 +121,7 @@ function CodeDialog({ room, onClose, onSuccess }) {
           <h2 id="codeDialogTitle">
             <Dotted text={room.name} />
           </h2>
-          <p className="site-muted">Bu oda gizli. Girmek için oda sahibinden aldığın davet kodunu yaz.</p>
+          <p className="site-muted">Bu oda davetli. Girmek için oda sahibinden aldığın davet kodunu yaz.</p>
           <div className="auth-field">
             <label htmlFor="roomCode">Davet kodu</label>
             <input
@@ -135,7 +133,7 @@ function CodeDialog({ room, onClose, onSuccess }) {
                 setCode(e.target.value)
                 setError('')
               }}
-              placeholder="ör. ABCDE-1234"
+              placeholder="ör. ORMAN-2741"
               autoComplete="off"
               spellCheck={false}
               aria-invalid={error ? true : undefined}
@@ -168,7 +166,7 @@ const CODE_COPY = {
   notFound: 'Bu kodla bir oda bulunamadı. Biçim: kelime, tire, dört rakam (ör. ORMAN-2741).',
 }
 
-// Davet koduyla doğrudan katılma: kod hangi gizli odaya aitse ona girer.
+// Kodla doğrudan katılma: kod hangi davetli odaya aitse ona girer.
 function CodeJoin({ rooms, onEnter }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
@@ -195,7 +193,7 @@ function CodeJoin({ rooms, onEnter }) {
           setCode(e.target.value)
           setError('')
         }}
-        placeholder="Davet kodu (ör. ABCDE-1234)"
+        placeholder="Davet kodu (ör. ORMAN-2741)"
         autoComplete="off"
         spellCheck={false}
         aria-invalid={error ? true : undefined}
@@ -232,10 +230,10 @@ const pickRandom = (list) => list[Math.floor(Math.random() * list.length)]
 const SEARCH_COPY = {
   placeholder: 'Oda ya da tema ara',
   key: 'Kısayol: /',
-  // arama hiçbir odayla eşleşmeyince tek not; gizli odalarda eşleşme varsa yalnızca açık odalar için
+  // arama hiçbir odayla eşleşmeyince tek not; davetli odalarda eşleşme varsa yalnızca açık odalar için
   noMatch: (q) => `“${q}” ile eşleşen oda yok.`,
   noOpenMatch: (q) => `“${q}” ile eşleşen açık oda yok.`,
-  noHiddenMatch: (q) => `“${q}” ile eşleşen gizli oda yok.`,
+  noHiddenMatch: (q) => `“${q}” ile eşleşen davetli oda yok.`,
   clear: 'Aramayı temizle',
 }
 
@@ -368,8 +366,8 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
 }
 
 // Lobi: odalarla ilgili her şey tek sayfada. Üstte hızlı katılma ve oda oluşturma; ortada
-// aranabilir aktif odalar ve altında gizli odalar; yanda davet koduyla katılma ve son katıldıkların.
-// Gizli odaya listeden girerken kod sorulur; daha önce katıldığın odaya geçmişten kodsuz girilir.
+// aranabilir aktif odalar ve altında davetli odalar; yanda kodla katılma ve son katıldıkların.
+// Davetli odaya listeden girerken kod sorulur; daha önce katıldığın odaya geçmişten kodsuz girilir.
 export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
@@ -457,14 +455,14 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
             </ul>
           )}
 
-          {/* hiçbir oda eşleşmezse yukarıdaki tek not yeter; gizli odalar bölümü çıkmaz */}
+          {/* hiçbir oda eşleşmezse yukarıdaki tek not yeter; davetli odalar bölümü çıkmaz */}
           {!noMatchAtAll && (
             <>
               <div className="section-head lobby__hidden-head">
-                <h2 id="gizliBaslik">Gizli odalar</h2>
+                <h2 id="gizliBaslik">Davetli odalar</h2>
               </div>
               {shownHidden.length === 0 ? (
-                <p className="site-muted">{searching ? SEARCH_COPY.noHiddenMatch(query.trim()) : 'Şu an gizli oda yok.'}</p>
+                <p className="site-muted">{searching ? SEARCH_COPY.noHiddenMatch(query.trim()) : 'Şu an davetli oda yok.'}</p>
               ) : (
                 <ul className="site-rooms" aria-labelledby="gizliBaslik">
                   {shownHidden.map((room) => (
@@ -478,8 +476,8 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
 
         <aside className="lobby__side" aria-label="Davet kodu ve geçmiş">
           <section className="site-card lobby-panel" aria-labelledby="kodBaslik">
-            <h2 id="kodBaslik">Davet koduyla gir</h2>
-            <p className="site-muted">Gizli bir odanın kodunu aldıysan buraya yaz. {CODE_COPY.format}</p>
+            <h2 id="kodBaslik">Kodla gir</h2>
+            <p className="site-muted">Davetli bir odanın kodunu aldıysan buraya yaz. {CODE_COPY.format}</p>
             <CodeJoin rooms={rooms} onEnter={onEnter} />
           </section>
 
@@ -500,7 +498,7 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
                           <Dotted text={room.name} />
                         </span>
                         {room.access === 'invite' && (
-                          <span className="lobby-list__lock" title="Gizli oda">
+                          <span className="lobby-list__lock" title="Davetli oda">
                             <LockIcon />
                           </span>
                         )}

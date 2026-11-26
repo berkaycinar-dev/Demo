@@ -113,7 +113,7 @@ const LOGIN_COPY = {
   forgot: 'Şifremi unuttum',
   // Şifre sıfırlama henüz yok: form ya da "bağlantı gönderelim" sözü yerine durum yerinde söylenir,
   // kullanıcı giriş formundan ayrılmaz.
-  forgotNote: 'Şifre sıfırlama henüz açık değil. Şifreni hatırlıyorsan giriş yaptıktan sonra Hesap sayfasından değiştirebilirsin.',
+  forgotNote: 'Şifre sıfırlama henüz açık değil.',
 }
 
 export function LoginPage({ onDone, onGo }) {
