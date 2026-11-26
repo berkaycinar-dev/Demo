@@ -1,6 +1,6 @@
 // Hesaplar: backend'de (contracts/openapi.yaml, tag "auth"). Kayıt, giriş, çıkış ve oturum API'den;
-// token'lar api.js'te saklanır. Backend'de henüz olmayanlar (görünen ad, hesap ayarları) bu
-// tarayıcıda kalır ya da prototipte kapalıdır; aşağıda yerinde yazıyor.
+// token'lar api.js'te saklanır. Backend'de henüz olmayanlar: görünen ad bu tarayıcıda kalır; e-posta,
+// şifre ve hesap silme Hesap sayfasında form değil, durum notu olarak görünür.
 
 import { ApiError, api, clearSession, errorText, readSession, writeSession } from './api'
 
@@ -139,32 +139,21 @@ export function logout() {
 }
 
 // ---------- hesap ayarları ----------
-// Backend'de bu uçlar henüz yok. Görünen ad bu tarayıcıda değişir; diğerleri prototipte kapalı.
+// Backend'de profil ucu henüz yok: görünen ad bu tarayıcıda değişir. Kullanıcı adı değişmez.
 
-const NOT_YET = 'Bu işlem prototipte henüz sunucuya bağlı değil.'
-
-/** Görünen ad (bu tarayıcıda). Kullanıcı adı değişikliği henüz yok. Dönüş: { user } ya da { error } */
-export function updateProfile(currentUsername, { displayName, username }) {
+/** Görünen ad (bu tarayıcıda). Dönüş: { user } ya da { error } */
+export function updateProfile({ displayName }) {
   const session = readSession()
   if (!session) return { error: { form: 'Oturum bulunamadı; yeniden giriş yap.' } }
   const errors = {}
   if (!displayName.trim()) errors.displayName = 'Görünen adını yaz.'
   else if (displayName.trim().length > 40) errors.displayName = 'En fazla 40 karakter olabilir.'
-  if (username !== currentUsername) errors.username = 'Kullanıcı adı prototipte değiştirilemiyor.'
   if (Object.keys(errors).length) return { error: errors }
   saveName(session.user.id, displayName.trim())
   return { user: toUser(session.user) }
 }
 
-export async function changeEmail() {
-  return { error: { form: NOT_YET } }
-}
-
-export async function changePassword() {
-  return { error: { form: NOT_YET } }
-}
-
-// ---------- verilerin: indir ve hesabı sil (KVKK) ----------
+// ---------- verilerin: indir (KVKK) ----------
 
 // Bu tarayıcıda cihaza bağlı tutulan kişisel kayıtlar (avatar, kayıtlı görünümler, odak sayısı,
 // sayaç, son oda). Dışa aktarmada gelir.
@@ -189,8 +178,4 @@ export function exportAccountData(username) {
   const thisBrowser = {}
   for (const key of DEVICE_KEYS) thisBrowser[key] = readJson(key)
   return { exportedAt: new Date().toISOString(), account: user, records, thisBrowser }
-}
-
-export async function deleteAccount() {
-  return { error: { form: NOT_YET } }
 }

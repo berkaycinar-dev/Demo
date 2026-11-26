@@ -4,10 +4,10 @@ import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { QUOTES, quoteForVisit } from './quotes'
 import RoomShot from './RoomShot'
-import RoomMates from './RoomMates'
 import { useDocumentDark } from './roomThumbs'
 import { scrollToId } from './scroll'
 import Dotted from './Dotted'
+import { membersLabel } from './access'
 import LandingDemo from './LandingDemo'
 
 const HERO_THEME = 'library'
@@ -63,15 +63,14 @@ function HeroRoom({ dark }) {
 }
 const OPEN_ROOMS_SHOWN = 3
 
-// Ana sayfa: lobinin kapısı. Önce oda görünür, sonra lobideki açık odalar ve on tema; en sonda bir oturum
-// canlı bir odada oynar (LandingDemo). Ayrı adım kartları, özellik üçlüsü ve kapanış bandı yok.
-// Oda arkadaşları şimdilik simülasyon olduğundan "şu an N kişi" gibi canlı sayı gösterilmez; kapasite ve
-// odaya girince göreceğin yüzler (RoomMates) gösterilir. Hero'daki oda masalarında çalışan avatarlarla çizilir.
+// Ana sayfa: lobinin kapısı. Önce oda görünür, sonra (yalnızca giriş yapmışsa) lobideki açık odalar ve
+// on tema; en sonda bir oturum canlı bir odada oynar (LandingDemo). Ayrı adım kartları, özellik üçlüsü ve
+// kapanış bandı yok. Açık odalar sunucudan gelir; misafire örnek oda uydurulmaz, oda listesi oturum ister.
+// Kartta "şu an N kişi" yazılmaz: kapasite ve sunucunun verdiği üye sayısı yazar.
 export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter }) {
   const [quote, by] = QUOTES[quoteForVisit()]
   const dark = useDocumentDark()
   const start = () => onGo(user ? 'sayfam' : 'kayit')
-  const sit = (room) => (user ? onEnter(room) : onGo('kayit'))
   const openRooms = rooms.filter((r) => r.access === 'public').slice(0, OPEN_ROOMS_SHOWN)
 
   return (
@@ -110,9 +109,8 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
           <section className="lp-open" aria-labelledby="acikBaslik">
             <div className="lp-open__head">
               <h2 id="acikBaslik">Lobide açık odalar</h2>
-              {/* lobi oturum ister: misafire bağlantı nereye gittiğini söyler */}
-              <button type="button" className="link-btn link-btn--strong" onClick={() => onGo(user ? 'lobi' : 'giris')}>
-                {user ? 'Tüm aktif odaları gör' : 'Tüm odalar için giriş yap'}
+              <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('lobi')}>
+                Tüm aktif odaları gör
               </button>
             </div>
             <ul className="lp-open__list">
@@ -124,17 +122,15 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
                       <Dotted text={room.name} />
                     </strong>
                     <span>
-                      <Dotted parts={[THEMES[room.theme].label, `${room.capacity} kişilik`]} keep />
+                      <Dotted parts={[THEMES[room.theme].label, `${room.capacity} kişilik`, membersLabel(room)].filter(Boolean)} keep />
                     </span>
-                    <RoomMates room={room} className="room-mates--small" />
                   </span>
-                  <button type="button" className="site-btn" onClick={() => sit(room)} aria-label={`${room.name} odasına gir`}>
+                  <button type="button" className="site-btn" onClick={() => onEnter(room)} aria-label={`${room.name} odasına gir`}>
                     Gir
                   </button>
                 </li>
               ))}
             </ul>
-            {!user && <p className="lp-open__note">Girmek için önce bir hesap açarsın; bir dakika sürer.</p>}
           </section>
         )}
       </section>
