@@ -1,6 +1,13 @@
 /* SameDesk sitesi: sıcak kâğıt, kil ve ahşap nötrleri + terakota vurgu (DESIGN.md). Renkler ve yazı
    ölçeği theme.css'teki token'lardan gelir. */
 
+/* kaydırma çubuğunun yeri her sayfada ayrılır: uzun sayfadan (Avatarım) kısa sayfaya (oda) geçince
+   içerik ve header yana kaymaz. Ayrılan şerit sayfa zemininin düz tonuyla boyanır. */
+html {
+  scrollbar-gutter: stable;
+  background: var(--page-base);
+}
+
 /* viewport-fit=cover (index.html): yatay telefonda çentik payı yanlarda; alt pay (ev göstergesi) altta
    yapışan öğelerin kendisinde (sayaç çubuğu, oda oluştur eylem çubuğu, odak modu paneli) */
 .site {
