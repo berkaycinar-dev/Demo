@@ -54,6 +54,8 @@ const SWITCH_AFTER = 6
 const FORCE_AFTER = 15
 const TENT_CAPACITY = 3
 const ZZZ_PER_AVATAR = 3
+// bundan az kayan basış sürükleme değil tıklamadır (piksel; AvatarPreview ile aynı)
+const CLICK_SLOP = 4
 // idle: yalnızca etikette (shown); sayaç durmuşken "Masada". Poz status'tan gelir.
 const STATUS_LABELS = { idle: 'Masada', focus: 'Odakta', break: 'Molada', away: 'Uzakta' }
 
@@ -101,6 +103,8 @@ const HIDDEN = new Matrix4().makeScale(0, 0, 0)
  * showNames: true iken herkesin adı görünür; değilse yalnızca durum noktası, kendi adın ve
  *   üstüne gelinen ya da highlight verilen kişinin adı.
  * reducedMotion: true iken yürümez, kalkıp oturmaz; yerine ışınlanır, hareketler durur.
+ * onPersonPoint(id | null, labelEl | null, via): fareyle avatarın ya da etiketinin üstüne gelinince
+ *   ('hover', çıkınca id null) ve kısa tıklama / dokunmada ('tap') çağrılır; kişi kartı içindir.
  *
  * Odakta ve uzakta olanlar koltuklarında oturur (kampta uzaktakiler çadıra girip uyur). Molada olan
  * kalkar, en yakın boş mola yerine yürür ve oradaki eşyaya göre davranır (koltuğa oturur, kahve
@@ -108,7 +112,7 @@ const HIDDEN = new Matrix4().makeScale(0, 0, 0)
  * gidilir. Yürürken kimseye 0.5 m'den fazla yaklaşılmaz: önü kesilen bekler, karşı karşıya gelinirse
  * sırası sonra olan kenara çekilip yol verir, duran birinin etrafından dolaşılır.
  */
-export default function AvatarCrowd({ occupants, theme, showNames = false, highlight = null, reducedMotion }) {
+export default function AvatarCrowd({ occupants, theme, showNames = false, highlight = null, reducedMotion, onPersonPoint = null }) {
   const room = useRoom()
   const invalidate = useThree((s) => s.invalidate)
   const gl = useThree((s) => s.gl)
@@ -154,13 +158,28 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
   const meshRef = useRef(null)
   const zzzRef = useRef(null)
   const shadowRef = useRef(null)
-  const latest = useRef({ occupants, showNames, highlight })
-  const sim = useRef({ agents: new Map(), slots: new Map(), beds: new Map(), moving: false, labels: null, hoverMesh: null, hoverLabel: null })
+  const latest = useRef({ occupants, showNames, highlight, onPersonPoint })
+  const sim = useRef({ agents: new Map(), slots: new Map(), beds: new Map(), moving: false, labels: null, hoverMesh: null, hoverLabel: null, pointed: null })
 
   useEffect(() => {
-    latest.current = { occupants, showNames, highlight }
+    latest.current = { occupants, showNames, highlight, onPersonPoint }
     invalidate()
-  }, [occupants, showNames, highlight, invalidate])
+  }, [occupants, showNames, highlight, onPersonPoint, invalidate])
+
+  // Kişi kartı için sayfaya bildirir: (kimlik | null, etiket öğesi | null, 'hover' | 'tap'). Fareyle
+  // üstüne gelme yalnızca değişince bildirilir; dokunma / tıklama her seferinde.
+  const point = (id, via) => {
+    const state = sim.current
+    if (via === 'hover') {
+      if (state.pointed === id) return
+      state.pointed = id
+    }
+    latest.current.onPersonPoint?.(id, id ? (state.labels?.items.get(id) ?? null) : null, via)
+  }
+  const pointRef = useRef(point)
+  useLayoutEffect(() => {
+    pointRef.current = point
+  })
 
   // Geliştirmede simülasyon durumu denetim betikleri için açılır.
   useEffect(() => {
@@ -205,9 +224,16 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
         state.hoverLabel = id
         invalidate()
       }
+      if (e.pointerType === 'mouse') pointRef.current(id, 'hover')
+    }
+    // etikete dokunma / tıklama kişinin kartını açar
+    const tap = (e) => {
+      const id = e.target?.closest?.('.avatar-label')?.dataset.id
+      if (id) pointRef.current(id, 'tap')
     }
     layer.addEventListener('pointerover', hover)
     layer.addEventListener('pointerout', hover)
+    layer.addEventListener('click', tap)
     return () => {
       layer.remove()
       state.labels = null
@@ -335,10 +361,28 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
       invalidate()
     }
   }
-  const pointAt = (e) => hoverMesh(looks.find((l) => e.instanceId >= l.start && e.instanceId < l.start + l.parts.length)?.id ?? null)
+  const idAt = (e) => looks.find((l) => e.instanceId >= l.start && e.instanceId < l.start + l.parts.length)?.id ?? null
+  const mouse = (e) => (e.nativeEvent?.pointerType ?? e.pointerType) === 'mouse'
+  const pointAt = (e) => {
+    const id = idAt(e)
+    hoverMesh(id)
+    if (mouse(e)) point(id, 'hover')
+  }
+  const pointOut = (e) => {
+    hoverMesh(null)
+    if (mouse(e)) point(null, 'hover')
+  }
+  // kısa tıklama / dokunma (sürükleyip döndürme değil) kişinin kartını açar; alttaki mola halkasına geçmez
+  const tapAt = (e) => {
+    if (e.delta > CLICK_SLOP) return
+    const id = idAt(e)
+    if (!id) return
+    e.stopPropagation()
+    point(id, 'tap')
+  }
   return (
     <>
-      <instancedMesh ref={meshRef} args={[BOX, undefined, partCount]} frustumCulled={false} onPointerMove={pointAt} onPointerOut={() => hoverMesh(null)}>
+      <instancedMesh ref={meshRef} args={[BOX, undefined, partCount]} frustumCulled={false} onPointerMove={pointAt} onPointerOut={pointOut} onClick={tapAt}>
         <meshLambertMaterial />
       </instancedMesh>
       <instancedMesh ref={zzzRef} args={[BOX, undefined, looks.length * ZZZ_PER_AVATAR * 3]} frustumCulled={false} raycast={() => null}>

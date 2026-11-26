@@ -4304,3 +4304,137 @@
     max-width: 260px;
   }
 }
+
+
+/* ---------- kişi listesi satırı: düğme (kişi kartını açar); görünüm satırla aynı ---------- */
+
+.people__item {
+  display: block;
+}
+
+button.people__row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+button.people__row.people__row--me {
+  background: var(--primary-soft);
+}
+
+@media (hover: hover) {
+  button.people__row:not(.people__row--me):hover {
+    background: var(--surface-2);
+  }
+}
+
+/* ---------- ne üzerinde çalışıyorum (WorkingOnField): lobi başı ve oda paneli ---------- */
+
+.working-on {
+  min-width: 0;
+  font-size: var(--text-label);
+}
+
+.working-on__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.working-on__add:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.working-on__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.site .working-on__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin: 0;
+}
+
+.site .working-on__text {
+  margin: 0;
+}
+
+.working-on__label {
+  color: var(--muted);
+}
+
+.working-on__text {
+  min-width: 0;
+  color: var(--text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.working-on__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.working-on__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.working-on__input {
+  flex: 1 1 14em;
+  min-width: 0;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-field);
+  border-radius: var(--radius-control-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.working-on__count {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (pointer: coarse) {
+  .working-on__add,
+  .working-on__actions .link-btn {
+    min-height: 44px;
+  }
+
+  .working-on__input {
+    min-height: 44px;
+  }
+}
+
+.lobby-head__title {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lobby-head .working-on {
+  max-width: 36em;
+}

@@ -310,6 +310,7 @@ export default function Site() {
           <MyRoomPage
             room={current}
             meId={user?.id}
+            username={user?.username}
             avatar={myAvatar}
             timer={timer}
             focusMode={focusMode}
@@ -327,6 +328,7 @@ export default function Site() {
           <LobbyPage
             rooms={rooms}
             joined={joined}
+            username={user?.username}
             receipt={receipt}
             onCloseReceipt={() => setReceipt(null)}
             onEnter={enter}
