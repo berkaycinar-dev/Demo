@@ -24,6 +24,7 @@ import {
   EARRINGS,
 } from '../avatars/options'
 import Icon from './AvatarIcons'
+import { revealEl } from './scroll'
 import './CharacterMenu.css'
 
 // Karakter menüsü: avatar atölyesinin düzenleyicisi. Her kategori bir satır; satırda o kategorinin bütün
@@ -205,6 +206,14 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
   const overflowing = useOverflowingStrips(rootRef, strips)
   const hintId = useId()
   const baseId = useId()
+  const sectionRefs = useRef([])
+  // bölüme atla: bölüm başı görünür alana gelir, odak başlığa geçer (klavye oradan devam eder)
+  const jumpTo = (i) => {
+    const el = sectionRefs.current[i]
+    if (!el) return
+    revealEl(el)
+    el.querySelector('h2')?.focus({ preventScroll: true })
+  }
 
   const valueOf = (r) => (r.get ? r.get(avatar[r.key]) : avatar[r.key])
   const write = (r, id) => set(r.key)(r.put ? r.put(id) : id)
@@ -259,9 +268,19 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
       <p id={hintId} className="sr-only">
         {KEYS_HINT}
       </p>
-      {sections.map((s) => (
-        <section key={s.title} className="cmenu__section">
-          <h2 className="opt-section__title cmenu__title">{s.title}</h2>
+      {/* bölüm atlama: uzun menüde (telefonda ~3700 px) bölüme tek dokunuşla gidilir */}
+      <nav className="cmenu__jumps" aria-label="Menü bölümleri">
+        {sections.map((s, i) => (
+          <button key={s.title} type="button" onClick={() => jumpTo(i)}>
+            {s.title}
+          </button>
+        ))}
+      </nav>
+      {sections.map((s, i) => (
+        <section key={s.title} className="cmenu__section" ref={(el) => (sectionRefs.current[i] = el)}>
+          <h2 className="opt-section__title cmenu__title" tabIndex={-1}>
+            {s.title}
+          </h2>
           <ul className="cmenu__rows">
             {s.rows.map((r, k) => {
               const i = rows.indexOf(r)

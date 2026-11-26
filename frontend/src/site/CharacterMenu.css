@@ -10,6 +10,59 @@
 .cmenu__section {
   padding: 20px 0 8px;
   border-top: 1px solid var(--line);
+  scroll-margin-top: 8px;
+}
+
+/* bölüm atlama şeridi: menünün başında, sığmazsa yana kayar */
+.cmenu__jumps {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 4px;
+  padding: 4px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.cmenu__jumps button {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+
+.cmenu__jumps button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* telefonda şerit önizlemenin hemen altına yapışır: menünün her yerinden bölüm değişir; bölüm başı
+   önizleme ve şeridin altında durur */
+@media (max-width: 900px) {
+  .cmenu__jumps {
+    position: sticky;
+    top: var(--pv-top, 0);
+    z-index: 3;
+    margin-inline: -16px;
+    padding: 8px 16px;
+    background: var(--surface);
+    box-shadow: 0 1px 0 var(--line);
+  }
+
+  .cmenu__jumps button {
+    min-height: 44px;
+  }
+
+  .cmenu__section {
+    scroll-margin-top: calc(var(--pv-top, 0px) + 68px);
+  }
 }
 
 .cmenu__section:first-of-type {

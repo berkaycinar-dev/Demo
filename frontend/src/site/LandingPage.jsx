@@ -110,8 +110,9 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
           <section className="lp-open" aria-labelledby="acikBaslik">
             <div className="lp-open__head">
               <h2 id="acikBaslik">Lobide açık odalar</h2>
-              <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('lobi')}>
-                Tüm aktif odaları gör
+              {/* lobi oturum ister: misafire bağlantı nereye gittiğini söyler */}
+              <button type="button" className="link-btn link-btn--strong" onClick={() => onGo(user ? 'lobi' : 'giris')}>
+                {user ? 'Tüm aktif odaları gör' : 'Tüm odalar için giriş yap'}
               </button>
             </div>
             <ul className="lp-open__list">

@@ -261,6 +261,8 @@ const RECEIPT_COPY = {
   quiet: (n) => (n < 1 ? 'Kısa bir uğrayıştı; masan seni bekliyor.' : `Odada ${n} dk kaldın; masan seni bekliyor.`),
   again: 'Tekrar gir',
   close: 'Kapat',
+  // çalışılmış oturumun sonunda yarına sessiz bir davet (bildirim, seri yok)
+  tomorrow: 'Yarın aynı masa seni bekliyor.',
 }
 // Hızlı katılımda odaya geçmeden önce oda adının görünür kaldığı süre (Hemen gir ile kısalır).
 const QUICK_MS = 1600
@@ -346,6 +348,9 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
               </div>
             ))}
           </dl>
+        ) : null}
+        {worked ? (
+          <p className="leave-receipt__tomorrow">{RECEIPT_COPY.tomorrow}</p>
         ) : (
           <p className="leave-receipt__quiet">{RECEIPT_COPY.quiet(stay)}</p>
         )}

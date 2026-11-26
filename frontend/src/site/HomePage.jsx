@@ -72,16 +72,16 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
               {timerText}
             </span>
           </div>
+          {/* bugün henüz blok yoksa: kartlar arasında yüzen satır değil, Odama gir'in altında bir not */}
+          {!hasToday && <p className="home__zero">{TODAY_COPY.zero(timer.presetInfo.focus)}</p>}
         </section>
 
-        {hasToday ? (
+        {hasToday && (
           <section className="site-card home__today" aria-label="Bugünkü odak">
             <span className="site-muted">Bugünkü odak</span>
             <span className="stat__value">{formatMinutes(minutes)}</span>
             <span className="site-muted">{pomodoros} pomodoro tamamlandı</span>
           </section>
-        ) : (
-          <p className="home__zero">{TODAY_COPY.zero(timer.presetInfo.focus)}</p>
         )}
 
         <section className="site-card home__rooms">

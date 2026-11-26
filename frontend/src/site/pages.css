@@ -1002,6 +1002,8 @@
 }
 
 .stage__panel[data-tone='dark'] {
+  /* halkanın boş izi: zeminden seçilecek kadar açık (--surface-2 yalnızca bir ton açıktı) */
+  --ring-track: color-mix(in srgb, var(--stage-bg, #1f2433) 84%, #ffffff);
   --text: #eef1f6;
   --text-2: #d3d9e3;
   --muted: rgba(238, 241, 246, 0.78);
@@ -1021,6 +1023,7 @@
   }
 
   .stage__panel[data-tone='dark'] {
+    --ring-track: oklch(from var(--stage-bg, #1f2433) calc(l + 0.1) c h);
     --timer: oklch(from var(--stage-bg, #1f2433) calc(l + 0.2) c h);
     --break: oklch(from var(--stage-bg, #1f2433) calc(l + 0.13) c h);
     --surface-2: oklch(from var(--stage-bg, #1f2433) calc(l + 0.05) c h);
@@ -2584,6 +2587,41 @@
 
 .legal__section {
   margin-top: 24px;
+  scroll-margin-top: 24px;
+}
+
+/* içindekiler: bölüm başlıkları, numaralı ve sıkı */
+.legal__toc {
+  margin: 20px 0 8px;
+  padding: 14px 18px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface-2);
+}
+
+.site .legal__toc h2 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.legal__toc ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legal__toc .link-btn {
+  min-height: 36px;
+  text-align: left;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .legal__toc .link-btn {
+    min-height: 44px;
+  }
 }
 
 .site .legal__section h2 {
@@ -3604,6 +3642,12 @@
   color: var(--text-2);
 }
 
+.leave-receipt__tomorrow {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
 .site .leave-receipt h2 {
   display: flex;
   flex-wrap: wrap;
@@ -3772,10 +3816,10 @@
 
 /* Sayfam: bugün sayılan blok yokken tek satır */
 .home__zero {
-  margin: 0 !important;
-  padding: 4px 4px 0;
-  color: var(--text-2);
-  font-size: var(--text-body);
+  margin: 14px 0 0 !important;
+  color: var(--muted);
+  font-size: var(--text-label);
+  text-wrap: pretty;
 }
 
 /* açık / koyu geçişi: renkler kısa sürede döner */
@@ -4067,29 +4111,6 @@
   background: var(--primary);
   transform-origin: left center;
   transition: transform 200ms linear;
-}
-
-.lp-demo__try {
-  display: grid;
-  gap: 8px;
-  padding-top: 8px;
-}
-
-.site .lp-demo__try h3 {
-  margin: 0;
-  font-size: var(--text-label);
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.lp-demo__try ul {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--text-2);
-  font-size: var(--text-body);
 }
 
 @media (max-width: 900px) {

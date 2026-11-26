@@ -11,7 +11,8 @@ import { formatClock } from './usePomodoro'
 // Kendiliğinden oynar, Durdur ile durur (beş saniyeden uzun kendiliğinden ilerleyen içerik).
 // "Hareketi azalt"ta kendiliğinden oynamaz; adımlar tıklanarak gezilir.
 
-const THEME = 'teagarden'
+// Her turda sıradaki tema (hero'daki Kütüphane dışındakiler, Çay Bahçesi'nden başlayarak).
+const ROTATION = ['teagarden', 'cabin', 'office', 'camp', 'space', 'underwater', 'bar', 'treehouse', 'cyber']
 const CAPACITY = 4
 const STEP_MS = 6500
 // gösterimde odak bloku bu kadar dakikadan geri sayar (hızlandırılmış)
@@ -34,10 +35,7 @@ const DEMO_COPY = {
   break: 'Mola',
   gain: (min) => `+${min} dk bugüne`,
   sceneLabel: (name) => `${name} odası, oturum gösterimi`,
-  tryTitle: 'Odada dene',
-  trySteam: 'Semavere tıkla: buhar tüter',
-  tryDrag: 'Odayı sürükle: döner',
-  hint: 'Semavere tıkla · Sürükle: döndür',
+  hint: 'Sürükle: döndür',
   quoteLead: 'Odanın bugünkü sözü',
 }
 
@@ -64,12 +62,12 @@ function useInView(ref, margin) {
   return state
 }
 
-function DemoRoom({ step, avatar, arrive }) {
-  const { Room } = THEMES[THEME]
+function DemoRoom({ theme, step, avatar, arrive }) {
+  const { Room } = THEMES[theme]
   const { occupants } = useRoomPeople({ capacity: CAPACITY, seed: 23, me: avatar, forced: step === 2 ? 'break' : 'focus' })
   return (
     <Room capacity={CAPACITY} canvasStyle={{ width: '100%' }} arrive={arrive} lampBoost={step === 1} hint={DEMO_COPY.hint}>
-      <AvatarCrowd occupants={occupants} theme={THEME} />
+      <AvatarCrowd occupants={occupants} theme={theme} />
     </Room>
   )
 }
@@ -83,6 +81,7 @@ export default function LandingDemo({ avatar, quote }) {
   const [elapsed, setElapsed] = useState(0)
   const [round, setRound] = useState(0)
   const running = playing && visible
+  const theme = ROTATION[round % ROTATION.length]
 
   useEffect(() => {
     if (!running) return undefined
@@ -128,13 +127,13 @@ export default function LandingDemo({ avatar, quote }) {
         </div>
 
         <figure className="lp-demo__stage">
-          <div className="lp-demo__scene" role="group" aria-label={DEMO_COPY.sceneLabel(THEMES[THEME].label)} data-step={step}>
+          <div className="lp-demo__scene" role="group" aria-label={DEMO_COPY.sceneLabel(THEMES[theme].label)} data-step={step}>
             {/* sahne kurulana dek temanın görseli durur (boş kutu görünmesin) */}
-            {near ? <DemoRoom step={step} avatar={avatar} arrive={!reducedMotion()} /> : <RoomShot theme={THEME} className="lp-demo__poster" />}
+            {near ? <DemoRoom key={theme} theme={theme} step={step} avatar={avatar} arrive={!reducedMotion()} /> : <RoomShot theme={theme} className="lp-demo__poster" />}
             {step === 0 && visible && (
               <div key={round} className="lp-demo__sign" aria-hidden="true">
                 <span className="stage__arrival-lead">{DEMO_COPY.arrive}</span>
-                <span className="stage__arrival-name">{THEMES[THEME].label}</span>
+                <span className="stage__arrival-name">{THEMES[theme].label}</span>
               </div>
             )}
             {clock && (
@@ -186,14 +185,6 @@ export default function LandingDemo({ avatar, quote }) {
             )}
             {playing ? DEMO_COPY.pause : DEMO_COPY.play}
           </button>
-
-          <div className="lp-demo__try">
-            <h3>{DEMO_COPY.tryTitle}</h3>
-            <ul>
-              <li>{DEMO_COPY.trySteam}</li>
-              <li>{DEMO_COPY.tryDrag}</li>
-            </ul>
-          </div>
         </div>
       </div>
     </section>
