@@ -210,6 +210,94 @@ html {
   border-color: var(--line-strong);
 }
 
+/* tema kutusu: düğmenin altına biner, sağ kenara hizalı */
+.mode-menu {
+  position: relative;
+}
+
+.mode-menu__pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  padding: 8px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgba(30, 20, 10, 0.6);
+  animation: motion-drop var(--dur-state) var(--ease-out);
+}
+
+.mode-menu__pop[hidden] {
+  display: none;
+}
+
+/* dar ekranda düğme sağ kenarda değil: kutu ekranın sağ kenarına hizalanır, taşmaz */
+@media (max-width: 640px) {
+  .mode-menu__pop {
+    position: fixed;
+    top: calc(var(--header-h, 64px) + 4px);
+    right: 16px;
+  }
+}
+
+/* Açık / Koyu / Sistem: üç eşit parça */
+.mode-choice {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.mode-choice button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-block);
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--text-label);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mode-choice button[aria-pressed='true'] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+  box-shadow: inset 0 0 0 1px var(--sel-ring), var(--voxel-face);
+  color: var(--chip-on-fg);
+}
+
+.account__mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.account__mode-label {
+  font-weight: 600;
+}
+
+.account__mode-hint {
+  font-size: var(--text-label);
+}
+
+@media (max-width: 420px) {
+  .account__mode .mode-choice {
+    display: flex;
+  }
+
+  .account__mode .mode-choice button {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 /* sayfa gövdesi */
 
 .site-main {

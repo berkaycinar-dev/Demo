@@ -9,6 +9,15 @@
     <meta name="theme-color" content="#fffdf9" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#2c2824" media="(prefers-color-scheme: dark)" />
     <title>SameDesk</title>
+    <!-- Açık / koyu mod ilk boyamadan önce: useColorMode.js ile aynı kural (kayıt yoksa sistem). -->
+    <script>
+      (function () {
+        var p = null
+        try { p = localStorage.getItem('samedesk-mode') } catch (e) {}
+        var dark = p === 'dark' || (p !== 'light' && !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches))
+        if (dark) document.documentElement.setAttribute('data-mode', 'dark')
+      })()
+    </script>
     <meta name="description" content="Kamerasız birlikte çalışma odaları: avatarınla bir odaya otur, pomodoro sayacını başlat, başkalarıyla aynı odada odaklan." />
     <!-- paylaşım önizlemesi: görsel scripts/render-brand-assets.mjs ile üretilir. Adresler tam yazılır
          (bazı platformlar göreli yolu okumaz); alan adı değişirse buradaki dört adres de değişir. -->

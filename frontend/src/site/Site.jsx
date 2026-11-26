@@ -118,7 +118,7 @@ export default function Site() {
     }
   })
   const mainRef = useRef(null)
-  const { isDark, toggle: toggleMode } = useColorMode()
+  const { pref: modePref, isDark, setPref: setModePref } = useColorMode()
   useDaypart()
   const timer = usePomodoro()
   const page = resolvePage(requested, user)
@@ -277,7 +277,7 @@ export default function Site() {
 
   return (
     <div className={`site${focusMode ? ' site--focus' : ''}`}>
-      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} isDark={isDark} onToggleMode={toggleMode} wide={Boolean(roomPage)} />}
+      {!focusMode && <SiteHeader user={user} pages={PAGES} page={page} navPage={NAV_OF[page] ?? page} onGo={go} onLogout={signOut} modePref={modePref} onModeChange={setModePref} wide={Boolean(roomPage)} />}
 
       {/* Sayfa adı gezinmeden sonra burada duyurulur; aynı ad tekrar gelirse önce boşaltılır (go). */}
       <p className="sr-only" role="status" aria-live="polite">
@@ -341,8 +341,8 @@ export default function Site() {
         {page === 'hesap' && (
           <AccountPage
             user={user}
-            isDark={isDark}
-            onToggleMode={toggleMode}
+            modePref={modePref}
+            onModeChange={setModePref}
             onLogout={signOut}
             onDeleted={() => {
               try {

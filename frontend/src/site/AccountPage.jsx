@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { exportAccountData, updateProfile } from './auth'
 import { Field } from './AuthPages'
+import { ModeChoice } from './SiteChrome'
 
 // Hesap: header'daki kullanıcı adına tıklayınca açılır. Bugün yalnızca görünen ad değişir. Sunucuda
 // henüz ucu olmayan işlemler (e-posta, şifre, hesabı silme) form göstermez: durum sessiz bir notla
@@ -10,7 +11,7 @@ const ACCOUNT_COPY = {
   lead: 'Görünen adını buradan değiştirebilir, verilerini indirebilirsin.',
 }
 
-export default function AccountPage({ user, onUserChange, isDark, onToggleMode, onLogout }) {
+export default function AccountPage({ user, onUserChange, modePref, onModeChange, onLogout }) {
   return (
     <div className="account">
       <div className="page-head">
@@ -22,21 +23,24 @@ export default function AccountPage({ user, onUserChange, isDark, onToggleMode, 
         <ProfileCard user={user} onUserChange={onUserChange} />
         <LoginCard user={user} />
         <DataCard user={user} />
-        <SessionCard isDark={isDark} onToggleMode={onToggleMode} onLogout={onLogout} />
+        <SessionCard modePref={modePref} onModeChange={onModeChange} onLogout={onLogout} />
       </div>
     </div>
   )
 }
 
 // Görünüm ve oturum: telefonda üst menüde yer olmadığı için koyu mod ve çıkış burada da durur.
-function SessionCard({ isDark, onToggleMode, onLogout }) {
+// Sistem: cihazın açık / koyu ayarını izler.
+function SessionCard({ modePref, onModeChange, onLogout }) {
   return (
     <section className="site-card account__card" aria-labelledby="oturumBaslik">
       <h2 id="oturumBaslik">Görünüm ve oturum</h2>
+      <div className="account__mode">
+        <p className="account__mode-label">Tema</p>
+        <ModeChoice pref={modePref} onChange={onModeChange} />
+        <p className="site-muted account__mode-hint">Sistem, cihazının açık ya da koyu ayarını izler.</p>
+      </div>
       <div className="site-actions">
-        <button type="button" className="site-btn" onClick={onToggleMode}>
-          {isDark ? 'Açık moda geç' : 'Koyu moda geç'}
-        </button>
         <button type="button" className="site-btn account__logout" onClick={onLogout}>
           Çıkış yap
         </button>

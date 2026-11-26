@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 // Sitenin çerçevesi: marka, üst menü, açık/koyu mod düğmesi ve alt bilgi.
 
@@ -15,22 +15,98 @@ export function BrandMark({ size = 28 }) {
   )
 }
 
-// Header'da tek biçim: 44 px yuvarlak ikon düğmesi (misafir de oturumlu da, her sayfada aynı).
-export function ModeToggle({ isDark, onToggle }) {
-  const label = isDark ? 'Açık moda geç' : 'Koyu moda geç'
+const MODE_COPY = {
+  label: 'Tema',
+  options: [
+    { id: 'light', label: 'Açık' },
+    { id: 'dark', label: 'Koyu' },
+    { id: 'system', label: 'Sistem' },
+  ],
+  button: (name) => `Tema: ${name}`,
+}
+
+function ModeIcon({ id }) {
+  const common = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  if (id === 'light')
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+      </svg>
+    )
+  if (id === 'dark')
+    return (
+      <svg {...common}>
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+      </svg>
+    )
   return (
-    <button type="button" className="mode-btn" aria-pressed={isDark} aria-label={label} title={label} onClick={onToggle}>
-      {isDark ? (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-        </svg>
-      )}
-    </button>
+    <svg {...common}>
+      <rect x="3" y="4" width="18" height="12" rx="2" />
+      <path d="M8 20h8M12 16v4" />
+    </svg>
+  )
+}
+
+// Üç seçenek yan yana (Açık / Koyu / Sistem): header kutusunda da hesap sayfasında da aynı parça.
+export function ModeChoice({ pref, onChange }) {
+  return (
+    <div className="mode-choice" role="group" aria-label={MODE_COPY.label}>
+      {MODE_COPY.options.map((o) => (
+        <button key={o.id} type="button" aria-pressed={pref === o.id} onClick={() => onChange(o.id)}>
+          <ModeIcon id={o.id} />
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Header'da tek biçim: 44 px yuvarlak ikon düğmesi; altına üç seçenekli küçük kutu açar. Dışarı
+// tıklayınca ya da Esc ile kapanır, Esc odağı düğmeye geri verir.
+export function ModeMenu({ pref, onChange }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const btnRef = useRef(null)
+  const popId = useId()
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+      btnRef.current?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  const current = MODE_COPY.options.find((o) => o.id === pref) ?? MODE_COPY.options[2]
+  const label = MODE_COPY.button(current.label)
+  return (
+    <div className="mode-menu" ref={wrapRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="mode-btn"
+        aria-label={label}
+        title={label}
+        aria-expanded={open}
+        aria-controls={popId}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ModeIcon id={current.id} />
+      </button>
+      <div id={popId} className="mode-menu__pop" hidden={!open}>
+        <ModeChoice pref={pref} onChange={onChange} />
+      </div>
+    </div>
   )
 }
 
@@ -63,7 +139,7 @@ function useHeaderHeight() {
 const QUIET_CTA = new Set(['anasayfa', 'giris', 'kayit'])
 
 // wide: oda sayfalarında sahne tam genişlik; header da sayfa kabına değil sahnenin kenarına hizalanır.
-export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, isDark, onToggleMode, wide = false }) {
+export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, modePref, onModeChange, wide = false }) {
   const ref = useHeaderHeight()
 
   return (
@@ -84,7 +160,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
       )}
       <div className="site-header__tools">
         <span className={user ? 'site-header__mode' : undefined}>
-          <ModeToggle isDark={isDark} onToggle={onToggleMode} />
+          <ModeMenu pref={modePref} onChange={onModeChange} />
         </span>
         {user ? (
           <>
