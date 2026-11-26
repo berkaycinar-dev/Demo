@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import AvatarCrowd from '../avatars/AvatarCrowd'
 import useRoomPeople, { roomSeed as seedOf } from '../avatars/useRoomPeople'
 import { useRoom } from '../rooms/core/roomContext'
@@ -11,11 +11,16 @@ import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
 import useFirstVisit from './useFirstVisit'
 import { activeMembers } from './roomStore'
+import PersonCard from './PersonCard'
+import WorkingOnField from './WorkingOnField'
+import useWorkingOn from './workingOn'
+import { PLACEHOLDER } from './placeholders'
 
 // Odadaki gerçek kişiler bu aralıkla sunucudan tazelenir.
 const MEMBERS_POLL_MS = 10_000
 
-/** Sunucuda şu an bu odada olanlar (kendin hariç): [{ id, name }] ya da yüklenene kadar []. */
+/** Sunucuda şu an bu odada olanlar (kendin hariç): [{ id, name, joinedAt }] ya da yüklenene kadar [].
+ * joinedAt: odaya giriş zamanı (ms; sunucunun startedAt değeri), okunamazsa null. */
 function useLiveMates(roomId, meId) {
   const [members, setMembers] = useState([])
   useEffect(() => {
@@ -33,7 +38,7 @@ function useLiveMates(roomId, meId) {
       clearInterval(id)
     }
   }, [roomId])
-  return useMemo(() => members.filter((m) => m.userId !== meId).map((m) => ({ id: m.userId, name: m.username })), [members, meId])
+  return useMemo(() => members.filter((m) => m.userId !== meId).map((m) => ({ id: m.userId, name: m.username, joinedAt: Date.parse(m.startedAt) || null })), [members, meId])
 }
 
 // idle: odadasın ama sayaç çalışmıyor (başlamadı ya da duraklatıldı); avatar masada oturur.
@@ -299,7 +304,7 @@ function StatusMenu({ status, away, onAway, spotName, aside, children }) {
   )
 }
 
-function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
+function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
   const [spot, setSpot] = useState(null)
   const [spots, setSpots] = useState([])
   const [names, setNames] = useState(false)
@@ -357,11 +362,77 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
         name: o.me ? 'Sen' : o.name,
         me: !!o.me,
         avatar: o.avatar,
-        status: o.me && idle ? 'idle' : o.status,
+        // başkalarının durumu sunucuda yok: geçici değer (placeholders.js)
+        status: o.me ? (idle ? 'idle' : o.status) : o.real ? PLACEHOLDER.status : o.status,
         since: o.since,
+        joinedAt: o.joinedAt ?? null,
       })),
     [occupants, idle],
   )
+
+  // Kişi kartı: listede satırın üstüne gelince / odaklanınca / dokununca, sahnede avatarın üstüne
+  // gelince / dokununca açılır. via: 'hover' (fare çıkınca kapanır), 'focus' (odak gidince kapanır),
+  // 'tap' (dışarı dokununca ya da Esc ile kapanır). from: 'list' | 'scene'.
+  const [card, setCard] = useState(null)
+  const cardId = useId()
+  // Esc odağı satıra geri verirken kart yeniden açılmasın
+  const quietFocus = useRef(false)
+  const [myWork] = useWorkingOn(username)
+  // kart yalnızca panel görünürken (odak modu değil) ve kişi hâlâ odadayken çizilir; Esc yalnızca o zaman
+  // yakalanır
+  const cardShown = !!card && !focusMode && people.some((x) => x.id === card.id)
+  useEffect(() => {
+    if (!cardShown) return undefined
+    const onDown = (e) => {
+      if (!e.target.closest?.('[data-person-row]')) setCard(null)
+    }
+    // yakalama evresinde: Esc önce kartı kapatır, odak modundan çıkmaz
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setCard(null)
+      if (card.from === 'list' && card.anchor?.isConnected) {
+        quietFocus.current = true
+        card.anchor.focus()
+      }
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey, true)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey, true)
+    }
+  }, [card, cardShown])
+  const rowCard = (p, via, anchor) => ({ id: p.id, anchor, via, from: 'list', prefer: 'left' })
+  const onScenePoint = useCallback((id, anchor, via) => {
+    setCard((c) => {
+      if (via === 'hover') {
+        if (!id) return c?.via === 'hover' && c.from === 'scene' ? null : c
+        if (c && c.via !== 'hover') return c
+      }
+      if (!id || !anchor) return c
+      return { id, anchor, via, from: 'scene', prefer: 'top' }
+    })
+  }, [])
+  // Kartın satırları: seninki sayaçtan ve kendi yazdığından; başkalarınınki sunucudan (odada süre) ve
+  // sunucuda olmayan alanlar için geçici değerlerden (placeholders.js).
+  const cardPerson = (() => {
+    const p = cardShown && people.find((x) => x.id === card.id)
+    if (!p) return null
+    const mins = (from) => (from ? Math.max(0, Math.floor((now - from) / 60000)) : null)
+    if (p.me) {
+      const focusing = p.status === 'focus' && timer.phase === 'focus' && timer.running
+      return { name: p.name, avatar: p.avatar, status: p.status, focusMin: focusing ? Math.floor((timer.total - timer.remaining) / 60) : null, workingOn: myWork || null, inRoomMin: null }
+    }
+    return {
+      name: p.name,
+      avatar: p.avatar,
+      status: p.status,
+      focusMin: p.status === 'focus' ? mins(PLACEHOLDER.focusSince(p)) : null,
+      workingOn: PLACEHOLDER.workingOn(p),
+      inRoomMin: mins(p.joinedAt),
+    }
+  })()
 
   useEffect(() => () => clearTimeout(copyTimer.current), [])
   const flash = (state, ms) => {
@@ -444,6 +515,7 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
           <SpotPicker spots={spots} value={spotValue} onPick={pickSpot} note={myStatus !== 'break' && spot ? STATUS_COPY.nextBreak : null} />
         </StatusMenu>
         {/* odak modunun açıklaması: ilk ziyarette görünür, sonra yalnızca ekran okuyucuya */}
+        <WorkingOnField username={username} className="desk__working" />
         <FocusModeNote hints={hints} />
         {timerCard}
       </div>
@@ -466,20 +538,41 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
         <div id="peopleList" className="fold__body" hidden={!peopleOpen}>
           <ul className="people__list" aria-label={PEOPLE_COPY.list}>
             {people.map((p) => (
-              <li
-                key={p.id}
-                className={`people__row roster__item--${p.status}${p.me ? ' people__row--me' : ''}`}
-                onPointerEnter={() => setPicked(p.id)}
-                onPointerLeave={() => setPicked(null)}
-              >
-                <AvatarChip avatar={p.avatar} />
-                <span className="people__name">{p.name}</span>
-                <StatusText person={p} now={now} />
+              <li key={p.id} className="people__item">
+                <button
+                  type="button"
+                  data-person-row=""
+                  className={`people__row roster__item--${p.status}${p.me ? ' people__row--me' : ''}`}
+                  aria-describedby={cardPerson && card.id === p.id ? cardId : undefined}
+                  onPointerEnter={(e) => {
+                    setPicked(p.id)
+                    if (e.pointerType === 'mouse') setCard(rowCard(p, 'hover', e.currentTarget))
+                  }}
+                  onPointerLeave={(e) => {
+                    setPicked(null)
+                    if (e.pointerType === 'mouse') setCard((c) => (c?.via === 'hover' && c.id === p.id ? null : c))
+                  }}
+                  onFocus={(e) => {
+                    const quiet = quietFocus.current
+                    quietFocus.current = false
+                    if (!quiet && e.currentTarget.matches(':focus-visible')) setCard(rowCard(p, 'focus', e.currentTarget))
+                  }}
+                  onBlur={() => setCard((c) => (c?.via === 'focus' && c.id === p.id ? null : c))}
+                  onClick={(e) => {
+                    const el = e.currentTarget
+                    setCard((c) => (c?.id === p.id && c.via === 'tap' ? null : rowCard(p, 'tap', el)))
+                  }}
+                >
+                  <AvatarChip avatar={p.avatar} />
+                  <span className="people__name">{p.name}</span>
+                  <StatusText person={p} now={now} />
+                </button>
               </li>
             ))}
           </ul>
         </div>
       </div>
+      {cardPerson && <PersonCard id={cardId} person={cardPerson} anchor={card.anchor} prefer={card.prefer} />}
     </>
   )
 
@@ -504,7 +597,7 @@ function RoomView({ room, meId, avatar, timer, onLeave, focusMode, onFocusModeCh
           onSpotClick={goToSpot}
         >
           <SpotsReporter onSpots={setSpots} />
-          <AvatarCrowd occupants={crowd} theme={room.theme} showNames={names} highlight={picked} />
+          <AvatarCrowd occupants={crowd} theme={room.theme} showNames={names} highlight={picked} onPersonPoint={onScenePoint} />
         </Room>
       )}
       panel={panel}

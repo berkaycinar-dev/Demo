@@ -53,7 +53,7 @@ export const roomMates = (capacity, seed) => roomBots(capacity, seed).slice(1)
  */
 export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0, people = null }) {
   const simulated = useMemo(() => roomBots(capacity, seed), [capacity, seed])
-  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name }]) simüle kişilerin yerine onlar
+  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name, joinedAt? }]) simüle kişilerin yerine onlar
   // oturur: koltuk sırası aynı, avatar kimlikten sabit üretilir. Durumları uydurulmaz, hep masada.
   const bots = useMemo(() => {
     if (!people) return simulated
@@ -65,6 +65,8 @@ export default function useRoomPeople({ capacity, seed = 1, me = null, forced = 
       seat: seats[i + 1],
       rnd: seededRandom(roomSeed(p.id) * 31),
       real: true,
+      // odaya giriş zamanı (ms; sunucunun startedAt değeri)
+      joinedAt: p.joinedAt ?? null,
     }))
     return [simulated[0], ...real]
   }, [simulated, people, capacity])
@@ -115,7 +117,7 @@ export default function useRoomPeople({ capacity, seed = 1, me = null, forced = 
     }
     for (const b of others) {
       const s = status[b.id] ?? { status: 'focus' }
-      list.push({ id: b.id, name: b.name, avatar: b.avatar, seat: b.seat, status: forced ?? s.status, since: s.since })
+      list.push({ id: b.id, name: b.name, avatar: b.avatar, seat: b.seat, status: forced ?? s.status, since: s.since, real: !!b.real, joinedAt: b.joinedAt ?? null })
     }
     return list
   }, [bots, status, me, mine, forced, cheer])

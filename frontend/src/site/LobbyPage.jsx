@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { THEMES } from '../rooms/themes'
 import { accessLabel, membersLabel } from './access'
+import WorkingOnField from './WorkingOnField'
 import { codeMatches } from './roomStore'
 import useShortcut from './useShortcut'
 import RoomShot from './RoomShot'
@@ -368,7 +369,7 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
 // Lobi: odalarla ilgili her şey tek sayfada. Üstte hızlı katılma ve oda oluşturma; ortada
 // aranabilir aktif odalar ve altında davetli odalar; yanda kodla katılma ve son katıldıkların.
 // Davetli odaya listeden girerken kod sorulur; daha önce katıldığın odaya geçmişten kodsuz girilir.
-export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
+export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
   // "/": aramaya atla
@@ -396,7 +397,10 @@ export default function LobbyPage({ rooms, joined, receipt, onCloseReceipt, onEn
       {receipt && <LeaveReceipt receipt={receipt} onEnter={onEnter} onClose={onCloseReceipt} />}
       {/* sayfanın başı yalnızca başlık ve iki eylem: kart, zemin süsü ve sayı hapları yok; odalar sayfanın kendisi */}
       <header className="lobby-head">
-        <h1 id="lobiBaslik">Birlikte çalışacak bir oda seç</h1>
+        <div className="lobby-head__title">
+          <h1 id="lobiBaslik">Birlikte çalışacak bir oda seç</h1>
+          <WorkingOnField username={username} className="lobby-head__working" />
+        </div>
         <div className="lobby-head__actions">
           <QuickJoin rooms={open} onEnter={onEnter} />
           <button type="button" className="site-btn site-btn--lg" onClick={onCreate}>

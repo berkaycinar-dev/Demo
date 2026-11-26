@@ -1,0 +1,82 @@
+/* Odadaki kişinin kartı (PersonCard.jsx): sayfanın üstüne biner, fareyi tutmaz (denetimi yok). Renkler
+   :root token'larından; açık ve koyu modda aynı kurallar. */
+.person-card {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(288px, calc(100vw - 16px));
+  padding: 10px 14px 10px 10px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--card-edge), 0 18px 36px -18px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-body);
+  font-size: var(--text-label);
+  line-height: 1.4;
+  pointer-events: none;
+  animation: motion-fade 140ms ease-out;
+}
+
+.person-card__shot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.person-card__shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.person-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.person-card__name {
+  font-size: var(--text-body);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.person-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2);
+}
+
+.person-card__time {
+  font-variant-numeric: tabular-nums;
+}
+
+.person-card__work {
+  margin-top: 4px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.person-card__meta {
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .person-card {
+    animation: none;
+  }
+}
