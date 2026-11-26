@@ -302,7 +302,16 @@ export default function CharacterMenu({ avatar, set, notes, kit, onRow }) {
     const el = sectionRefs.current[i]
     if (!el) return
     setSpy(i, true)
-    revealEl(el)
+    // geniş ekranda yalnızca menünün gövdesi kayar; scrollIntoView sayfayı da kaydırırdı
+    const body = barRef.current?.nextElementSibling
+    if (body && /auto|scroll/.test(getComputedStyle(body).overflowY)) {
+      const margin = parseFloat(getComputedStyle(el).scrollMarginTop) || 0
+      const top = body.scrollTop + el.getBoundingClientRect().top - body.getBoundingClientRect().top - margin
+      const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      body.scrollTo({ top, behavior: reduce ? 'auto' : 'smooth' })
+    } else {
+      revealEl(el)
+    }
     el.querySelector('h2')?.focus({ preventScroll: true })
   }
 

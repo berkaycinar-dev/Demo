@@ -26,9 +26,19 @@
   z-index: 3;
   display: grid;
   grid-template-columns: repeat(var(--count), minmax(0, 1fr));
-  margin: 0 calc(-1 * var(--pad-card)) 4px;
+  /* kartın 1 px iç kenarını örtmez: yanlardan 1 px içeride, üst köşeler kartla aynı yuvarlaklıkta */
+  margin: 0 calc(1px - var(--pad-card)) 4px;
+  border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0;
   background: var(--grain, none), var(--surface);
   box-shadow: 0 1px 0 var(--line);
+}
+
+.cmenu__jumps button:first-of-type {
+  border-top-left-radius: inherit;
+}
+
+.cmenu__jumps button:last-of-type {
+  border-top-right-radius: inherit;
 }
 
 .cmenu__jumps button {
@@ -118,7 +128,7 @@
 
 @media (max-width: 900px) {
   .cmenu__jumps {
-    margin-inline: -16px;
+    margin-inline: -15px;
   }
 }
 
@@ -444,8 +454,9 @@
   gap: 12px;
 }
 
+/* çubuk kartın üst kenarına oturur (1 px: kartın iç kenar çizgisi görünür kalır) */
 .avatar-page__editor--menu {
-  padding-top: 4px;
+  padding-top: 1px;
 }
 
 /* geniş ekranda kart sol sütunun yüksekliğinde (site.css, contain: size): menü kartın içinde kayar,
@@ -464,7 +475,7 @@
   .avatar-page__editor--menu .cmenu__jumps {
     position: relative;
     flex: none;
-    margin: 0;
+    margin: 0 1px;
   }
 
   .avatar-page__editor--menu .cmenu__body {
