@@ -40,7 +40,7 @@ class RoomPresencePublisher {
         for (UUID roomId : rooms) {
             try {
                 List<ActiveMemberResponse> members = sessions.findActive(roomId).stream()
-                        .map(s -> new ActiveMemberResponse(s.getUserId(), s.getUsername(), s.getRole(), s.getStartedAt()))
+                        .map(ActiveMemberResponse::of)
                         .toList();
                 var snapshot = new StompRoomEventPublisher.RoomEvent(1, UUID.randomUUID(), "PRESENCE_SNAPSHOT",
                         roomId, clock.instant().toString(), new Presence(members));

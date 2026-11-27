@@ -107,13 +107,20 @@ class RoomSessionControllerTest {
     @Test
     void activeReturnsPeopleInside() throws Exception {
         when(sessionService.active(ME, ROOM)).thenReturn(List.of(
-                new ActiveMemberResponse(ME, "ada_l", RoomRole.MEMBER, Instant.parse("2026-11-09T10:00:00Z"))));
+                new ActiveMemberResponse(ME, "ada_l", RoomRole.MEMBER, Instant.parse("2026-11-09T10:00:00Z"),
+                        "{\"body\":\"female\",\"bangs\":true}"),
+                new ActiveMemberResponse(UUID.randomUUID(), "bob_b", RoomRole.MEMBER,
+                        Instant.parse("2026-11-09T10:01:00Z"), null)));
 
         mockMvc.perform(get(BASE + "/active"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].userId").value(ME.toString()))
                 .andExpect(jsonPath("$[0].username").value("ada_l"))
                 .andExpect(jsonPath("$[0].role").value("MEMBER"))
-                .andExpect(jsonPath("$[0].startedAt").exists());
+                .andExpect(jsonPath("$[0].startedAt").exists())
+                // the avatar is a JSON object, not a string holding JSON
+                .andExpect(jsonPath("$[0].avatar.body").value("female"))
+                .andExpect(jsonPath("$[0].avatar.bangs").value(true))
+                .andExpect(jsonPath("$[1].avatar").isEmpty());
     }
 }
