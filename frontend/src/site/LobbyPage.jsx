@@ -352,7 +352,7 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
 
 const LOBBY_COPY = {
   title: 'Kimin yanına oturacaksın?',
-  busy: 'Şu an çalışılan odalar',
+  busy: 'Herkese açık odalar',
   quiet: 'Diğer odalar',
   key: 'Anahtarın var mı?',
   recent: 'Son girdiğin odalar',
@@ -363,7 +363,15 @@ const LOBBY_COPY = {
   enterShort: 'Odaya gir',
   enterCode: 'Kodla gir',
   codeLabel: (name) => `${name} odasına davet koduyla gir`,
-  members: (n, cap) => `${n} üye · ${cap} kişilik`,
+  // herkese açık odada üyelik yok: doluluk içeride olanlarla; davetli odada üye sayısı da yazılır
+  fill: (room) =>
+    room.access === 'invite'
+      ? `${room.memberCount ?? 0} üye · ${countOf(room)} içeride`
+      : `${countOf(room)} kişi içeride · ${room.capacity} kişilik`,
+  invites: 'Davetli odaların',
+  invitesNote: 'Üyesi olduğun davetli odalar. Odada değilken orada uzakta görünürsün.',
+  remove: (room) => (room.myRole === 'OWNER' ? 'Sil' : 'Ayrıl'),
+  removeLabel: (room) => (room.myRole === 'OWNER' ? `${room.name} odasını sil` : `${room.name} odasından ayrıl`),
   full: 'Dolu',
   empty: 'boş',
   inside: 'Şu an içeride',
@@ -380,7 +388,8 @@ const LOBBY_COPY = {
 }
 
 const isLocked = (room) => room.access === 'invite' && !room.myRole
-const countOf = (room) => (Number.isFinite(room.memberCount) ? room.memberCount : 0)
+// şu an içeride olanlar (herkese açık odada doluluk bununla; üyelik yok)
+const countOf = (room) => (Number.isFinite(room.insideCount) ? room.insideCount : 0)
 const PEOPLE_SHOWN = 6
 // bir sayfada en fazla bu kadar oda
 const PAGE_SIZE = 5
@@ -390,12 +399,13 @@ const AV_COLORS = ['#e8b77a', '#9fc7c0', '#e0a08a', '#c8b6e2', '#b9d08f']
 const colorOf = (name) => AV_COLORS[[...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7) % AV_COLORS.length]
 const minutesSince = (iso) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000))
 
-// Üyesi olunan odalarda şu an içeride olanlar: { [roomId]: [{ userId, username, startedAt }] }. Sunucu bu
-// listeyi yalnızca üyelere verir; diğer odalar için kayıt yoktur. Lobi açıkken düzenli yenilenir.
+// Odalarda şu an içeride olanlar: { [roomId]: [{ userId, username, startedAt }] }. Herkese açık odaların
+// listesini herkes görür; davetli odanınkini yalnızca üyeler (orada içeride olmayan üyeler uzakta
+// gelir, burada sayılmaz). Lobi açıkken düzenli yenilenir.
 function useActivePeople(rooms, username) {
   const [people, setPeople] = useState({})
   const ids = rooms
-    .filter((r) => r.myRole)
+    .filter((r) => r.access === 'public' || r.myRole)
     .map((r) => r.id)
     .join(',')
   useEffect(() => {
@@ -405,7 +415,7 @@ function useActivePeople(rooms, username) {
       Promise.all(
         ids.split(',').map((id) =>
           activeMembers(id)
-            .then((list) => [id, Array.isArray(list) ? list.filter((p) => p.username !== username) : null])
+            .then((list) => [id, Array.isArray(list) ? list.filter((p) => p.online !== false && p.username !== username) : null])
             .catch(() => [id, null]),
         ),
       ).then((pairs) => {
@@ -448,7 +458,7 @@ function Person({ person }) {
 }
 
 // Oda kartı: solda odanın görüntüsü, sağda ad, doluluk ve içeridekiler; tek eylem.
-function RoomCard({ room, people, onOpen }) {
+function RoomCard({ room, people, onOpen, onRemove }) {
   const locked = isLocked(room)
   const full = countOf(room) >= room.capacity
   const inside = people ?? null
@@ -470,13 +480,21 @@ function RoomCard({ room, people, onOpen }) {
             <span className="lobby-room__fill">
               <Seats room={room} />
               {full ? `${LOBBY_COPY.full} · ` : ''}
-              {LOBBY_COPY.members(countOf(room), room.capacity)}
+              {LOBBY_COPY.fill(room)}
             </span>
           </div>
-          <button type="button" className="site-btn site-btn--primary" onClick={() => onOpen(room)} aria-label={locked ? LOBBY_COPY.codeLabel(room.name) : LOBBY_COPY.enter(room.name)}>
-            {locked && <LockIcon />}
-            {locked ? LOBBY_COPY.enterCode : inside?.length ? LOBBY_COPY.sitWith : LOBBY_COPY.enterShort}
-          </button>
+          <div className="lobby-room__actions">
+            {/* sahibi siler, davetli odanın üyesi ayrılır (onaylı) */}
+            {onRemove && room.myRole && (
+              <button type="button" className="site-btn lobby-room__remove" onClick={() => onRemove(room)} aria-label={LOBBY_COPY.removeLabel(room)}>
+                {LOBBY_COPY.remove(room)}
+              </button>
+            )}
+            <button type="button" className="site-btn site-btn--primary" onClick={() => onOpen(room)} aria-label={locked ? LOBBY_COPY.codeLabel(room.name) : LOBBY_COPY.enter(room.name)}>
+              {locked && <LockIcon />}
+              {locked ? LOBBY_COPY.enterCode : inside?.length ? LOBBY_COPY.sitWith : LOBBY_COPY.enterShort}
+            </button>
+          </div>
         </div>
         {/* içeridekiler yalnızca üyesi olunan odalarda gelir (sunucu kuralı); diğerlerinde odanın tanımı */}
         {inside === null ? (
@@ -534,7 +552,7 @@ function Pager({ page, count, total, onGo }) {
 // oluştur. Solda üyesi olan odalar kalabalıktan sessize kartlar hâlinde; kartta içeridekiler (yalnızca
 // üyesi olunan odalarda, sunucu kuralı) ve tek eylem. Üyesi olmayan odalar ve kilitli davetli odalar altta
 // küçük düğmeler. Sağda "ne üzerinde çalışıyorum", davet koduyla giriş ve son girilen odalar.
-export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onEnterByCode, onForget, onCreate }) {
+export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onEnterByCode, onForget, onCreate, onRemove }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
@@ -549,7 +567,9 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
 
   const q = trLower(query.trim())
   const matches = (r) => !q || trLower(r.name).includes(q) || trLower(THEMES[r.theme]?.label ?? '').includes(q)
-  const shown = rooms.filter(matches)
+  // davetli odaların (üyesi ya da sahibi olduğun) ayrı bölümde; ana listede herkese açık odalar
+  const invites = rooms.filter((r) => r.access === 'invite' && r.myRole && matches(r))
+  const shown = open.filter(matches)
   const searching = Boolean(q)
   // kartlar: kilitli olmayan ve üyesi olan odalar, kalabalıktan sessize; geri kalanlar altta düğme
   const busy = shown.filter((r) => !isLocked(r) && countOf(r) > 0).sort((a, b) => countOf(b) - countOf(a))
@@ -615,6 +635,21 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
 
       <div className="lobby-people">
         <section className="lobby-people__main" aria-labelledby="odalarBaslik" ref={listRef}>
+          {invites.length > 0 && (
+            <div className="lobby-invites" role="group" aria-labelledby="davetliBaslik">
+              <div className="lobby-people__head">
+                <h2 id="davetliBaslik">
+                  <LockIcon />
+                  {LOBBY_COPY.invites}
+                </h2>
+              </div>
+              <p className="lobby-invites__note">{LOBBY_COPY.invitesNote}</p>
+              {invites.map((room) => (
+                <RoomCard key={room.id} room={room} people={people[room.id]} onOpen={openRoom} onRemove={onRemove} />
+              ))}
+            </div>
+          )}
+
           <div className="lobby-people__head">
             <h2 id="odalarBaslik">{LOBBY_COPY.busy}</h2>
           </div>
@@ -641,7 +676,7 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
           ) : (
             <>
               {busyHere.map((room) => (
-                <RoomCard key={room.id} room={room} people={people[room.id]} onOpen={openRoom} />
+                <RoomCard key={room.id} room={room} people={people[room.id]} onOpen={openRoom} onRemove={onRemove} />
               ))}
               {quietHere.length > 0 && (
                 <div className="lobby-quiet" role="group" aria-labelledby="digerBaslik">
@@ -649,17 +684,24 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
                     {LOBBY_COPY.quiet}
                   </span>
                   {quietHere.map((room) => (
-                    <button
-                      key={room.id}
-                      type="button"
-                      className="site-btn lobby-quiet__room"
-                      onClick={() => openRoom(room)}
-                      aria-label={isLocked(room) ? LOBBY_COPY.codeLabel(room.name) : LOBBY_COPY.enter(room.name)}
-                    >
-                      {room.access === 'invite' && <LockIcon />}
-                      <Dotted text={room.name} />
-                      <span className="lobby-quiet__meta">{isLocked(room) ? LOBBY_COPY.invite : LOBBY_COPY.empty}</span>
-                    </button>
+                    <span key={room.id} className="lobby-quiet__item">
+                      <button
+                        type="button"
+                        className="site-btn lobby-quiet__room"
+                        onClick={() => openRoom(room)}
+                        aria-label={isLocked(room) ? LOBBY_COPY.codeLabel(room.name) : LOBBY_COPY.enter(room.name)}
+                      >
+                        {room.access === 'invite' && <LockIcon />}
+                        <Dotted text={room.name} />
+                        <span className="lobby-quiet__meta">{isLocked(room) ? LOBBY_COPY.invite : LOBBY_COPY.empty}</span>
+                      </button>
+                      {/* kendi kurduğun boş odayı buradan silebilirsin */}
+                      {onRemove && room.myRole === 'OWNER' && (
+                        <button type="button" className="site-btn lobby-quiet__remove" onClick={() => onRemove(room)} aria-label={LOBBY_COPY.removeLabel(room)}>
+                          {LOBBY_COPY.remove(room)}
+                        </button>
+                      )}
+                    </span>
                   ))}
                 </div>
               )}

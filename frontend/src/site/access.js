@@ -11,7 +11,10 @@ export const ACCESS_IDS = ['public', 'invite']
 
 export const accessLabel = (id) => ACCESS[id]?.label ?? ACCESS.public.label
 
-// Odaya katılmış kişi sayısı (sunucudaki memberCount). "Şu an odada" demez: üyelik sayısıdır.
-// Sayı yoksa (eski kayıt) hiçbir şey yazılmaz; uydurma sayı gösterilmez.
-const MEMBERS_COPY = { count: (n) => `${n} üye` }
-export const membersLabel = (room) => (Number.isFinite(room?.memberCount) ? MEMBERS_COPY.count(room.memberCount) : null)
+// Odanın kısa doluluk notu: davetli odada üye sayısı, herkese açık odada (üyelik yok) şu an içeride olan
+// kişi sayısı. Sayı yoksa hiçbir şey yazılmaz; uydurma sayı gösterilmez.
+const MEMBERS_COPY = { members: (n) => `${n} üye`, inside: (n) => (n ? `${n} kişi içeride` : null) }
+export const membersLabel = (room) => {
+  if (room?.access === 'invite') return Number.isFinite(room.memberCount) ? MEMBERS_COPY.members(room.memberCount) : null
+  return Number.isFinite(room?.insideCount) ? MEMBERS_COPY.inside(room.insideCount) : null
+}
