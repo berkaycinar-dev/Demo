@@ -63,7 +63,7 @@ class RoomControllerTest {
     }
 
     private static RoomResponse sample(RoomRole role, String code) {
-        return new RoomResponse(ROOM, "Algoritma", null, RoomVisibility.PRIVATE, 6, 1, ME, role, code,
+        return new RoomResponse(ROOM, "Algoritma", null, RoomVisibility.PRIVATE, 6, 1, 0, ME, role, code,
                 Instant.parse("2026-11-09T10:00:00Z"));
     }
 

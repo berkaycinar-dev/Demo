@@ -17,8 +17,16 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
 
     Optional<Room> findByInviteCode(String inviteCode);
 
-    @Query("select r from Room r where r.id in (select m.roomId from RoomMember m where m.userId = :userId) order by r.createdAt desc")
-    List<Room> findJoinedBy(@Param("userId") UUID userId);
+    /** How many rooms the user created (the limit counts these). */
+    long countByOwnerId(UUID ownerId);
+
+    /** "My rooms": the rooms the user created and the private rooms they are a member of, newest first. */
+    @Query("""
+            select r from Room r
+            where r.ownerId = :userId or r.id in (select m.roomId from RoomMember m where m.userId = :userId)
+            order by r.createdAt desc
+            """)
+    List<Room> findMine(@Param("userId") UUID userId);
 
     /** Locks the room row so two people cannot take the last seat at the same time. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

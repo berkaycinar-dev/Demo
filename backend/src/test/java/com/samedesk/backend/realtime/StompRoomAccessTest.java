@@ -37,7 +37,7 @@ class StompRoomAccessTest {
     @BeforeEach
     void subscribeAsMember() {
         when(clock.instant()).thenReturn(NOW);
-        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(true);
+        when(rooms.canAccess(USER_ID, ROOM_ID)).thenReturn(true);
         when(jwtDecoder.decode("test-token")).thenReturn(Jwt.withTokenValue("test-token")
                 .header("alg", "HS256").subject(USER_ID.toString()).expiresAt(EXPIRY).build());
 
@@ -69,7 +69,7 @@ class StompRoomAccessTest {
         Message<?> event = roomEvent();
         assertThat(access.authorizeDelivery(event)).isSameAs(event);
 
-        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(false);
+        when(rooms.canAccess(USER_ID, ROOM_ID)).thenReturn(false);
 
         assertThat(access.authorizeDelivery(event)).isNull();
     }
@@ -82,17 +82,17 @@ class StompRoomAccessTest {
         Message<?> snapshot = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
         assertThat(access.authorizeDelivery(snapshot)).isSameAs(snapshot);
 
-        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(false);
+        when(rooms.canAccess(USER_ID, ROOM_ID)).thenReturn(false);
         assertThat(access.authorizeDelivery(snapshot)).isNull();
 
-        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(true);
+        when(rooms.canAccess(USER_ID, ROOM_ID)).thenReturn(true);
         when(clock.instant()).thenReturn(EXPIRY);
         assertThat(access.authorizeDelivery(snapshot)).isNull();
     }
 
     @Test
     void personalTimerSubscriptionNeedsNoRoomMembership() {
-        when(rooms.isMember(USER_ID, ROOM_ID)).thenReturn(false);
+        when(rooms.canAccess(USER_ID, ROOM_ID)).thenReturn(false);
         subscribe("/user/queue/timers");
         Message<?> event = timerEvent(SESSION_ID, "/user/queue/timers");
         assertThat(access.authorizeDelivery(event)).isSameAs(event);

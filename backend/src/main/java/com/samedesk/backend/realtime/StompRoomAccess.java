@@ -134,7 +134,7 @@ class StompRoomAccess implements ChannelInterceptor {
             return false;
         }
         var match = ROOM_CHANNEL.matcher(destination);
-        return match.matches() && rooms.isMember(identity.userId(), UUID.fromString(match.group(1)));
+        return match.matches() && rooms.canAccess(identity.userId(), UUID.fromString(match.group(1)));
     }
 
     static Optional<UUID> presenceRoom(String destination) {

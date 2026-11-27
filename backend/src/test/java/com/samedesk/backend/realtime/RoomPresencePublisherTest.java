@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.samedesk.backend.room.RoomSessionRepository;
+import com.samedesk.backend.room.RoomSessionService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -24,7 +24,7 @@ import org.springframework.messaging.simp.user.SimpUserRegistry;
 class RoomPresencePublisherTest {
 
     private final SimpUserRegistry users = mock(SimpUserRegistry.class);
-    private final RoomSessionRepository sessions = mock(RoomSessionRepository.class);
+    private final RoomSessionService sessions = mock(RoomSessionService.class);
     private final SimpMessagingTemplate messaging = mock(SimpMessagingTemplate.class);
     private final RoomPresencePublisher publisher = new RoomPresencePublisher(users, sessions, messaging,
             Clock.fixed(Instant.parse("2026-11-25T12:00:00Z"), ZoneOffset.UTC));
@@ -38,11 +38,11 @@ class RoomPresencePublisherTest {
         when(first.getDestination()).thenReturn(destination);
         when(second.getDestination()).thenReturn(destination);
         when(users.findSubscriptions(any())).thenReturn(Set.of(first, second));
-        when(sessions.findActive(roomId)).thenReturn(List.of());
+        when(sessions.presence(roomId)).thenReturn(List.of());
 
         publisher.publishSnapshots();
 
-        verify(sessions).findActive(roomId);
+        verify(sessions).presence(roomId);
         var event = ArgumentCaptor.forClass(StompRoomEventPublisher.RoomEvent.class);
         verify(messaging).convertAndSend(eq(destination), event.capture());
         assertThat(event.getValue().type()).isEqualTo("PRESENCE_SNAPSHOT");
