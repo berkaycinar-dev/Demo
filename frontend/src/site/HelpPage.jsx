@@ -7,10 +7,8 @@ import { Field } from './AuthPages'
 // söyler; yazılan mesaj silinmez (kullanıcı kopyalayabilsin). Uç gelince submit içinde istek atılır.
 const HELP_COPY = {
   title: 'Yardım ve geri bildirim',
-  lead: 'Sık sorulan sorulara göz at ya da bize ne düşündüğünü yaz.',
   faq: 'Sık sorulan sorular',
   feedback: 'Geri bildirim gönder',
-  feedbackLead: 'Bir hata mı buldun, bir fikrin mi var? Kısaca anlat.',
   kind: 'Konu',
   message: 'Mesajın',
   messagePlaceholder: 'Ne oldu, ne bekliyordun? Hangi sayfadaydın?',
@@ -66,7 +64,6 @@ export default function HelpPage({ onGo }) {
     <div className="account help">
       <div className="page-head">
         <h1>{HELP_COPY.title}</h1>
-        <p className="site-muted">{HELP_COPY.lead}</p>
       </div>
       <div className="account__grid">
         <section className="site-card account__card" aria-labelledby="yardimSss">
@@ -118,7 +115,6 @@ function FeedbackCard() {
   return (
     <section className="site-card account__card" aria-labelledby="yardimGeri">
       <h2 id="yardimGeri">{HELP_COPY.feedback}</h2>
-      <p className="site-muted help__lead">{HELP_COPY.feedbackLead}</p>
       <form className="auth__form" onSubmit={submit} noValidate>
         <fieldset className="help__kinds">
           <legend>{HELP_COPY.kind}</legend>

@@ -13,7 +13,6 @@ const COPY = {
   quote: 'Günün sözü',
   today: 'Bugün',
   todayZero: 'Henüz blok yok',
-  todayZeroHint: (min) => `İlk blok ${min} dakika; bitince burada sayılır.`,
   todayMeta: (goal, n) => `Hedef ${goal} · ${n} pomodoro`,
   goalLabel: (pct) => `Günlük hedefin yüzde ${pct}'i`,
   week: 'Bu hafta',
@@ -146,7 +145,6 @@ export default function HomePage({ user, avatar, timer, goals = GOAL_DEFAULTS, r
               ) : (
                 <>
                   <span className="stat__value stat__value--zero">{COPY.todayZero}</span>
-                  <span className="site-muted">{COPY.todayZeroHint(timer.presetInfo.focus)}</span>
                 </>
               )}
             </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { EMAIL_RE, PASSWORD_RULES, USERNAME_HINT, lastLoginId, login, register, validateRegistration } from './auth'
+import { EMAIL_RE, PASSWORD_RULES, lastLoginId, login, register, validateRegistration } from './auth'
 import { LegalDialog } from './LegalPages'
 import RoomShot from './RoomShot'
 
@@ -16,7 +16,6 @@ function AuthShell({ rooms = ['cabin'], children }) {
         </div>
         <div className="auth__brand-top">
           <h2>Kamerasız, sessiz, birlikte.</h2>
-          <p>Başkalarının da çalıştığını görmek odaklanmayı kolaylaştırır. Odana gir, sayacını başlat, gerisini birlikte hallederiz.</p>
         </div>
       </section>
       <section className="auth__card">{children}</section>
@@ -151,7 +150,6 @@ export function LoginPage({ onDone, onGo }) {
     <AuthShell>
       <div className="auth__head">
         <h1>Tekrar hoş geldin</h1>
-        <p className="site-muted">Kaldığın yerden devam etmek için giriş yap.</p>
       </div>
       <form className="auth__form" onSubmit={submit} noValidate>
         {error && (
@@ -217,7 +215,6 @@ export function LoginPage({ onDone, onGo }) {
 // submit içinde istek atılır ve not, hesap varlığını sızdırmayan "bağlantı gönderildi" metnine döner.
 const FORGOT_COPY = {
   title: 'Şifreni mi unuttun?',
-  lead: 'Hesabının e-posta adresini yaz; şifreni yenilemen için sana bir bağlantı göndereceğiz.',
   empty: 'E-posta adresini yaz.',
   invalid: 'Geçerli bir e-posta adresi yaz.',
   submit: 'Sıfırlama bağlantısı gönder',
@@ -249,7 +246,6 @@ export function ForgotPasswordPage({ onGo }) {
     <AuthShell>
       <div className="auth__head">
         <h1>{FORGOT_COPY.title}</h1>
-        <p className="site-muted">{FORGOT_COPY.lead}</p>
       </div>
       <form className="auth__form" onSubmit={submit} noValidate>
         <Field id="forgotEmail" label="E-posta" error={error}>
@@ -377,13 +373,12 @@ export function RegisterPage({ onDone, onGo }) {
     <AuthShell rooms={['cabin', 'library']}>
       <div className="auth__head">
         <h1>Hesap oluştur</h1>
-        <p className="site-muted">Bir dakikanı alır. Avatarını kayıttan sonra hazırlarsın.</p>
       </div>
       <form className="auth__form" onSubmit={submit} noValidate>
-        <Field id="reg-displayName" label="Görünen ad" error={errors.displayName} hint="Sayfanda ve avatarının adında böyle görünür.">
+        <Field id="reg-displayName" label="Görünen ad" error={errors.displayName}>
           {input('displayName', { autoComplete: 'name', placeholder: REG_COPY.namePlaceholder, maxLength: 40 })}
         </Field>
-        <Field id="reg-username" label="Kullanıcı adı" error={errors.username} hint={USERNAME_HINT}>
+        <Field id="reg-username" label="Kullanıcı adı" error={errors.username}>
           {input('username', { autoComplete: 'username', placeholder: REG_COPY.userPlaceholder, maxLength: 20, spellCheck: false })}
         </Field>
         <Field id="reg-email" label="E-posta" error={errors.email}>

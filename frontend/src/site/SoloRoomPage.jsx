@@ -78,10 +78,9 @@ export default function SoloRoomPage({ user, avatar, timer, stopwatch, timerMode
             {label}
           </h1>
         </div>
-        <TimerModePicker mode={timerMode} onPick={onTimerModeChange} presetInfo={timer.presetInfo} />
+        <TimerModePicker mode={timerMode} onPick={onTimerModeChange} />
         <div className="desk__info">
           <p className="site-muted">
-            Tek kişilik, yalnızca sana ait.{' '}
             {/* tasarım değişikliği masadan bulunur: ayarlar açılır ve görünür alana gelir */}
             <button type="button" className="link-btn" aria-controls="roomSettings" onClick={openDesign}>
               Tasarımı değiştir
