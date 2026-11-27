@@ -35,7 +35,7 @@ CI (`.github/workflows/frontend-ci.yml`) `main` dalına push ve pull request'ler
 
 | Adres | Ne açılır |
 |---|---|
-| `/` | Site (sayfalar `#sayfam`, `#lobi`, `#odam` gibi adreslerle seçilir) |
+| `/` | Site. Sayfalar kendi yollarıyla açılır: `/sayfam`, `/lobi`, `/odam`, `/avatar`... Eski `/#lobi` adresleri `/lobi`'ye çevrilir. Yayında her uzantısız yol uygulamayı açar (`vercel.json`). |
 | `/?theme=cabin&c=4&t=night` | Tek bir oda sahnesi: tema, kapasite (1-10), gün zamanı |
 | `/?theme=library&c=8&people=mix&names=1` | Oda sahnesi, kişilerle ve isimlerle |
 | `/?lab=avatars` | Bütün avatar hareketleri |
@@ -56,7 +56,7 @@ VITE_API_URL=http://localhost:8080
 |---|---|
 | Kayıt, giriş, çıkış, oturum yenileme | Görünen ad, avatar |
 | Oda listesi, oda oluşturma, odaya katılma | Sayaç, odak istatistikleri, katılım geçmişi |
-| Odadaki oturum ve şu an odada olanlar | Kişisel oda (`#odam`) |
+| Odadaki oturum ve şu an odada olanlar | Kişisel oda (`/odam`) |
 
 - Giriş e-postayla yapılır. Kullanıcı adında nokta kullanılamaz (backend kuralı).
 - Oda teması backend'de ayrı bir alan değil. Prototipte odanın açıklamasında `theme:<ad>` olarak taşınır.
