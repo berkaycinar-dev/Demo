@@ -12,41 +12,121 @@ import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
 import Icon from './AvatarIcons'
 import useFirstVisit from './useFirstVisit'
-import { activeMembers } from './roomStore'
+import { activeMembers, setRoomStatus } from './roomStore'
 import PersonCard from './PersonCard'
 import WorkingOnField from './WorkingOnField'
 import useWorkingOn from './workingOn'
 import { PLACEHOLDER } from './placeholders'
 
-// Odadaki gerçek kişiler bu aralıkla sunucudan tazelenir.
-const MEMBERS_POLL_MS = 10_000
+// Odadaki gerçek kişiler (ve molaya kalkan, uzağa geçen) bu aralıkla sunucudan tazelenir. Kendi durumun
+// değişince hemen de tazelenir. (Canlı bağlantı siteye bağlanınca aynı veri 2 sn'de bir kendiliğinden gelir.)
+const MEMBERS_POLL_MS = 3_000
 
-/** Sunucuda şu an bu odada olanlar (kendin hariç): [{ id, name, joinedAt }] ya da yüklenene kadar [].
- * joinedAt: odaya giriş zamanı (ms; sunucunun startedAt değeri), okunamazsa null. */
+// Sunucunun durumu → sitenin durumu
+const PRESENCE = { IDLE: 'idle', FOCUS: 'focus', BREAK: 'break', AWAY: 'away' }
+
+/** Sunucuda şu an bu odada olanlar (kendin hariç), kendi koltuğun ve listeyi hemen tazeleme:
+ * { mates, mySeat, reload }. mates: [{ id, name, avatar, seat, joinedAt, presence: { status, spot, slot,
+ * since } }] ya da yüklenene kadar []. seat / mySeat: sunucunun verdiği koltuk numarası (herkeste aynı),
+ * bilinmiyorsa null. joinedAt / since: ms (sunucunun startedAt / statusSince değeri), okunamazsa null. */
 function useLiveMates(roomId, meId) {
   const [members, setMembers] = useState([])
+  const loadRef = useRef(() => {})
   useEffect(() => {
     let stopped = false
+    let last = ''
     const load = () =>
       activeMembers(roomId)
         .then((list) => {
-          if (!stopped) setMembers(list)
+          // aynı cevap tekrar çizdirmesin
+          const key = JSON.stringify(list)
+          if (stopped || key === last) return
+          last = key
+          setMembers(list)
         })
         .catch(() => {})
+    loadRef.current = load
     load()
     const id = setInterval(load, MEMBERS_POLL_MS)
     return () => {
       stopped = true
       clearInterval(id)
+      loadRef.current = () => {}
     }
   }, [roomId])
-  return useMemo(
+  const reload = useCallback(() => loadRef.current(), [])
+  const mates = useMemo(
     () =>
       members
         .filter((m) => m.userId !== meId)
-        .map((m) => ({ id: m.userId, name: m.username, avatar: m.avatar ?? null, joinedAt: Date.parse(m.startedAt) || null })),
+        .map((m) => ({
+          id: m.userId,
+          name: m.username,
+          avatar: m.avatar ?? null,
+          seat: Number.isInteger(m.seat) ? m.seat : null,
+          joinedAt: Date.parse(m.startedAt) || null,
+          presence: {
+            status: PRESENCE[m.status] ?? 'focus',
+            spot: m.spot ?? null,
+            slot: Number.isInteger(m.slot) ? m.slot : null,
+            since: Date.parse(m.statusSince) || null,
+          },
+        })),
     [members, meId],
   )
+  // Kendi koltuğun bir kez öğrenilince tutulur: oturumun bir an düşüp listede görünmesen de (arka plan
+  // sekmesi, yeniden giriş) avatarın başka koltuğa kaymaz. Sunucu yeni bir numara verirse o geçer.
+  const mine = members.find((m) => m.userId === meId)
+  const [mySeat, setMySeat] = useState(null)
+  if (Number.isInteger(mine?.seat) && mine.seat !== mySeat) setMySeat(mine.seat)
+  return { mates, mySeat, reload }
+}
+
+// Sunucuya yazma denemesi oturum henüz açılmadıysa (odaya girişle aynı anda) bu kadar sonra yinelenir.
+const STATUS_RETRY_MS = 2_000
+
+/**
+ * Kendi durumunu (ve molada gittiğin köşeyi, köşedeki yerini) sunucuya yazar; odadakiler görür. Yalnızca
+ * değişince yazar. Sunucu köşedeki yeri kendisi verir (istenen boşsa o, değilse boş olan): onPlaced({ spot,
+ * slot } | null) ile döner, avatar o yere geçer; böylece herkes seni aynı yerde görür. Köşe doluysa
+ * (SPOT_TAKEN: başka biri aynı anda aldı) onSpotTaken(spotId) çağrılır; kalabalık başka köşe seçer ve yeni
+ * köşe yazılır. Yazınca onSaved (liste hemen tazelensin).
+ */
+function useReportStatus(roomId, report, { onSpotTaken, onSaved, onPlaced }) {
+  const key = `${report.status}|${report.spot?.id ?? ''}|${report.spot?.slot ?? ''}`
+  const sent = useRef('')
+  const latest = useRef({ report, onSpotTaken, onSaved, onPlaced })
+  useLayoutEffect(() => {
+    latest.current = { report, onSpotTaken, onSaved, onPlaced }
+  })
+  useEffect(() => {
+    if (sent.current === key) return undefined
+    let cancelled = false
+    let retry = 0
+    let tries = 0
+    const send = () => {
+      tries += 1
+      const { report: r } = latest.current
+      setRoomStatus(roomId, { status: r.status, spot: r.spot?.id ?? null, capacity: r.spot?.capacity ?? null, slot: r.spot?.slot ?? null })
+        .then((res) => {
+          if (cancelled) return
+          sent.current = key
+          latest.current.onPlaced(res?.spot != null && Number.isInteger(res.slot) ? { spot: res.spot, slot: res.slot } : null)
+          latest.current.onSaved()
+        })
+        .catch((e) => {
+          if (cancelled) return
+          if (e.code === 'SPOT_TAKEN' && r.spot) latest.current.onSpotTaken(r.spot.id)
+          // oturum açılıyor ya da ağ kesik: birkaç kez yinelenir (sonraki durum değişikliği yine dener)
+          else if (tries < 5) retry = setTimeout(send, STATUS_RETRY_MS)
+        })
+    }
+    send()
+    return () => {
+      cancelled = true
+      clearTimeout(retry)
+    }
+  }, [roomId, key])
 }
 
 // idle: odadasın ama sayaç çalışmıyor (başlamadı ya da duraklatıldı); avatar masada oturur.
@@ -342,13 +422,22 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
   }
   const { Room } = THEMES[room.theme]
   const [away, setAway] = useState(false)
-  const mates = useLiveMates(room.id, meId)
+  const { mates, mySeat, reload: reloadMates } = useLiveMates(room.id, meId)
+  // Sunucunun dolu dediği köşeler (o mola boyunca kalabalık bunlara gitmez), avatarının şu an
+  // yöneldiği köşe (kalabalık bildirir: { id, capacity, slot } | null) ve sunucunun o köşede verdiği yer
+  // ({ spot, slot } | null; avatar oraya geçer, herkes seni aynı yerde görür).
+  const [avoid, setAvoid] = useState([])
+  const [myTarget, setMyTarget] = useState(null)
+  const [myPlace, setMyPlace] = useState(null)
   const { occupants, setMyStatus, myStatus } = useRoomPeople({
     capacity: room.capacity,
     seed: seedOf(room.id),
     me: avatar,
     cheer: timer.completed,
     people: mates,
+    myAvoid: avoid.length ? avoid : null,
+    mySeat,
+    myPlace,
   })
 
   // Durum seçili sayaçtan türer (Pomodoro ya da Kronometre; tür bütün odalarda ortak): molada mola yerine
@@ -362,6 +451,25 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
   // oturur). Çip, kişi listesi ve odadaki ad etiketi bunu okur.
   const idle = derived === 'focus' && !focus.running
   const shownStatus = idle ? 'idle' : myStatus
+
+  // Durumun ve molada gittiğin köşe sunucuya yazılır: odadakiler seni molada o köşede, uzaktaysan
+  // uyurken görür. Köşe doluysa (aynı anda başka biri aldı) o köşe bu mola için kaçınılır.
+  const [avoidFor, setAvoidFor] = useState(derived)
+  if (avoidFor !== derived) {
+    // moladan çıkınca kaçınılan köşeler ve verilen yer sıfırlanır (render sırasında: ek çizim yok)
+    setAvoidFor(derived)
+    if (avoid.length) setAvoid([])
+    if (myPlace) setMyPlace(null)
+  }
+  useReportStatus(
+    room.id,
+    { status: shownStatus === 'idle' ? 'idle' : myStatus, spot: myStatus === 'break' ? myTarget : null },
+    {
+      onSpotTaken: (id) => setAvoid((list) => (list.includes(id) ? list : [...list, id])),
+      onSaved: reloadMates,
+      onPlaced: (place) => setMyPlace((cur) => (cur?.spot === place?.spot && cur?.slot === place?.slot ? cur : place)),
+    },
+  )
   const crowd = useMemo(() => occupants.map((o) => (o.me && idle ? { ...o, shown: 'idle' } : o)), [occupants, idle])
 
   // Liste: şu an buradakiler, odadaki sırayla (sen en üstte). Kimse puanlanmaz; ürün gözetim değil,
@@ -373,8 +481,8 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
         name: o.me ? 'Sen' : o.name,
         me: !!o.me,
         avatar: o.avatar,
-        // başkalarının durumu sunucuda yok: geçici değer (placeholders.js)
-        status: o.me ? (idle ? 'idle' : o.status) : o.real ? PLACEHOLDER.status : o.status,
+        // gerçek kişilerin durumu sunucudan (Masada: shown 'idle')
+        status: o.me ? (idle ? 'idle' : o.status) : o.shown === 'idle' ? 'idle' : o.status,
         since: o.since,
         joinedAt: o.joinedAt ?? null,
       })),
@@ -612,7 +720,7 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
           onSpotClick={goToSpot}
         >
           <SpotsReporter onSpots={setSpots} />
-          <AvatarCrowd occupants={crowd} theme={room.theme} showNames={names} highlight={picked} onPersonPoint={onScenePoint} />
+          <AvatarCrowd occupants={crowd} theme={room.theme} showNames={names} highlight={picked} onPersonPoint={onScenePoint} onMyTarget={setMyTarget} />
         </Room>
       )}
       panel={panel}
