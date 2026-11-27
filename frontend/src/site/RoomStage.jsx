@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import { formatClock } from './usePomodoro'
 import useShortcut from './useShortcut'
 
@@ -121,7 +121,9 @@ function useMainInView(panelRef, active) {
     if (!active) return undefined
     const main = panelRef.current?.querySelector('.timer-card__main')
     if (!main || !('IntersectionObserver' in window)) return undefined
-    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin: '0px 0px -72px 0px', threshold: 0.9 })
+    // Başlat'ın bir kenarı çubuğun üstünde görünür görünmez çubuk çekilir: iki Başlat aynı anda ekranda
+    // kalmaz (yatay telefonda panel kendi içinde kaydığı için yarım görünen düğme sık olur).
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting), { rootMargin: '0px 0px -72px 0px', threshold: 0 })
     io.observe(main)
     return () => io.disconnect()
   }, [panelRef, active])
@@ -181,10 +183,25 @@ export default function RoomStage({ renderRoom, panel, focusPanel, focusMode, on
 const FOCUS_MODE_COPY = {
   button: 'Odak modu',
   note: 'Tam ekran: yalnızca oda ve sayaç kalır. Kısayol F; Esc ile çık.',
+  // dokunmatik cihaz (fare ve klavye yok sayılır): tuş anılmaz
+  noteTouch: 'Tam ekran: yalnızca oda ve sayaç kalır. Çıkmak için “Odak modundan çık” düğmesine dokun.',
   // simge düğmenin ipucu
   iconTitle: 'Odak modu (F)',
 }
 const FOCUS_NOTE_ID = 'focusModeNote'
+
+// Birincil işaretçi dokunmatik ve üstüne gelme yoksa (telefon, tablet) true; değişince yeniden çizer.
+const TOUCH = '(hover: none) and (pointer: coarse)'
+function useTouch() {
+  return useSyncExternalStore(
+    (cb) => {
+      const m = window.matchMedia?.(TOUCH)
+      m?.addEventListener('change', cb)
+      return () => m?.removeEventListener('change', cb)
+    },
+    () => window.matchMedia?.(TOUCH).matches ?? false,
+  )
+}
 
 // İkincil eylem: panelde tek terracotta düğme sayacın Başlat'ıdır. Açıklaması FocusModeNote'ta; not
 // gizliyken (ilk ziyaretten sonra) fareyle üstüne gelince title olarak da okunur.
@@ -289,9 +306,10 @@ export function ShortcutHelp() {
 // Odak modu düğmesinin açıklaması; sayfada bir FocusModeButton ile birlikte bir kez. İlk ziyarette
 // (hints) görünür, sonra yalnızca ekran okuyucuya kalır.
 export function FocusModeNote({ hints = false }) {
+  const touch = useTouch()
   return (
     <p id={FOCUS_NOTE_ID} className={hints ? 'stage-note' : 'sr-only'}>
-      {FOCUS_MODE_COPY.note}
+      {touch ? FOCUS_MODE_COPY.noteTouch : FOCUS_MODE_COPY.note}
     </p>
   )
 }

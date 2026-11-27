@@ -95,7 +95,8 @@ function useClock(every) {
 // Oda adı tek satır kalır ve piksel ızgarasından çıkmaz: 33 px'e sığmazsa 22 px'e iner (ara boyut yok),
 // orada da sığmazsa sonu "…" ile kesilir. Tam ad title'da (fareyle) ve metnin kendisinde (ekran okuyucu).
 // Ölçüm her genişlik değişiminde 33 px'ten yeniden yapılır; boyama öncesi çalıştığı için titreme olmaz.
-function RoomTitle({ name }) {
+// Adın önünde Odam levhasındaki gibi odanın tema karesi durur (temanın rengi; ekran okuyucuya gizli).
+function RoomTitle({ name, theme }) {
   const ref = useRef(null)
   useLayoutEffect(() => {
     const el = ref.current
@@ -117,6 +118,7 @@ function RoomTitle({ name }) {
   }, [name])
   return (
     <h1 ref={ref} className="stage-card__title" title={name}>
+      {theme && <ThemeLabel theme={theme} markOnly />}
       <Dotted text={name} />
     </h1>
   )
@@ -476,7 +478,7 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
     <>
       <div className="stage-card desk">
         <div className="desk__sign material-sign">
-          <RoomTitle name={room.name} />
+          <RoomTitle name={room.name} theme={room.theme} />
         </div>
         <div className="desk__info">
           <p className="site-muted">
