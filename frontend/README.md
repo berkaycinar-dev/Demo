@@ -63,8 +63,10 @@ VITE_API_URL=http://localhost:8080
 - Gizli odaya yalnızca odayı açan ve üyeler girebilir. Başkası yalnız kodla katılamaz, çünkü backend'de
   "kodla oda bul" ucu henüz yok.
 - Hesap ayarlarında e-posta, şifre değişikliği ve hesap silme prototipte kapalı.
-- Canlı backend yalnız `https://samedesk.vercel.app` adresine izin verir (CORS). Vercel önizleme
-  adreslerinden istekler reddedilir.
+- Canlı backend `https://samedesk.vercel.app`, `http://localhost:5173` ve `http://localhost:5174`
+  adreslerine izin verir (CORS). Yani değişikliklerini pushlamadan `npm run dev` ile yerelde açıp canlı
+  backend'le deneyebilirsin. Siteyi `127.0.0.1` ile değil `localhost` ile aç. Vercel önizleme
+  adreslerinden gelen istekler reddedilir.
 
 ## Klasörler
 
