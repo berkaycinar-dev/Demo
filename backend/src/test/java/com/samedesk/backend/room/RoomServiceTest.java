@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -188,6 +189,58 @@ class RoomServiceTest {
 
         // Codes are typed by hand: case and spaces around it are forgiven.
         assertThat(service.join(ME, room.getId(), "  code2345 ").myRole()).isEqualTo(RoomRole.MEMBER);
+    }
+
+    @Test
+    void joinByCodeFindsThePrivateRoomAndJoinsIt() {
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
+        when(rooms.findByInviteCode("CODE2345")).thenReturn(Optional.of(room));
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+        when(members.countByRoomId(room.getId())).thenReturn(1L);
+        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+
+        // typed by hand: lower case and spaces are forgiven
+        RoomResponse res = service.joinByCode(ME, " code 2345 ");
+
+        assertThat(res.id()).isEqualTo(room.getId());
+        assertThat(res.myRole()).isEqualTo(RoomRole.MEMBER);
+        assertThat(res.inviteCode()).isNull(); // only the owner sees the code
+        verify(members).save(any(RoomMember.class));
+    }
+
+    @Test
+    void joinByUnknownCodeLooksLikeNoRoom() {
+        when(rooms.findByInviteCode("WRONG999")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.joinByCode(ME, "wrong999"))
+                .isInstanceOfSatisfying(NotFoundException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("ROOM_NOT_FOUND"));
+        verify(members, never()).save(any());
+    }
+
+    @Test
+    void joinByCodeIntoAFullRoomIsRejected() {
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 2);
+        when(rooms.findByInviteCode("CODE2345")).thenReturn(Optional.of(room));
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+        when(members.countByRoomId(room.getId())).thenReturn(2L);
+
+        assertThatThrownBy(() -> service.joinByCode(ME, "CODE2345"))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("ROOM_FULL"));
+    }
+
+    @Test
+    void normalizeCodeIgnoresTheJvmLocale() {
+        Locale before = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertThat(RoomService.normalizeCode(" abc i2 ")).isEqualTo("ABCI2");
+        } finally {
+            Locale.setDefault(before);
+        }
     }
 
     // ---------- after commit ----------

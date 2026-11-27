@@ -16,7 +16,7 @@ import LobbyPage from './LobbyPage'
 import { LegalPage } from './LegalPages'
 import MyRoomPage from './MyRoomPage'
 import NotFoundPage from './NotFoundPage'
-import { HEARTBEAT_MS, createRoom, enterRoom, exitRoom, fetchRooms, forgetJoin, heartbeat, joinRoom, loadJoined, recordJoin } from './roomStore'
+import { HEARTBEAT_MS, createRoom, enterRoom, exitRoom, fetchRooms, forgetJoin, heartbeat, joinRoom, joinRoomByCode, loadJoined, recordJoin } from './roomStore'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import SoloRoomPage from './SoloRoomPage'
 import useColorMode from './useColorMode'
@@ -323,6 +323,23 @@ export default function Site() {
     setCurrentId(room.id)
     go('oda')
   }
+  // Davet koduyla giriş: oda sunucuda koddan bulunur, üye olunur ve girilir. Başarısızsa hata metni
+  // (lobideki kod kutusunda görünür), başarılıysa null.
+  const enterByCode = async (code) => {
+    let room
+    try {
+      room = await joinRoomByCode(code)
+    } catch (e) {
+      if (e.code === 'ROOM_NOT_FOUND') return 'Bu kodla bir oda bulunamadı. Kodu kontrol et.'
+      if (e.code === 'ROOM_FULL') return 'Oda dolu.'
+      return errorText(e, 'Odaya girilemedi.')
+    }
+    setRooms((list) => [room, ...list.filter((r) => r.id !== room.id)])
+    setJoined(recordJoin(user, room.id))
+    setCurrentId(room.id)
+    go('oda')
+    return null
+  }
   // Oda sunucuda oluşturulur; başarısızsa hata metni oluşturma sayfasına döner, başarılıysa null.
   const create = async (draft) => {
     try {
@@ -479,6 +496,7 @@ export default function Site() {
             receipt={receipt}
             onCloseReceipt={() => setReceipt(null)}
             onEnter={enter}
+            onEnterByCode={enterByCode}
             onForget={(id) => setJoined(forgetJoin(user, id))}
             onCreate={() => go('olustur')}
           />

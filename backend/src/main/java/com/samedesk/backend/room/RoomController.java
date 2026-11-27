@@ -50,6 +50,12 @@ public class RoomController {
         return roomService.join(userId(jwt), roomId, code);
     }
 
+    /** Join a private room knowing only its invite code (the room id is not visible to non-members). */
+    @PostMapping("/join-by-code")
+    public RoomResponse joinByCode(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody JoinByCodeRequest request) {
+        return roomService.joinByCode(userId(jwt), request.inviteCode());
+    }
+
     @PostMapping("/{roomId}/leave")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void leave(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID roomId) {

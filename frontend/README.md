@@ -60,8 +60,8 @@ VITE_API_URL=http://localhost:8080
 
 - Giriş e-postayla yapılır. Kullanıcı adında nokta kullanılamaz (backend kuralı).
 - Oda teması backend'de ayrı bir alan değil. Prototipte odanın açıklamasında `theme:<ad>` olarak taşınır.
-- Gizli odaya yalnızca odayı açan ve üyeler girebilir. Başkası yalnız kodla katılamaz, çünkü backend'de
-  "kodla oda bul" ucu henüz yok.
+- Gizli oda üye olmayana listede görünmez. Davet kodu olan, Lobi'deki kod kutusuna yazarak katılır:
+  sunucu odayı koddan bulur ve üye yapar (`POST /api/v1/rooms/join-by-code`).
 - Hesap ayarlarında e-posta, şifre değişikliği ve hesap silme prototipte kapalı.
 - Canlı backend `https://samedesk.vercel.app`, `http://localhost:5173` ve `http://localhost:5174`
   adreslerine izin verir (CORS). Yani değişikliklerini pushlamadan `npm run dev` ile yerelde açıp canlı
