@@ -10,6 +10,10 @@ export const PRESETS = [
 ]
 
 const STATS_KEY = 'samedesk.focus-stats'
+// Gün gün odak geçmişi (Sayfam'daki haftalık grafik): { 'YYYY-MM-DD': { minutes, pomodoros } }.
+// Son HISTORY_DAYS gün tutulur; bugünkü kayıt STATS_KEY'de de durur (eski sürümle uyumlu).
+const HISTORY_KEY = 'samedesk.focus-history'
+const HISTORY_DAYS = 35
 const TIMER_KEY = 'samedesk.pomodoro'
 const TIMER_VERSION = 1
 // Aşama bu kadar geç fark edildiyse kullanıcı yoktu (sekme kapalı / donmuş): zil çalmaz, avatar
@@ -18,8 +22,11 @@ const LATE_MS = 5000
 const UNDO_MS = 8000
 const NOTE_MS = 12000
 
-const today = () => new Date().toISOString().slice(0, 10)
-const dayOf = (ms) => new Date(ms).toISOString().slice(0, 10)
+// Gün, kullanıcının yerel takvim günüdür (UTC değil): gece yarısından sonra biten blok o güne yazılır.
+export const localDay = (d = new Date()) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const today = () => localDay()
+const dayOf = (ms) => localDay(new Date(ms))
 const presetOf = (id) => PRESETS.find((x) => x.id === id) ?? PRESETS[0]
 const phaseSecs = (p, phase) => (phase === 'focus' ? p.focus : p.break) * 60
 const emptyStats = () => ({ day: today(), pomodoros: 0, minutes: 0 })
@@ -33,6 +40,38 @@ function readStats() {
     /* yok say */
   }
   return emptyStats()
+}
+
+const validDay = (v) => Number.isFinite(v?.minutes) && Number.isFinite(v?.pomodoros)
+
+/** Gün gün odak geçmişi. Bugünkü sayım (STATS_KEY) her zaman içindedir; bozuk kayıtlar atlanır. */
+export function readHistory() {
+  const out = {}
+  try {
+    const h = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? 'null')
+    if (h && typeof h === 'object') {
+      for (const [day, v] of Object.entries(h)) if (/^\d{4}-\d{2}-\d{2}$/.test(day) && validDay(v)) out[day] = v
+    }
+  } catch {
+    /* yok say */
+  }
+  const s = readStats()
+  if (s.minutes > 0 || s.pomodoros > 0) out[s.day] = { minutes: s.minutes, pomodoros: s.pomodoros }
+  return out
+}
+
+// Bugünkü sayımı yazar ve geçmişe işler; en eski günler HISTORY_DAYS'i aşınca düşer.
+function saveStats(next) {
+  const history = { ...readHistory(), [next.day]: { minutes: next.minutes, pomodoros: next.pomodoros } }
+  const keep = Object.keys(history).sort().slice(-HISTORY_DAYS)
+  const pruned = Object.fromEntries(keep.map((d) => [d, history[d]]))
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(next))
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(pruned))
+  } catch {
+    /* yok say: bu oturumda yine görünür */
+  }
+  return pruned
 }
 
 const idle = (presetId) => ({ preset: presetId, phase: 'focus', remaining: presetOf(presetId).focus * 60, running: false, endAt: 0 })
@@ -88,7 +127,8 @@ const PHASE_TEXT = {
  * track: true ise sayaç kalıcıdır (localStorage, sekme başlığı, ekran uyanık kalır) ve biten odak
  *   blokları bugünkü istatistiğe yazılır.
  * Dönüş: { phase, remaining, total, running, fresh, preset, presetInfo, setPreset, toggle, reset, skip,
- *   stats, completed, notice, dismissNotice, holdNotice, announcement }.
+ *   stats, history, completed, notice, dismissNotice, holdNotice, announcement }.
+ *   history: gün gün odak geçmişi, { 'YYYY-MM-DD': { minutes, pomodoros } } (bkz. readHistory).
  *   completed: süresi dolarak biten odak bloklarının sayısı (atlananlar sayılmaz); odadaki avatar bu
  *   artınca sevinir.
  *   notice: { id, text, undo? } görünür kısa not (sıfırlamayı geri alma, sen yokken biten aşamalar).
@@ -98,6 +138,7 @@ const PHASE_TEXT = {
 export default function usePomodoro({ track = true } = {}) {
   const [timer, setTimer] = useState(() => (track && readTimer()) || idle(PRESETS[0].id))
   const [stats, setStats] = useState(readStats)
+  const [history, setHistory] = useState(readHistory)
   const [completed, setCompleted] = useState(0)
   const [notice, setNotice] = useState(null)
   const [hold, setHold] = useState(false)
@@ -119,11 +160,7 @@ export default function usePomodoro({ track = true } = {}) {
     if (!track || (minutes <= 0 && pomodoros <= 0)) return
     const base = readStats()
     const next = { ...base, pomodoros: base.pomodoros + pomodoros, minutes: base.minutes + minutes }
-    try {
-      localStorage.setItem(STATS_KEY, JSON.stringify(next))
-    } catch {
-      /* yok say: bu oturumda yine görünür */
-    }
+    setHistory(saveStats(next))
     setStats(next)
     if (minutes > 0) setGain({ id: Date.now(), minutes })
   }
@@ -133,11 +170,7 @@ export default function usePomodoro({ track = true } = {}) {
     if (!track || minutes <= 0) return
     const base = readStats()
     const next = { ...base, minutes: Math.max(0, base.minutes - minutes) }
-    try {
-      localStorage.setItem(STATS_KEY, JSON.stringify(next))
-    } catch {
-      /* yok say */
-    }
+    setHistory(saveStats(next))
     setStats(next)
     setGain(null)
   }
@@ -195,6 +228,7 @@ export default function usePomodoro({ track = true } = {}) {
     if (!track) return undefined
     const onStorage = (e) => {
       if (e.key === STATS_KEY) setStats(readStats())
+      if (e.key === STATS_KEY || e.key === HISTORY_KEY) setHistory(readHistory())
       if (e.key !== TIMER_KEY) return
       const t = parseTimer(e.newValue)
       if (!t) return
@@ -343,6 +377,7 @@ export default function usePomodoro({ track = true } = {}) {
     reset,
     skip,
     stats: stats.day === today() ? stats : emptyStats(),
+    history,
     completed,
     notice: notice && { id: notice.id, text: notice.text, undo: notice.undo ? undoNotice : null },
     gain,
