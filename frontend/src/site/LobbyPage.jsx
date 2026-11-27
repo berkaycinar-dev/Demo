@@ -3,7 +3,7 @@ import { THEMES } from '../rooms/themes'
 import WorkingOnField from './WorkingOnField'
 import { activeMembers, codeMatches } from './roomStore'
 import useShortcut from './useShortcut'
-import { ThemeShot } from './RoomShot'
+import RoomShot from './RoomShot'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import { revealEl } from './scroll'
@@ -21,6 +21,9 @@ function sinceText(at) {
   if (min < 60) return `${min} dk önce`
   const h = Math.floor(min / 60)
   if (h < 24) return `${h} sa önce`
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (new Date(at).toDateString() === yesterday.toDateString()) return 'dün'
   return new Date(at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
 }
 
@@ -189,6 +192,13 @@ const KeyIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="8" cy="15" r="4" />
     <path d="M11 12l9-9M17 6l3 3M15 8l2 2" />
+  </svg>
+)
+
+const ClockIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
   </svg>
 )
 
@@ -375,7 +385,7 @@ const isLocked = (room) => room.access === 'invite' && !room.myRole
 const countOf = (room) => (Number.isFinite(room.memberCount) ? room.memberCount : 0)
 const PEOPLE_SHOWN = 6
 // bir sayfada en fazla bu kadar oda
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 const PEOPLE_REFRESH_MS = 30_000
 // avatar kutusunun rengi kullanıcı adından sabit seçilir (aynı kişi her yerde aynı renk)
 const AV_COLORS = ['#e8b77a', '#9fc7c0', '#e0a08a', '#c8b6e2', '#b9d08f']
@@ -447,7 +457,7 @@ function RoomCard({ room, people, onOpen }) {
   return (
     <article className="lobby-room">
       <div className="lobby-room__shot">
-        <ThemeShot theme={room.theme} dark className="lobby-room__img" />
+        <RoomShot theme={room.theme} className="lobby-room__img" />
         <span className="lobby-room__theme">
           {room.access === 'invite' && `${LOBBY_COPY.invite} · `}
           <ThemeLabel theme={room.theme} />
@@ -679,17 +689,27 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
           {history.length > 0 && (
             <section className="lobby-recent" aria-labelledby="katildigimBaslik">
               <h2 id="katildigimBaslik" className="lobby-recent__title">
+                <ClockIcon />
                 {LOBBY_COPY.recent}
               </h2>
+              {/* her satır: odanın küçük görüntüsü, adı, teması ve ne zaman girildiği; Gir ve listeden kaldır */}
               <ul className="lobby-recent__list">
                 {history.map(({ room, at }) => (
                   <li key={room.id} className="lobby-recent__item">
-                    <button type="button" className="lobby-recent__go" onClick={() => onEnter(room)} aria-label={LOBBY_COPY.enter(room.name)}>
-                      {room.access === 'invite' && <LockIcon />}
-                      <span className="lobby-recent__name" title={room.name}>
+                    <span className="lobby-recent__thumb" aria-hidden="true">
+                      <RoomShot theme={room.theme} className="lobby-recent__img" />
+                    </span>
+                    <span className="lobby-recent__text">
+                      <strong className="lobby-recent__name" title={room.name}>
+                        {room.access === 'invite' && <LockIcon />}
                         <Dotted text={room.name} />
+                      </strong>
+                      <span className="lobby-recent__meta">
+                        <ThemeLabel theme={room.theme} /> · {sinceText(at)}
                       </span>
-                      <span className="lobby-recent__when">{sinceText(at)}</span>
+                    </span>
+                    <button type="button" className="site-btn site-btn--primary lobby-recent__go" onClick={() => onEnter(room)} aria-label={LOBBY_COPY.enter(room.name)}>
+                      Gir
                     </button>
                     <button type="button" className="lobby-recent__remove" aria-label={`${room.name} odasını listeden kaldır`} title="Listeden kaldır" onClick={() => onForget(room.id)}>
                       ×

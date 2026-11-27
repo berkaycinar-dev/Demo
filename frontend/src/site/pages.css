@@ -4438,75 +4438,119 @@
   flex: 1 1 220px;
 }
 
-/* son girilen odalar: tek satır çip; çipin tamamı odaya girer, × listeden kaldırır */
+/* oda görsellerinin zemini: açık modda gündüz ışığı, koyu modda akşam (görsel de moda göre değişir) */
+:root {
+  --lobby-shot-bg: radial-gradient(circle at 50% 55%, #fbf1e1, #ecdcc4 85%);
+  --lobby-label-bg: rgba(255, 251, 244, 0.94);
+}
+
+:root[data-mode='dark'] {
+  --lobby-shot-bg: radial-gradient(circle at 50% 55%, #5a4330, #1a1613 85%);
+  --lobby-label-bg: rgba(20, 16, 13, 0.82);
+}
+
+/* son girilen odalar: başlıklı kart; her satırda odanın küçük görüntüsü, adı, teması ve ne zaman
+   girildiği, sağda Gir ve listeden kaldır (×) */
 .lobby-recent {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  margin-bottom: 18px;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 16px 12px 20px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
 
 .site .lobby-recent__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
-  color: var(--muted);
-  font-size: var(--text-label);
-  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+
+.lobby-recent__title svg {
+  color: var(--primary);
 }
 
 .lobby-recent__list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .lobby-recent__item {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto auto;
   align-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
 }
 
-.lobby-recent__go {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  max-width: 260px;
-  padding: 0 4px 0 14px;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--text-label);
-  font-weight: 600;
-  cursor: pointer;
+.lobby-recent__thumb {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 48px;
+  padding: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  background: var(--lobby-shot-bg);
+  box-sizing: border-box;
 }
 
-.lobby-recent__go:hover .lobby-recent__name {
-  color: var(--primary);
+.lobby-recent__img {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: auto;
+}
+
+.lobby-recent__img img {
+  width: 100%;
+  height: auto;
+}
+
+.lobby-recent__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .lobby-recent__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
   overflow: hidden;
+  font-size: var(--text-label);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.lobby-recent__when {
+.lobby-recent__meta {
+  overflow: hidden;
   color: var(--muted);
-  font-weight: 400;
+  font-size: var(--text-meta);
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.lobby-recent__go {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: var(--text-label);
 }
 
 .lobby-recent__remove {
   width: 32px;
   height: 32px;
-  margin-right: 2px;
   border: 0;
   border-radius: var(--radius-pill);
   background: none;
@@ -4620,7 +4664,7 @@
   min-height: 160px;
   padding: 18px 18px 44px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 55%, #5a4330, #1a1613 85%);
+  background: var(--lobby-shot-bg);
 }
 
 .lobby-room__img {
@@ -4640,8 +4684,8 @@
   left: 10px;
   padding: 2px 8px;
   border-radius: var(--radius-control-sm);
-  background: rgba(20, 16, 13, 0.82);
-  color: #f2e6cf;
+  background: var(--lobby-label-bg);
+  color: var(--text);
   font-size: var(--text-meta);
   font-weight: 600;
 }
@@ -4830,10 +4874,6 @@
   margin: 0;
   color: var(--muted);
   font-size: var(--text-meta);
-}
-
-.lobby-people__side .lobby-recent {
-  margin-bottom: 0;
 }
 
 /* tablet ve telefon: tek sütun; sağ sütun kartların altına iner, yapışmaz */
