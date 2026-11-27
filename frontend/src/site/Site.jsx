@@ -6,6 +6,7 @@ import SettingsPage from './SettingsPage'
 import HelpPage from './HelpPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
+import UnsavedAvatarDialog from './UnsavedAvatarDialog'
 import Icon from './AvatarIcons'
 import { loadAvatar, sameLook, saveAvatar, saveAvatarToServer, syncAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
@@ -108,6 +109,10 @@ export default function Site() {
   // Sunucuda kayıtlı avatar: undefined = henüz okunmadı, null = hiç kaydedilmemiş.
   const [serverAvatar, setServerAvatar] = useState(undefined)
   const [avatarCloud, setAvatarCloud] = useState({ saving: false, error: '' })
+  // Avatar sayfasından kaydetmeden çıkılmak istenen hedef sayfa (uyarı penceresi açık) ya da null.
+  const [leaving, setLeaving] = useState(null)
+  // true: avatar sayfasında kaydedilmemiş değişiklik var, çıkışta sorulur. go ve adres dinleyicisi okur.
+  const leaveGuard = useRef(false)
   const [focusMode, setFocusMode] = useState(false)
   // Kullanıcının gezinerek geldiği sayfa. Açılışta (yenileme) null: sayfa geçiş hareketi, varış
   // levhası ve odak taşıma yalnızca bir gezinmeden sonra olur.
@@ -238,9 +243,16 @@ export default function Site() {
     }
   }, [inRoomId])
 
-  // Geri / ileri düğmeleri ve elle değiştirilen adres.
+  // Geri / ileri düğmeleri ve elle değiştirilen adres. Avatar sayfasında kaydedilmemiş değişiklik varsa
+  // adres avatar sayfasında tutulur ve önce sorulur (UnsavedAvatarDialog).
   useEffect(() => {
     const sync = () => {
+      const next = hashPage()
+      if (leaveGuard.current && next !== 'avatar') {
+        window.history.pushState(null, '', '#avatar')
+        setLeaving(next)
+        return
+      }
       setRequested(hashPage())
       setNavTarget(hashPage())
       setReceipt(null)
@@ -278,7 +290,12 @@ export default function Site() {
     if (navTarget && heading) setAnnounce(heading)
   }, [page, navTarget, currentId, currentName])
 
-  const go = (id) => {
+  // force: kaydedilmemiş avatar uyarısını atla (uyarıda karar verildi ya da çıkış yapılıyor).
+  const go = (id, { force = false } = {}) => {
+    if (!force && leaveGuard.current && id !== 'avatar') {
+      setLeaving(id)
+      return
+    }
     if (window.location.hash !== `#${id}`) window.history.pushState(null, '', `#${id}`)
     setRequested(id)
     setNavTarget(id)
@@ -324,13 +341,16 @@ export default function Site() {
     return saveAvatar(next)
   }
   // Kaydet: avatar sunucuya gider. Kaydederken avatar yine değişirse düğme tekrar "Kaydet" olur.
+  // Dönüş: kaydedildiyse true.
   const saveAvatarCloud = async () => {
     setAvatarCloud({ saving: true, error: '' })
     try {
       setServerAvatar(await saveAvatarToServer(avatar))
       setAvatarCloud({ saving: false, error: '' })
+      return true
     } catch (e) {
       setAvatarCloud({ saving: false, error: errorText(e, 'Kaydedilemedi. Tekrar dene.') })
+      return false
     }
   }
   const avatarCloudState = user
@@ -342,6 +362,34 @@ export default function Site() {
         onSave: saveAvatarCloud,
       }
     : null
+  const unsavedAvatar = page === 'avatar' && !!avatarCloudState && !avatarCloudState.loading && avatarCloudState.dirty
+  useEffect(() => {
+    leaveGuard.current = unsavedAvatar
+  })
+  // Sekmeyi kapatma / yenileme: tarayıcının kendi uyarısı (metni tarayıcı belirler).
+  useEffect(() => {
+    if (!unsavedAvatar) return undefined
+    const warn = (e) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [unsavedAvatar])
+  // Uyarı penceresi kararları: kaydedip çık, atıp çık (avatar son kaydedilen hâline döner), kal.
+  const leaveTo = (to) => {
+    setLeaving(null)
+    go(to, { force: true })
+  }
+  const leaveAfterSave = async () => {
+    const to = leaving
+    if (await saveAvatarCloud()) leaveTo(to)
+  }
+  const leaveDiscarding = () => {
+    if (serverAvatar) changeAvatar({ ...serverAvatar })
+    setAvatarCloud({ saving: false, error: '' })
+    leaveTo(leaving)
+  }
   const signedIn = (u) => {
     setUser(u)
     setJoined(loadJoined(u))
@@ -354,7 +402,8 @@ export default function Site() {
     setJoined([])
     setCurrentId(null)
     setRooms([])
-    go('anasayfa')
+    setServerAvatar(undefined)
+    go('anasayfa', { force: true })
   }
 
   const roomPage = page === 'odam' || (page === 'oda' && current)
@@ -436,6 +485,14 @@ export default function Site() {
         )}
         {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} isDark={isDark} />}
         {page === 'avatar' && <AvatarPage avatar={myAvatar} onChange={changeAvatar} cloud={avatarCloudState} onEnterRoom={() => go('odam')} />}
+        <UnsavedAvatarDialog
+          open={!!leaving}
+          saving={avatarCloud.saving}
+          error={leaving ? avatarCloud.error : ''}
+          onStay={() => setLeaving(null)}
+          onDiscard={leaveDiscarding}
+          onSave={leaveAfterSave}
+        />
         {page === 'hesap' && (
           <AccountPage
             user={user}

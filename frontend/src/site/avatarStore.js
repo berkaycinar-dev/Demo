@@ -50,12 +50,13 @@ export async function saveAvatarToServer(avatar) {
 }
 
 /**
- * Girişte bir kez: sunucudaki avatarı döner (bu tarayıcıya da yazılır); sunucuda yoksa null. Yerel
- * avatar kendiliğinden yüklenmez: kullanıcı Kaydet'e basınca gider.
+ * Girişte bir kez: sunucudaki avatarı döner (bu tarayıcıya da yazılır). Hesabın sunucuda hiç avatarı
+ * yoksa (yeni hesap) bu tarayıcıdaki görünüm (ilk kez gelende varsayılan kostüm) ilk kayıt olarak
+ * sunucuya yazılır ve o döner: odadakiler baştan aynı avatarı görür, sayfada "kaydedilmemiş" görünmez.
  */
 export async function syncAvatar(local) {
   const me = await api('/api/v1/auth/me')
-  if (!me.avatar) return null
+  if (!me.avatar) return saveAvatarToServer(local)
   const next = sanitizeAvatar({ ...me.avatar, name: local.name })
   saveAvatar(next)
   return next
