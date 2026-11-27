@@ -40,7 +40,13 @@ function useLiveMates(roomId, meId) {
       clearInterval(id)
     }
   }, [roomId])
-  return useMemo(() => members.filter((m) => m.userId !== meId).map((m) => ({ id: m.userId, name: m.username, joinedAt: Date.parse(m.startedAt) || null })), [members, meId])
+  return useMemo(
+    () =>
+      members
+        .filter((m) => m.userId !== meId)
+        .map((m) => ({ id: m.userId, name: m.username, avatar: m.avatar ?? null, joinedAt: Date.parse(m.startedAt) || null })),
+    [members, meId],
+  )
 }
 
 // idle: odadasın ama sayaç çalışmıyor (başlamadı ya da duraklatıldı); avatar masada oturur.

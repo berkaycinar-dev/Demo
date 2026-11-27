@@ -1,9 +1,8 @@
 // Sunucunun henüz göndermediği oda arkadaşı alanları için geçici değerler. Sunucu alanı gönderince
 // yalnızca bu dosya değişir; kişi kartı ve kişi listesi buradan okur.
 //
-// Sunucunun verdiği (ActiveMemberResponse): userId, username, role, startedAt. Gerisi aşağıda.
-// Avatar da sunucuda yok: başkaları kimlikten sabit üretilen avatarla çizilir (avatars/useRoomPeople.js,
-// randomAvatar(seededRandom(roomSeed(userId)))). Sunucu avatarı gönderince oradaki üretim kalkar.
+// Sunucunun verdiği (ActiveMemberResponse): userId, username, role, startedAt, avatar. Gerisi aşağıda.
+// avatar null ise (kişi hiç avatar kaydetmedi) kimlikten sabit bir avatar üretilir (avatars/useRoomPeople.js).
 export const PLACEHOLDER = {
   // ActiveMemberResponse.status yok: başkaları masada, odakta görünür
   status: 'focus',

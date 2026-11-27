@@ -156,6 +156,11 @@ class RoomSessionServiceTest {
             public Instant getStartedAt() {
                 return NOW;
             }
+
+            @Override
+            public String getAvatar() {
+                return "{\"body\":\"female\"}";
+            }
         };
         when(sessions.findActive(ROOM)).thenReturn(List.of(row));
 
@@ -164,6 +169,7 @@ class RoomSessionServiceTest {
         assertThat(res).hasSize(1);
         assertThat(res.get(0).username()).isEqualTo("ada_l");
         assertThat(res.get(0).role()).isEqualTo(RoomRole.MEMBER);
+        assertThat(res.get(0).avatar()).isEqualTo("{\"body\":\"female\"}");
     }
 
     @Test

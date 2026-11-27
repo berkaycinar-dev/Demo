@@ -39,7 +39,7 @@ class AuthControllerTest {
     @Test
     void registerReturns201WithContractShape() throws Exception {
         UserResponse user = new UserResponse(UUID.randomUUID(), "ada@example.com", "ada_l",
-                Instant.parse("2026-11-07T10:00:00Z"));
+                Instant.parse("2026-11-07T10:00:00Z"), null);
         when(authService.register(any())).thenReturn(AuthResponse.bearer(user, "jwt", "refresh", 900));
 
         mockMvc.perform(post("/api/v1/auth/register")
