@@ -32,7 +32,8 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
 
     /** Everyone with an open session in the room, longest-inside first. */
     @Query("""
-            select s.userId as userId, u.username as username, m.role as role, s.startedAt as startedAt
+            select s.userId as userId, u.username as username, m.role as role, s.startedAt as startedAt,
+                   u.avatar as avatar
             from RoomSession s
             join User u on u.id = s.userId
             join RoomMember m on m.roomId = s.roomId and m.userId = s.userId
@@ -63,5 +64,8 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
         RoomRole getRole();
 
         Instant getStartedAt();
+
+        /** Stored avatar JSON, or null. */
+        String getAvatar();
     }
 }

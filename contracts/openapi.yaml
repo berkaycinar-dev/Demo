@@ -69,6 +69,17 @@ tags:
       Every session is kept as a row; time spent and points are computed from them.
       `RoomAccessChecker.hasActiveSession` tells D's real-time side whether a user is inside a room.
 
+  - name: users
+    description: |
+      The signed-in user's profile.
+
+      **Avatar.** A flat JSON object of option ids (text) and switches (true/false), e.g.
+      `{"body":"female","hairStyle":"bun","bangs":true}`. The frontend owns the option lists, so the
+      server does not check which ids exist; it only keeps the object small and flat (1 to 64 fields,
+      names are letters and digits up to 32 characters, text up to 40 characters). Everyone in a room
+      sees it: `avatar` is part of `UserResponse` and `ActiveMemberResponse` (also in presence snapshots).
+      `null` means the user never saved one; the frontend then draws a default.
+
   - name: timer
     description: |
       The signed-in user's personal Pomodoro timer. The server is the source of truth; clients show it and
@@ -280,6 +291,40 @@ paths:
           description: Refresh token revoked (or it never existed)
         "429":
           $ref: "#/components/responses/RateLimited"
+
+  /api/v1/users/me/avatar:
+    put:
+      tags: [users]
+      operationId: changeAvatar
+      summary: Replace the signed-in user's avatar
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Avatar"
+      responses:
+        "200":
+          description: Avatar saved; the updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "409":
+          description: Avatar is not a small flat object (`code` is INVALID_AVATAR).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: Avatar values are text (at most 40 characters) or true/false.
+                code: INVALID_AVATAR
 
   /api/v1/rooms:
     get:
@@ -836,6 +881,27 @@ components:
         createdAt:
           type: string
           format: date-time
+        avatar:
+          allOf:
+            - $ref: "#/components/schemas/Avatar"
+          nullable: true
+          description: The saved avatar, or null if never saved.
+
+    Avatar:
+      type: object
+      minProperties: 1
+      maxProperties: 64
+      description: Flat object of avatar option ids (see tag "users"). Field names match `^[A-Za-z][A-Za-z0-9]{0,31}$`.
+      additionalProperties:
+        oneOf:
+          - type: string
+            maxLength: 40
+          - type: boolean
+      example:
+        body: female
+        hairStyle: bun
+        hairColor: brown
+        bangs: true
 
     AuthResponse:
       type: object
@@ -960,6 +1026,11 @@ components:
           type: string
           format: date-time
           description: When this person entered the room.
+        avatar:
+          allOf:
+            - $ref: "#/components/schemas/Avatar"
+          nullable: true
+          description: This person's saved avatar, or null if they never saved one.
 
     TimerPhase:
       type: string

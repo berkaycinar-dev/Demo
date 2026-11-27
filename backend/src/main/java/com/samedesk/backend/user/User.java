@@ -34,6 +34,10 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    // Avatar JSON object (AvatarRules checked it), or null if never saved.
+    @Column(length = 4096)
+    private String avatar;
+
     // Set by the database trigger; the app never writes it.
     @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;
@@ -67,5 +71,13 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public String getAvatar() {
+        return avatar;
+    }
+
+    void changeAvatar(String avatarJson) {
+        this.avatar = avatarJson;
     }
 }
