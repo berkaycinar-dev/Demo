@@ -182,6 +182,150 @@
   background: var(--header-active);
 }
 
+/* hesap menüsü: üst sağdaki ad; fareyle üstüne gelince ya da tıklayınca altında küçük kutu açılır */
+.user-menu {
+  position: relative;
+}
+
+.user-chip__caret {
+  color: var(--header-muted);
+  transition: transform var(--dur-state) var(--ease-out);
+}
+
+.user-chip[aria-expanded='true'] {
+  border-color: var(--header-border);
+  background: var(--header-active);
+}
+
+.user-chip[aria-expanded='true'] .user-chip__caret {
+  transform: rotate(180deg);
+}
+
+.user-menu__pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 260px;
+  padding: 8px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgba(30, 20, 10, 0.6);
+  animation: motion-drop var(--dur-state) var(--ease-out);
+}
+
+/* düğme ile kutu arasındaki boşlukta fare kayıp gitmesin: görünmez köprü */
+.user-menu__pop::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
+  height: 10px;
+}
+
+.user-menu__pop[hidden] {
+  display: none;
+}
+
+.user-menu__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-menu__names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-menu__names strong {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu__names span {
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
+.user-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--text);
+  font: 600 var(--text-control) var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-menu__item svg {
+  color: var(--muted);
+}
+
+.user-menu__item:hover,
+.user-menu__item:focus-visible,
+.user-menu__item[aria-current='page'] {
+  background: var(--surface-2);
+}
+
+.user-menu__look {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  margin: 4px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.user-menu__look-label {
+  color: var(--muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.user-menu__look .mode-choice {
+  display: flex;
+}
+
+.user-menu__look .mode-choice button {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-menu__item--logout {
+  color: var(--primary);
+}
+
+.user-menu__item--logout svg {
+  color: currentColor;
+}
+
+/* dar ekranda kutu ekranın sağ kenarına hizalanır, taşmaz */
+@media (max-width: 640px) {
+  .user-menu__pop {
+    position: fixed;
+    top: calc(var(--header-h, 64px) + 4px);
+    right: 12px;
+    width: min(280px, calc(100vw - 24px));
+  }
+}
+
 .user-chip__avatar {
   display: flex;
   align-items: center;
@@ -4185,13 +4329,11 @@
   }
 }
 
-/* ---------- Lobi: katlı bina (tabela, asansör, anahtar, katlar ve kapılar) ---------- */
+/* ---------- Lobi: tabela, kapı önizlemesi, anahtar ve gece koridoru ---------- */
 
 /* tabela ahşabı: ana sayfadaki kapı tabelasıyla aynı ceviz */
 .lobby-sign,
-.lobby-lift,
-.lobby-key,
-.lobby-floor__sign {
+.lobby-key {
   background:
     repeating-linear-gradient(180deg, transparent 0 22px, rgba(0, 0, 0, 0.09) 22px 23px),
     var(--sign-wood);
@@ -4208,73 +4350,9 @@
   transform: rotate(-1deg);
 }
 
-.lobby-sign__eyebrow {
-  color: var(--sign-ink-2);
-  font-size: var(--text-label);
-  font-weight: 600;
-}
-
 .site .lobby-sign h1 {
   margin: 0;
   color: var(--sign-ink);
-}
-
-/* arama, asansör ve anahtar tek satırda; dar ekranda alt alta */
-.lobby-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  margin-bottom: 14px;
-}
-
-.lobby-tools .lobby-search {
-  flex: 1 1 300px;
-  width: auto;
-}
-
-.lobby-lift {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: var(--radius-pill);
-}
-
-.lobby-lift__label {
-  padding: 0 6px;
-  color: var(--sign-ink-2);
-  font-family: var(--font-pixel);
-  font-size: var(--text-label);
-}
-
-.lobby-lift__btn {
-  width: 44px;
-  height: 44px;
-  border: 3px solid var(--sign-edge);
-  border-radius: var(--radius-pill);
-  background: #d9b56a;
-  color: #2c2119;
-  font-family: var(--font-pixel);
-  font-size: var(--text-control);
-  font-weight: 600;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
-}
-
-.lobby-lift__btn:hover:not(:disabled) {
-  background: #f2c879;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2), 0 0 16px rgba(242, 200, 121, 0.55);
-}
-
-.lobby-lift__btn:active:not(:disabled) {
-  transform: var(--press-shrink);
-}
-
-.lobby-lift__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .lobby-key {
@@ -4388,80 +4466,6 @@
   color: var(--text);
 }
 
-/* bina: her modda gece; katlar arasında ceviz kiriş */
-.lobby-building {
-  padding: 4px 28px 8px;
-  border-top: 6px solid var(--sign-wood);
-  border-radius: var(--radius-card);
-  background: linear-gradient(180deg, #2a211a, #1f1813);
-  color: var(--text);
-}
-
-.lobby-building__hint {
-  margin: 14px 0 0 !important;
-  color: var(--muted);
-  font-size: var(--text-meta);
-  text-align: right;
-}
-
-.lobby-building__empty {
-  margin: 24px 0;
-}
-
-.lobby-floor {
-  display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
-  gap: 24px;
-  padding: 24px 0 30px;
-  border-bottom: 12px solid var(--sign-wood);
-  box-shadow: 0 6px 0 var(--sign-edge);
-  scroll-margin-top: calc(var(--header-h, 64px) + 16px);
-}
-
-.lobby-floor:last-child {
-  border-bottom: 0;
-  box-shadow: none;
-}
-
-.lobby-floor__sign {
-  display: flex;
-  flex-direction: column;
-  align-self: start;
-  gap: 2px;
-  padding: 14px 10px;
-  border-radius: var(--radius-control-lg);
-  text-align: center;
-}
-
-.lobby-floor__no {
-  color: #f2c879;
-  font-family: var(--font-pixel);
-  font-size: var(--pixel-2xl);
-  line-height: 1;
-}
-
-.site .lobby-floor__title {
-  margin: 0;
-  color: var(--sign-ink);
-  font-family: var(--font-pixel);
-  font-size: var(--text-control);
-  font-weight: 500;
-}
-
-.lobby-floor__title:focus {
-  outline: none;
-}
-
-.lobby-floor__sub {
-  color: var(--sign-ink-2);
-  font-size: var(--text-micro);
-}
-
-.lobby-floor__doors {
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 24px 16px;
-}
-
 /* kapılar ana sayfadaki koridorla ortak (.lp-doors__*); lobide lamba yalnızca odada üye varsa yanar,
    kilitli odanın kapısı kapalı tahta ve kilit, uzun oda adı levhada "…" ile biter */
 .lp-doors__lamp[data-off] {
@@ -4474,50 +4478,277 @@
   color: #d9b56a;
 }
 
-.lobby-door .lp-doors__plate {
-  max-width: 100%;
+/* başlık satırı: tabela solda; arama, Hızlı gir ve Oda oluştur sağda */
+.lobby-head__actions .lobby-search {
+  width: 260px;
+}
+
+/* önizleme solda (geniş ekranda kaydırırken yerinde kalır), koridor sağda */
+.lobby-pickrow {
+  display: grid;
+  grid-template-columns: minmax(320px, 440px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.lobby-side {
+  position: sticky;
+  top: calc(var(--header-h, 64px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  scroll-margin-top: calc(var(--header-h, 64px) + 12px);
+}
+
+/* seçili odanın kemerli kapısı: aralık kanat, ardında oda akşam ışığında; kilitliyse kanat kapalı */
+.lobby-preview__arch {
+  position: relative;
   overflow: hidden;
-  font-size: var(--text-body);
+  aspect-ratio: 4 / 3.3;
+  border: 14px solid var(--sign-wood);
+  border-bottom: 0;
+  border-radius: 200px 200px 0 0;
+  background: radial-gradient(circle at 62% 50%, #5a4330, #1a1613 75%);
+  box-shadow: inset 0 0 0 4px var(--sign-edge), 0 0 80px -10px rgba(235, 154, 120, 0.3);
+}
+
+.lobby-preview__room {
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  width: 88%;
+  aspect-ratio: auto;
+  animation: motion-rise var(--dur-reveal) var(--ease-out);
+}
+
+.lobby-preview__room img {
+  width: 100%;
+  height: auto;
+}
+
+.lobby-preview__leaf {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: repeating-linear-gradient(90deg, #4f3a2a 0 34px, #43311f 34px 36px);
+  box-shadow: inset 0 0 0 4px var(--sign-edge), 20px 0 40px rgba(0, 0, 0, 0.5);
+  color: #d9b56a;
+  transform: perspective(1400px) rotateY(-74deg);
+  transform-origin: left center;
+  transition: transform var(--dur-reveal) var(--ease-out);
+}
+
+.lobby-preview__arch[data-locked] .lobby-preview__leaf {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-preview__leaf,
+  .lobby-preview__room {
+    transition: none;
+    animation: none;
+  }
+}
+
+.lobby-preview__sill {
+  display: block;
+  height: 14px;
+  margin-top: -18px;
+  border-radius: 0 0 var(--radius-block) var(--radius-block);
+  background: var(--sign-edge);
+}
+
+.lobby-preview__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 20px 22px;
+  border-radius: var(--radius-card);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 22px, rgba(0, 0, 0, 0.09) 22px 23px),
+    var(--sign-wood);
+  box-shadow: inset 0 0 0 3px var(--sign-edge), inset 0 -6px 0 rgba(0, 0, 0, 0.2);
+}
+
+.site .lobby-preview__name {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0;
+  overflow: hidden;
+  padding: 4px 14px;
+  font-size: var(--pixel-l);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.lobby-door__go {
-  display: inline-flex;
+.site .lobby-preview__desc,
+.site .lobby-preview__fill {
+  margin: 0;
+  color: var(--sign-ink-2);
+  text-wrap: pretty;
+}
+
+.site .lobby-preview__fill {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  min-height: 40px;
+  gap: 10px;
+  color: var(--sign-ink);
+}
+
+.lobby-preview__seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.lobby-preview__seats span {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--sign-edge);
+}
+
+.lobby-preview__seats span[data-on] {
+  background: #e08a66;
+}
+
+.lobby-preview__go {
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 6px;
+}
+
+/* gece koridoru: kapıların hepsi düğme; seçili kapı pirinç halkayla işaretlenir */
+.lobby-corridor {
+  min-width: 0;
+  padding: 22px 20px 20px;
+  border-top: 6px solid var(--sign-wood);
+  border-radius: var(--radius-card);
+  background: linear-gradient(180deg, #2a211a, #1f1813);
+  color: var(--text);
+}
+
+.lobby-corridor__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
+.site .lobby-corridor__head h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-pixel);
+  font-size: var(--text-title);
+  font-weight: 500;
+}
+
+.lobby-corridor__doors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lobby-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px 10px;
+  border: 0;
+  border-radius: var(--radius-control-lg);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard);
+}
+
+.lobby-pick:hover {
+  background: rgba(255, 236, 214, 0.05);
+}
+
+.lobby-pick[aria-pressed='true'] {
+  background: rgba(255, 236, 214, 0.06);
+  box-shadow: inset 0 0 0 2px #d9b56a;
+}
+
+.lobby-pick .lp-doors__lamp {
+  width: 46px;
+  height: 11px;
+}
+
+.lobby-pick .lp-doors__door {
+  border-width: 6px 6px 3px;
+  border-radius: 60px 60px var(--radius-block) var(--radius-block);
+}
+
+.lobby-pick__plate {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-pick__meta {
+  color: var(--muted);
+  font-size: var(--text-micro);
+}
+
+.lobby-corridor__empty {
+  margin: 12px 0;
+}
+
+.site .lobby-corridor__hint {
+  margin: 14px 6px 0;
+  color: var(--muted);
+  font-size: var(--text-meta);
+  text-align: right;
+}
+
+/* tablet ve telefon: önizleme kapıların üstünde, yapışmaz */
+@media (max-width: 900px) {
+  .lobby-pickrow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lobby-side {
+    position: static;
+  }
+
+  .lobby-head__actions .lobby-search {
+    flex: 1 1 100%;
+    width: auto;
+  }
 }
 
 @media (max-width: 560px) {
-  .lobby-building {
-    padding: 4px 16px 8px;
+  .lobby-corridor {
+    padding: 18px 12px;
   }
 
-  /* telefonda kat tabelası kapıların üstünde yatay şerit */
-  .lobby-floor {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-  }
-
-  .lobby-floor__sign {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 10px;
-    text-align: left;
-  }
-
-  .lobby-floor__no {
-    font-size: var(--pixel-xl);
-  }
-
-  .lobby-floor__doors {
+  .lobby-corridor__doors {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 12px;
   }
 
-  .lobby-lift {
-    flex-wrap: wrap;
+  .lobby-preview__arch {
+    border-width: 10px;
+    border-radius: 140px 140px 0 0;
   }
 }
 

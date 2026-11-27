@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { THEMES } from '../rooms/themes'
-import { membersLabel } from './access'
 import WorkingOnField from './WorkingOnField'
 import { codeMatches } from './roomStore'
 import useShortcut from './useShortcut'
@@ -331,79 +330,111 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
   )
 }
 
-// Katlar: odalar temasının havasına göre katlara ayrılır; davetli odalar en üstte, çatı katında. Listede
-// olmayan (yeni ya da gizli) tema zemin kata düşer. Sıra yukarıdan aşağıya, binada olduğu gibi.
-const FLOORS = [
-  { id: 'kat-cati', no: 'Ç', title: 'Çatı katı', sub: 'Kilitli kapılar', invite: true },
-  { id: 'kat-2', no: '2', title: '2. kat', sub: 'Doğa, deniz ve uzay', themes: ['camp', 'teagarden', 'underwater', 'space'] },
-  { id: 'kat-1', no: '1', title: '1. kat', sub: 'Şehir ve ekran', themes: ['office', 'cyber', 'bar'] },
-  { id: 'kat-z', no: 'Z', title: 'Zemin kat', sub: 'Sessiz ve kitaplı', fallback: true },
-]
-
-function floorOf(room) {
-  if (room.access === 'invite') return FLOORS[0]
-  return FLOORS.find((f) => f.themes?.includes(room.theme)) ?? FLOORS[FLOORS.length - 1]
-}
-
-const FLOOR_COPY = {
-  eyebrow: (n) => `Lobi · ${n} kat`,
-  lift: 'Asansör',
-  liftLabel: 'Kata git',
-  liftTo: (title) => `${title}: kata git`,
+const PICK_COPY = {
   key: 'Anahtarın var mı?',
   recent: 'Son açtığın kapılar',
+  doors: 'Kapılar',
+  doorsHint: 'Bir kapıya bas, aralansın',
   lampHint: 'Lamba yanıyorsa odada üye var',
   invite: 'Davetli',
-  enter: 'Gir',
+  enter: (name) => `${name} odasına gir`,
   enterCode: 'Kodla gir',
-  enterLabel: (name) => `${name} odasına gir`,
   codeLabel: (name) => `${name} odasına davet koduyla gir`,
+  pickLabel: (name) => `${name} odasını seç`,
+  members: (n, cap) => `${n} üye · ${cap} kişilik`,
+  capacity: (cap) => `${cap} kişilik`,
+  preview: 'Seçili oda',
 }
 
-// Bir kapı: lamba (odada üye varsa yanar), kemerli kapı (ardında oda, akşam ışığında; kilitli odada kilit),
-// pirinç isim levhası, tema · kapasite · üye ve Gir. Davetli odaya üye olan kodsuz girer, kapısı açıktır.
-function Door({ room, onEnter, onAsk }) {
-  const locked = room.access === 'invite' && !room.myRole
-  const lit = Number.isFinite(room.memberCount) && room.memberCount > 0
+const isLocked = (room) => room.access === 'invite' && !room.myRole
+const isLit = (room) => Number.isFinite(room.memberCount) && room.memberCount > 0
+
+// Kapı ızgarasındaki tek kapı: bütün kapı bir düğme; basınca önizlemede aralanır, çift tıklayınca girer.
+function PickDoor({ room, picked, onPick, onOpen }) {
+  const locked = isLocked(room)
   return (
-    <li className="lp-doors__item lobby-door">
-      <span className="lp-doors__lamp" data-off={lit ? undefined : ''} aria-hidden="true" />
-      <span className={`lp-doors__door${locked ? ' lp-doors__door--locked' : ''}`}>
-        {locked ? (
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-            <rect x="5" y="11" width="14" height="10" rx="2" />
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-          </svg>
-        ) : (
-          <ThemeShot theme={room.theme} dark className="lp-doors__img" />
-        )}
-      </span>
-      <span className="lp-doors__plate" title={room.name}>
-        <Dotted text={room.name} />
-      </span>
-      <span className="lp-doors__desc">
-        <Dotted parts={[room.access === 'invite' && FLOOR_COPY.invite, THEMES[room.theme]?.label, `${room.capacity} kişilik`, membersLabel(room)].filter(Boolean)} keep />
-      </span>
+    <li>
       <button
         type="button"
-        className="site-btn site-btn--small lobby-door__go"
-        onClick={() => (locked ? onAsk(room) : onEnter(room))}
-        aria-label={locked ? FLOOR_COPY.codeLabel(room.name) : FLOOR_COPY.enterLabel(room.name)}
+        className="lobby-pick"
+        aria-pressed={picked}
+        aria-label={PICK_COPY.pickLabel(room.name)}
+        onClick={() => onPick(room)}
+        onDoubleClick={() => onOpen(room)}
       >
-        {locked && <LockIcon />}
-        {locked ? FLOOR_COPY.enterCode : FLOOR_COPY.enter}
+        <span className="lp-doors__lamp" data-off={isLit(room) ? undefined : ''} aria-hidden="true" />
+        <span className={`lp-doors__door${locked ? ' lp-doors__door--locked' : ''}`} aria-hidden="true">
+          {locked ? <BigLock size={30} /> : <ThemeShot theme={room.theme} dark className="lp-doors__img" />}
+        </span>
+        <span className="lp-doors__plate lobby-pick__plate">
+          <Dotted text={room.name} />
+        </span>
+        <span className="lobby-pick__meta">
+          {room.access === 'invite' ? PICK_COPY.invite : Number.isFinite(room.memberCount) ? PICK_COPY.members(room.memberCount, room.capacity) : PICK_COPY.capacity(room.capacity)}
+        </span>
       </button>
     </li>
   )
 }
 
-// Lobi: bir bina. Üstte tabela, hızlı katılma ve oda oluşturma; altında arama, katlara atlayan asansör ve
-// davet koduyla giriş (anahtar); son açılan kapılar. Odalar katlarda: her katın solunda numaralı tabela,
-// sağında kapılar. Bina her modda gece (koyu token'lar, material-sign); kapıların ardında akşam ışığı.
-// Davetli odaya listeden girerken kod sorulur; daha önce katıldığın odaya geçmişten kodsuz girilir.
+const BigLock = ({ size }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+)
+
+// Önizleme: seçili odanın kemerli kapısı aralık (kilitliyse kapalı ve kilitli), ardında oda akşam ışığında;
+// altında ceviz levhada ad, tema ve açıklaması, doluluk ve tek büyük eylem.
+function DoorPreview({ room, onOpen }) {
+  const locked = isLocked(room)
+  const members = Number.isFinite(room.memberCount) ? Math.min(room.memberCount, room.capacity) : null
+  const theme = THEMES[room.theme]
+  return (
+    <div className="lobby-preview" aria-label={PICK_COPY.preview}>
+      <div className="lobby-preview__arch" data-locked={locked || undefined} aria-hidden="true">
+        <ThemeShot key={room.theme} theme={room.theme} dark className="lobby-preview__room" />
+        <span className="lobby-preview__leaf">{locked && <BigLock size={56} />}</span>
+      </div>
+      <span className="lobby-preview__sill" aria-hidden="true" />
+      <div className="lobby-preview__info material-sign" aria-live="polite">
+        <h2 className="lp-doors__plate lobby-preview__name">
+          <Dotted text={room.name} />
+        </h2>
+        <p className="lobby-preview__desc">
+          {room.access === 'invite' && `${PICK_COPY.invite} · `}
+          {theme?.label}
+          {theme?.description && ` · ${theme.description}`}
+        </p>
+        <p className="lobby-preview__fill">
+          {members !== null && (
+            <span className="lobby-preview__seats" aria-hidden="true">
+              {Array.from({ length: room.capacity }, (_, i) => (
+                <span key={i} data-on={i < members || undefined} />
+              ))}
+            </span>
+          )}
+          {members !== null ? PICK_COPY.members(room.memberCount, room.capacity) : PICK_COPY.capacity(room.capacity)}
+        </p>
+        <button type="button" className="site-btn site-btn--primary site-btn--lg lobby-preview__go" onClick={() => onOpen(room)}>
+          {locked && <LockIcon />}
+          {locked ? PICK_COPY.codeLabel(room.name) : PICK_COPY.enter(room.name)}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Lobi: koridordaki kapılar ve seçili kapının önizlemesi. Üstte tabela, hızlı katılma ve oda oluşturma,
+// arama. Solda önizleme (seçili oda aralık kapının ardında; ad, açıklama, doluluk, Gir), davet koduyla giriş
+// (anahtar) ve son açılan kapılar; sağda gece koridoru: kapıya basınca önizlemede aralanır, çift tıklayınca
+// girer. Açık odalar önce, davetli (kilitli) kapılar sonda. Davetli odaya kodla girilir; üyesi olunan
+// davetli oda kodsuz açılır. Bina her modda gece (koyu token'lar, material-sign).
 export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
+  const [pickedId, setPickedId] = useState(null)
+  const previewRef = useRef(null)
   // "/": aramaya atla
   const searchRef = useRef(null)
   useShortcut('/', () => searchRef.current?.focus())
@@ -413,19 +444,22 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
 
   const q = trLower(query.trim())
   const matches = (r) => !q || trLower(r.name).includes(q) || trLower(THEMES[r.theme]?.label ?? '').includes(q)
-  const shown = rooms.filter(matches)
+  // açık odalar önce, davetli kapılar sonda
+  const shown = [...rooms.filter((r) => r.access !== 'invite'), ...rooms.filter((r) => r.access === 'invite')].filter(matches)
   const searching = Boolean(q)
-  const floors = FLOORS.map((f) => ({ ...f, rooms: shown.filter((r) => floorOf(r) === f) }))
-  const visibleFloors = floors.filter((f) => f.rooms.length > 0)
-  // temizleyince odak aramaya döner: yeni bir şey yazmak bir tuş uzakta
+  // seçili oda: seçilen hâlâ listedeyse o; değilse en çok üyesi olan açık oda (yoksa listenin ilki)
+  const busiest = shown.filter((r) => !isLocked(r)).reduce((best, r) => ((r.memberCount ?? 0) > (best?.memberCount ?? -1) ? r : best), null)
+  const picked = shown.find((r) => r.id === pickedId) ?? busiest ?? shown[0] ?? null
+
   const clearSearch = () => {
     setQuery('')
     searchRef.current?.focus()
   }
-  const goFloor = (id) => {
-    const el = document.getElementById(id)
-    revealEl(el, 'start')
-    el?.querySelector('h2')?.focus({ preventScroll: true })
+  const openRoom = (room) => (isLocked(room) ? setAsking(room) : onEnter(room))
+  // dar ekranda önizleme kapıların üstünde: seçince görünür alana gelir
+  const pick = (room) => {
+    setPickedId(room.id)
+    if (window.matchMedia?.('(max-width: 900px)').matches) requestAnimationFrame(() => revealEl(previewRef.current, 'start'))
   }
 
   return (
@@ -434,124 +468,110 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
       <header className="lobby-head">
         <div className="lobby-head__title">
           <div className="lobby-sign material-sign">
-            <span className="lobby-sign__eyebrow">{FLOOR_COPY.eyebrow(FLOORS.length)}</span>
             <h1 id="lobiBaslik">Birlikte çalışacak bir oda seç</h1>
           </div>
           <WorkingOnField username={username} className="lobby-head__working" />
         </div>
         <div className="lobby-head__actions">
+          <div className="lobby-search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-4-4" />
+            </svg>
+            <label className="sr-only" htmlFor="lobbySearch">
+              Oda ara
+            </label>
+            <input
+              ref={searchRef}
+              id="lobbySearch"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={SEARCH_COPY.placeholder}
+              aria-keyshortcuts="/"
+              title={SEARCH_COPY.key}
+            />
+          </div>
           <QuickJoin rooms={open} onEnter={onEnter} />
-          <button type="button" className="site-btn site-btn--lg site-btn--primary" onClick={onCreate}>
+          <button type="button" className="site-btn site-btn--lg" onClick={onCreate}>
             <PlusIcon />
             Oda oluştur
           </button>
         </div>
       </header>
 
-      <div className="lobby-tools">
-        <div className="lobby-search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" />
-            <path d="M20 20l-4-4" />
-          </svg>
-          <label className="sr-only" htmlFor="lobbySearch">
-            Oda ara
-          </label>
-          <input
-            ref={searchRef}
-            id="lobbySearch"
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={SEARCH_COPY.placeholder}
-            aria-keyshortcuts="/"
-            title={SEARCH_COPY.key}
-          />
-        </div>
-        <nav className="lobby-lift material-sign" aria-label={FLOOR_COPY.liftLabel}>
-          <span className="lobby-lift__label" aria-hidden="true">
-            {FLOOR_COPY.lift}
-          </span>
-          {floors.map((f) => (
-            <button key={f.id} type="button" className="lobby-lift__btn" disabled={f.rooms.length === 0} onClick={() => goFloor(f.id)} aria-label={FLOOR_COPY.liftTo(f.title)} title={f.title}>
-              {f.no}
-            </button>
-          ))}
-        </nav>
-        <section className="lobby-key material-sign" aria-labelledby="kodBaslik">
-          <h2 id="kodBaslik" className="lobby-key__title" title={CODE_COPY.format}>
-            <KeyIcon />
-            {FLOOR_COPY.key}
-          </h2>
-          <CodeJoin rooms={rooms} onEnter={onEnter} />
-        </section>
-      </div>
+      <div className="lobby-pickrow">
+        <aside className="lobby-side" ref={previewRef}>
+          {picked && <DoorPreview room={picked} onOpen={openRoom} />}
 
-      {history.length > 0 && (
-        <section className="lobby-recent" aria-labelledby="katildigimBaslik">
-          <h2 id="katildigimBaslik" className="lobby-recent__title">
-            {FLOOR_COPY.recent}
-          </h2>
-          <ul className="lobby-recent__list">
-            {history.map(({ room, at }) => (
-              <li key={room.id} className="lobby-recent__item">
-                <button type="button" className="lobby-recent__go" onClick={() => onEnter(room)} aria-label={FLOOR_COPY.enterLabel(room.name)}>
-                  {room.access === 'invite' && <LockIcon />}
-                  <span className="lobby-recent__name" title={room.name}>
-                    <Dotted text={room.name} />
-                  </span>
-                  <span className="lobby-recent__when">{sinceText(at)}</span>
-                </button>
-                <button type="button" className="lobby-recent__remove" aria-label={`${room.name} odasını listeden kaldır`} title="Listeden kaldır" onClick={() => onForget(room.id)}>
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+          <section className="lobby-key material-sign" aria-labelledby="kodBaslik">
+            <h2 id="kodBaslik" className="lobby-key__title" title={CODE_COPY.format}>
+              <KeyIcon />
+              {PICK_COPY.key}
+            </h2>
+            <CodeJoin rooms={rooms} onEnter={onEnter} />
+          </section>
 
-      <div className="lobby-building material-sign">
-        <p className="lobby-building__hint">{FLOOR_COPY.lampHint}</p>
-        {visibleFloors.length === 0 ? (
-          <div className="empty-note lobby-building__empty">
-            {searching ? (
-              <>
-                <p>{SEARCH_COPY.noMatch(query.trim())}</p>
-                <button type="button" className="site-btn" onClick={clearSearch}>
-                  {SEARCH_COPY.clear}
-                </button>
-              </>
-            ) : (
-              <>
-                <p>Şu an açık oda yok.</p>
-                <button type="button" className="site-btn" onClick={onCreate}>
-                  <PlusIcon />
-                  Yeni oda oluştur
-                </button>
-              </>
-            )}
-          </div>
-        ) : (
-          visibleFloors.map((f) => (
-            <section key={f.id} id={f.id} className="lobby-floor" aria-labelledby={`${f.id}-baslik`}>
-              <div className="lobby-floor__sign">
-                <span className="lobby-floor__no" aria-hidden="true">
-                  {f.no}
-                </span>
-                <h2 id={`${f.id}-baslik`} className="lobby-floor__title" tabIndex={-1}>
-                  {f.title}
-                </h2>
-                <span className="lobby-floor__sub">{f.sub}</span>
-              </div>
-              <ul className="lp-doors lobby-floor__doors">
-                {f.rooms.map((room) => (
-                  <Door key={room.id} room={room} onEnter={onEnter} onAsk={setAsking} />
+          {history.length > 0 && (
+            <section className="lobby-recent" aria-labelledby="katildigimBaslik">
+              <h2 id="katildigimBaslik" className="lobby-recent__title">
+                {PICK_COPY.recent}
+              </h2>
+              <ul className="lobby-recent__list">
+                {history.map(({ room, at }) => (
+                  <li key={room.id} className="lobby-recent__item">
+                    <button type="button" className="lobby-recent__go" onClick={() => onEnter(room)} aria-label={PICK_COPY.enter(room.name)}>
+                      {room.access === 'invite' && <LockIcon />}
+                      <span className="lobby-recent__name" title={room.name}>
+                        <Dotted text={room.name} />
+                      </span>
+                      <span className="lobby-recent__when">{sinceText(at)}</span>
+                    </button>
+                    <button type="button" className="lobby-recent__remove" aria-label={`${room.name} odasını listeden kaldır`} title="Listeden kaldır" onClick={() => onForget(room.id)}>
+                      ×
+                    </button>
+                  </li>
                 ))}
               </ul>
             </section>
-          ))
-        )}
+          )}
+        </aside>
+
+        <section className="lobby-corridor material-sign" aria-labelledby="kapilarBaslik">
+          <div className="lobby-corridor__head">
+            <h2 id="kapilarBaslik">{PICK_COPY.doors}</h2>
+            <span>{shown.length > 0 ? PICK_COPY.doorsHint : ''}</span>
+          </div>
+          {shown.length === 0 ? (
+            <div className="empty-note lobby-corridor__empty">
+              {searching ? (
+                <>
+                  <p>{SEARCH_COPY.noMatch(query.trim())}</p>
+                  <button type="button" className="site-btn" onClick={clearSearch}>
+                    {SEARCH_COPY.clear}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>Şu an açık oda yok.</p>
+                  <button type="button" className="site-btn" onClick={onCreate}>
+                    <PlusIcon />
+                    Yeni oda oluştur
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              <ul className="lobby-corridor__doors">
+                {shown.map((room) => (
+                  <PickDoor key={room.id} room={room} picked={picked?.id === room.id} onPick={pick} onOpen={openRoom} />
+                ))}
+              </ul>
+              <p className="lobby-corridor__hint">{PICK_COPY.lampHint}</p>
+            </>
+          )}
+        </section>
       </div>
 
       <CodeDialog room={asking} onClose={() => setAsking(null)} onSuccess={onEnter} />

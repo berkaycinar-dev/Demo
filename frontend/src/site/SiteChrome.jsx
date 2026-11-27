@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 // Sitenin çerçevesi: marka, üst menü, açık/koyu mod düğmesi ve alt bilgi.
 
@@ -67,6 +67,134 @@ export function ModeToggle({ pref, onChange }) {
   )
 }
 
+const USER_COPY = {
+  label: (name) => `Hesap menüsü: ${name}`,
+  profile: 'Profilim',
+  avatar: 'Avatarım',
+  look: 'Görünüm',
+  logout: 'Çıkış yap',
+}
+
+// Menüdeki bağlantıların simgeleri (yazının rengini alır)
+const MenuIcon = ({ d }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+)
+const ICON_PROFILE = 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'
+const ICON_AVATAR = 'M4 4h16v16H4zM9 9h.01M15 9h.01M9 15h6'
+const ICON_LOGOUT = 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'
+
+// Hesap menüsü: üst sağdaki ad ve baş harf. Fare üstüne gelince açılır (kısa gecikmeyle kapanır, kutuya
+// geçerken kapanmasın); tıklama, dokunma ve klavye de açar. Esc kapatır ve odağı düğmeye verir, dışarı
+// tıklama kapatır. İçinde: ad ve kullanıcı adı, Profilim (hesap ayarları), Avatarım, görünüm (açık / koyu)
+// ve Çıkış yap.
+function UserMenu({ user, page, onGo, onLogout, modePref, onModeChange }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const btnRef = useRef(null)
+  const closeTimer = useRef(0)
+  const popId = useId()
+
+  useEffect(() => () => clearTimeout(closeTimer.current), [])
+  useEffect(() => {
+    if (!open) return undefined
+    const onDown = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+      btnRef.current?.focus()
+    }
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const show = () => {
+    clearTimeout(closeTimer.current)
+    setOpen(true)
+  }
+  const hideSoon = () => {
+    clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(() => setOpen(false), 180)
+  }
+  const go = (id) => {
+    setOpen(false)
+    onGo(id)
+  }
+
+  return (
+    <div
+      className="user-menu"
+      ref={wrapRef}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && show()}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && hideSoon()}
+      onBlur={(e) => {
+        if (!wrapRef.current?.contains(e.relatedTarget)) setOpen(false)
+      }}
+    >
+      <button
+        ref={btnRef}
+        type="button"
+        className="user-chip"
+        aria-label={USER_COPY.label(user.displayName)}
+        aria-expanded={open}
+        aria-controls={popId}
+        aria-current={page === 'hesap' ? 'page' : undefined}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="user-chip__avatar" aria-hidden="true">
+          {initials(user.displayName)}
+        </span>
+        <span className="user-chip__name">{user.displayName}</span>
+        <svg className="user-chip__caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div id={popId} className="user-menu__pop" hidden={!open}>
+        <div className="user-menu__who">
+          <span className="user-chip__avatar" aria-hidden="true">
+            {initials(user.displayName)}
+          </span>
+          <span className="user-menu__names">
+            <strong>{user.displayName}</strong>
+            <span>@{user.username}</span>
+          </span>
+        </div>
+        <button type="button" className="user-menu__item" aria-current={page === 'hesap' ? 'page' : undefined} onClick={() => go('hesap')}>
+          <MenuIcon d={ICON_PROFILE} />
+          {USER_COPY.profile}
+        </button>
+        <button type="button" className="user-menu__item" aria-current={page === 'avatar' ? 'page' : undefined} onClick={() => go('avatar')}>
+          <MenuIcon d={ICON_AVATAR} />
+          {USER_COPY.avatar}
+        </button>
+        <div className="user-menu__look">
+          <span className="user-menu__look-label">{USER_COPY.look}</span>
+          <ModeChoice pref={modePref} onChange={onModeChange} />
+        </div>
+        <button
+          type="button"
+          className="user-menu__item user-menu__item--logout"
+          onClick={() => {
+            setOpen(false)
+            onLogout()
+          }}
+        >
+          <MenuIcon d={ICON_LOGOUT} />
+          {USER_COPY.logout}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const initials = (name) =>
   name
     .split(/\s+/)
@@ -121,23 +249,8 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
         </span>
         {user ? (
           <>
-            <button
-              type="button"
-              className="user-chip"
-              title={`Hesap ayarları · @${user.username}`}
-              aria-label={`Hesap ayarları: ${user.displayName}`}
-              aria-current={page === 'hesap' ? 'page' : undefined}
-              onClick={() => onGo('hesap')}
-            >
-              <span className="user-chip__avatar" aria-hidden="true">
-                {initials(user.displayName)}
-              </span>
-              <span className="user-chip__name">{user.displayName}</span>
-            </button>
-            {/* telefonda üst menü tek satır: mod ve çıkış hesap sayfasında (AccountPage SessionCard) */}
-            <button type="button" className="header-link header-link--logout" onClick={onLogout}>
-              Çıkış yap
-            </button>
+            {/* hesap menüsü: Profilim, Avatarım, görünüm ve Çıkış yap */}
+            <UserMenu user={user} page={page} onGo={onGo} onLogout={onLogout} modePref={modePref} onModeChange={onModeChange} />
           </>
         ) : (
           <>

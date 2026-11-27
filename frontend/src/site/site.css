@@ -1961,7 +1961,6 @@ html:has(.site-stage-main) {
     gap: 8px;
   }
 
-  .site-header .header-link--logout,
   .site-header .user-chip__name {
     display: none;
   }
@@ -2052,8 +2051,7 @@ html:has(.site-stage-main) {
     white-space: nowrap;
   }
 
-  .site-header__mode,
-  .site-header .header-link--logout {
+  .site-header__mode {
     display: none;
   }
 
