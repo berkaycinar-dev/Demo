@@ -7,7 +7,7 @@ import HelpPage from './HelpPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
 import Icon from './AvatarIcons'
-import { loadAvatar, saveAvatar } from './avatarStore'
+import { loadAvatar, pushAvatar, saveAvatar, syncAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import HomePage from './HomePage'
 import LandingPage from './LandingPage'
@@ -190,6 +190,22 @@ export default function Site() {
     }
   }, [listsRooms, page])
 
+  // Girişte avatar sunucuyla eşitlenir: sunucudaki varsa o gösterilir, yoksa buradaki yüklenir.
+  // Odadaki başkaları avatarı sunucudan okur.
+  const userId = user?.id
+  useEffect(() => {
+    if (!userId) return undefined
+    let stale = false
+    syncAvatar(loadAvatar())
+      .then((next) => {
+        if (!stale && next) setAvatar(next)
+      })
+      .catch(() => {})
+    return () => {
+      stale = true
+    }
+  }, [userId])
+
   // Token yenilenemezse (oturum sunucuda bitti) giriş sayfasına dönülür.
   useEffect(() => {
     const out = () => {
@@ -298,6 +314,7 @@ export default function Site() {
   }
   const changeAvatar = (next) => {
     setAvatar(next)
+    if (user) pushAvatar(next, () => setNotice('Avatarın sunucuya kaydedilemedi; odadakiler eski görünümü görebilir.'))
     return saveAvatar(next)
   }
   const signedIn = (u) => {

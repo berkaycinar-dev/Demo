@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { seededRandom } from '../rooms/core/voxel'
-import { randomAvatar } from './options'
+import { randomAvatar, sanitizeAvatar } from './options'
 
 const NAMES = ['Zeynep', 'Mert', 'Deniz', 'Elif', 'Can', 'Ece', 'Kaan', 'Ayşe', 'Emre', 'Selin', 'Burak', 'İrem', 'Arda', 'Defne']
 const STATUSES = ['focus', 'break', 'away']
@@ -53,15 +53,16 @@ export const roomMates = (capacity, seed) => roomBots(capacity, seed).slice(1)
  */
 export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0, people = null }) {
   const simulated = useMemo(() => roomBots(capacity, seed), [capacity, seed])
-  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name, joinedAt? }]) simüle kişilerin yerine onlar
-  // oturur: koltuk sırası aynı, avatar kimlikten sabit üretilir. Durumları uydurulmaz, hep masada.
+  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name, avatar?, joinedAt? }]) simüle kişilerin
+  // yerine onlar oturur: koltuk sırası aynı. Avatar kişinin kaydettiği avatardır; hiç kaydetmediyse kimlikten
+  // sabit üretilir. Durumları uydurulmaz, hep masada.
   const bots = useMemo(() => {
     if (!people) return simulated
     const seats = simulated.map((b) => b.seat)
     const real = people.slice(0, Math.max(0, capacity - 1)).map((p, i) => ({
       id: `user-${p.id}`,
       name: p.name,
-      avatar: randomAvatar(seededRandom(roomSeed(p.id)), p.name),
+      avatar: p.avatar ? sanitizeAvatar({ ...p.avatar, name: p.name }) : randomAvatar(seededRandom(roomSeed(p.id)), p.name),
       seat: seats[i + 1],
       rnd: seededRandom(roomSeed(p.id) * 31),
       real: true,
