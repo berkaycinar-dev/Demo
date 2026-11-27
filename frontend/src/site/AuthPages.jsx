@@ -1,5 +1,5 @@
-import { useId, useState } from 'react'
-import { PASSWORD_RULES, USERNAME_HINT, lastLoginId, login, register, validateRegistration } from './auth'
+import { useState } from 'react'
+import { EMAIL_RE, PASSWORD_RULES, USERNAME_HINT, lastLoginId, login, register, validateRegistration } from './auth'
 import { LegalDialog } from './LegalPages'
 import RoomShot from './RoomShot'
 
@@ -111,9 +111,6 @@ export function PasswordInput({ id, value, onChange, onBlur, autoComplete, inval
 const LOGIN_COPY = {
   empty: 'E-posta adresini ve şifreni yaz.',
   forgot: 'Şifremi unuttum',
-  // Şifre sıfırlama henüz yok: form ya da "bağlantı gönderelim" sözü yerine durum yerinde söylenir,
-  // kullanıcı giriş formundan ayrılmaz.
-  forgotNote: 'Şifre sıfırlama henüz açık değil.',
 }
 
 export function LoginPage({ onDone, onGo }) {
@@ -124,8 +121,6 @@ export function LoginPage({ onDone, onGo }) {
   // Hatanın bağlı olduğu alanlar: boş bırakılanlar ya da (giriş reddedilince) ikisi birden.
   const [bad, setBad] = useState({})
   const [busy, setBusy] = useState(false)
-  const [forgot, setForgot] = useState(false)
-  const forgotId = useId()
 
   const fail = (text, fields) => {
     setError(text)
@@ -182,7 +177,7 @@ export function LoginPage({ onDone, onGo }) {
         <div className="auth-field">
           <span className="auth-field__label-row">
             <label htmlFor="loginPass">Şifre</label>
-            <button type="button" className="link-btn" aria-expanded={forgot} aria-controls={forgotId} onClick={() => setForgot((v) => !v)}>
+            <button type="button" className="link-btn" onClick={() => onGo('sifremi-unuttum')}>
               {LOGIN_COPY.forgot}
             </button>
           </span>
@@ -198,9 +193,6 @@ export function LoginPage({ onDone, onGo }) {
             invalid={!!bad.pass}
             describedBy={error && (bad.pass || !bad.id) ? 'loginErr' : undefined}
           />
-          <p id={forgotId} className="form-note form-note--inline" hidden={!forgot}>
-            {LOGIN_COPY.forgotNote}
-          </p>
         </div>
         <label className="auth-check">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
@@ -214,6 +206,79 @@ export function LoginPage({ onDone, onGo }) {
         SameDesk’te yeni misin?{' '}
         <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('kayit')}>
           Hesap oluştur
+        </button>
+      </p>
+    </AuthShell>
+  )
+}
+
+// Şifremi unuttum: hesabın e-postası istenir. Sunucuda şifre sıfırlama henüz yok (contracts/openapi.yaml'da
+// uç nokta yok), bu yüzden "bağlantı gönderdik" denmez: gönderince durum açıkça söylenir. Uç nokta gelince
+// submit içinde istek atılır ve not, hesap varlığını sızdırmayan "bağlantı gönderildi" metnine döner.
+const FORGOT_COPY = {
+  title: 'Şifreni mi unuttun?',
+  lead: 'Hesabının e-posta adresini yaz; şifreni yenilemen için sana bir bağlantı göndereceğiz.',
+  empty: 'E-posta adresini yaz.',
+  invalid: 'Geçerli bir e-posta adresi yaz.',
+  submit: 'Sıfırlama bağlantısı gönder',
+  pending: (email) => `Şifre sıfırlama e-postaları henüz gönderilemiyor. Bu özellik açılınca bağlantı ${email} adresine gidecek.`,
+  remembered: 'Şifreni hatırladın mı?',
+  login: 'Giriş yap',
+}
+
+export function ForgotPasswordPage({ onGo }) {
+  const [email, setEmail] = useState(lastLoginId)
+  const [error, setError] = useState('')
+  const [sent, setSent] = useState(null)
+
+  const submit = (e) => {
+    e.preventDefault()
+    const value = email.trim().toLowerCase()
+    const problem = !value ? FORGOT_COPY.empty : !EMAIL_RE.test(value) ? FORGOT_COPY.invalid : ''
+    if (problem) {
+      setError(problem)
+      setSent(null)
+      document.getElementById('forgotEmail')?.focus()
+      return
+    }
+    // TODO(şifre sıfırlama): sunucuda uç nokta açılınca isteği burada at.
+    setSent(value)
+  }
+
+  return (
+    <AuthShell>
+      <div className="auth__head">
+        <h1>{FORGOT_COPY.title}</h1>
+        <p className="site-muted">{FORGOT_COPY.lead}</p>
+      </div>
+      <form className="auth__form" onSubmit={submit} noValidate>
+        <Field id="forgotEmail" label="E-posta" error={error}>
+          <input
+            id="forgotEmail"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (error) setError('')
+              if (sent) setSent(null)
+            }}
+            autoComplete="email"
+            type="email"
+            placeholder="ornek@posta.com"
+            aria-invalid={!!error || undefined}
+            aria-describedby={error ? 'forgotEmail-err' : undefined}
+          />
+        </Field>
+        <p className="form-note form-note--inline" role="status" hidden={!sent}>
+          {sent && FORGOT_COPY.pending(sent)}
+        </p>
+        <button type="submit" className="site-btn site-btn--primary site-btn--wide">
+          {FORGOT_COPY.submit}
+        </button>
+      </form>
+      <p className="auth__switch">
+        {FORGOT_COPY.remembered}{' '}
+        <button type="button" className="link-btn link-btn--strong" onClick={() => onGo('giris')}>
+          {FORGOT_COPY.login}
         </button>
       </p>
     </AuthShell>

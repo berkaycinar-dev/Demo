@@ -378,6 +378,8 @@ export default function usePomodoro({ track = true } = {}) {
     skip,
     stats: stats.day === today() ? stats : emptyStats(),
     history,
+    // sayaç dışından gelen odak dakikaları (kronometre): bugünkü sayıma ve geçmişe eklenir
+    addFocus: (minutes) => credit(minutes, 0),
     completed,
     notice: notice && { id: notice.id, text: notice.text, undo: notice.undo ? undoNotice : null },
     gain,

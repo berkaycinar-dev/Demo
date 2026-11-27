@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 // Sitenin çerçevesi: marka, üst menü, açık/koyu mod düğmesi ve alt bilgi.
 
@@ -20,9 +20,9 @@ const MODE_COPY = {
   options: [
     { id: 'light', label: 'Açık' },
     { id: 'dark', label: 'Koyu' },
-    { id: 'system', label: 'Sistem' },
   ],
-  button: (name) => `Tema: ${name}`,
+  // düğme yapacağı işi söyler: açıkken "Koyu moda geç"
+  toggle: { light: 'Koyu moda geç', dark: 'Açık moda geç' },
 }
 
 function ModeIcon({ id }) {
@@ -34,21 +34,14 @@ function ModeIcon({ id }) {
         <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
       </svg>
     )
-  if (id === 'dark')
-    return (
-      <svg {...common}>
-        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-      </svg>
-    )
   return (
     <svg {...common}>
-      <rect x="3" y="4" width="18" height="12" rx="2" />
-      <path d="M8 20h8M12 16v4" />
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
     </svg>
   )
 }
 
-// Üç seçenek yan yana (Açık / Koyu / Sistem): header kutusunda da hesap sayfasında da aynı parça.
+// İki seçenek yan yana (Açık / Koyu): hesap sayfasındaki tema seçimi.
 export function ModeChoice({ pref, onChange }) {
   return (
     <div className="mode-choice" role="group" aria-label={MODE_COPY.label}>
@@ -62,51 +55,15 @@ export function ModeChoice({ pref, onChange }) {
   )
 }
 
-// Header'da tek biçim: 44 px yuvarlak ikon düğmesi; altına üç seçenekli küçük kutu açar. Dışarı
-// tıklayınca ya da Esc ile kapanır, Esc odağı düğmeye geri verir.
-export function ModeMenu({ pref, onChange }) {
-  const [open, setOpen] = useState(false)
-  const wrapRef = useRef(null)
-  const btnRef = useRef(null)
-  const popId = useId()
-  useEffect(() => {
-    if (!open) return undefined
-    const onDown = (e) => {
-      if (!wrapRef.current?.contains(e.target)) setOpen(false)
-    }
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return
-      e.stopPropagation()
-      setOpen(false)
-      btnRef.current?.focus()
-    }
-    document.addEventListener('pointerdown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('pointerdown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-  const current = MODE_COPY.options.find((o) => o.id === pref) ?? MODE_COPY.options[2]
-  const label = MODE_COPY.button(current.label)
+// Header'da 44 px yuvarlak ikon düğmesi: her basışta açık ↔ koyu. İkon şu anki modu gösterir (güneş açık,
+// ay koyu); etiket ve ipucu basınca ne olacağını söyler.
+export function ModeToggle({ pref, onChange }) {
+  const next = pref === 'dark' ? 'light' : 'dark'
+  const label = MODE_COPY.toggle[pref === 'dark' ? 'dark' : 'light']
   return (
-    <div className="mode-menu" ref={wrapRef}>
-      <button
-        ref={btnRef}
-        type="button"
-        className="mode-btn"
-        aria-label={label}
-        title={label}
-        aria-expanded={open}
-        aria-controls={popId}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ModeIcon id={current.id} />
-      </button>
-      <div id={popId} className="mode-menu__pop" hidden={!open}>
-        <ModeChoice pref={pref} onChange={onChange} />
-      </div>
-    </div>
+    <button type="button" className="mode-btn" aria-label={label} title={label} onClick={() => onChange(next)}>
+      <ModeIcon id={pref === 'dark' ? 'dark' : 'light'} />
+    </button>
   )
 }
 
@@ -136,7 +93,7 @@ function useHeaderHeight() {
 
 // Tek yapı: marka · (oturumluysa) sayfa menüsü · araçlar [mod, sonra hesap ya da giriş/kayıt].
 // Hangi sayfada olunursa olunsun aynı öğeler aynı yerde durur.
-const QUIET_CTA = new Set(['anasayfa', 'giris', 'kayit'])
+const QUIET_CTA = new Set(['anasayfa', 'giris', 'kayit', 'sifremi-unuttum'])
 
 // wide: oda sayfalarında sahne tam genişlik; header da sayfa kabına değil sahnenin kenarına hizalanır.
 export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, modePref, onModeChange, wide = false }) {
@@ -160,7 +117,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
       )}
       <div className="site-header__tools">
         <span className={user ? 'site-header__mode' : undefined}>
-          <ModeMenu pref={modePref} onChange={onModeChange} />
+          <ModeToggle pref={modePref} onChange={onModeChange} />
         </span>
         {user ? (
           <>

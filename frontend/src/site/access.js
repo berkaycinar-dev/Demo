@@ -2,8 +2,8 @@
 // çubuğu) bu tek kaynaktan okunur. Kod isteyen odanın tek adı "Davetli", tek eylemi "Kodla gir"; yazımı ve harf büyüklüğü her yerde aynı kalır. Çeviri için
 // label ve hint tam metinlerdir, başka dizelerle birleştirilmez.
 export const ACCESS = {
-  public: { label: 'Herkese açık', hint: 'Oda lobide listelenir, herkes girebilir.' },
-  invite: { label: 'Davetli', hint: 'Bir davet kodu üretilir; yalnızca kodu bilenler girebilir.' },
+  public: { label: 'Herkese açık', hint: 'Lobide görünür, herkes girebilir.' },
+  invite: { label: 'Davetli', hint: 'Davet kodu üretilir; yalnızca kodu bilenler girer.' },
 }
 
 // Seçim listesindeki sıra.

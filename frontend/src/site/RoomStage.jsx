@@ -84,8 +84,9 @@ function StageBar({ timer, away }) {
   const isFocus = timer.phase === 'focus'
   return (
     <div className="stage-bar" data-phase={timer.phase} data-away={away ? '' : undefined} inert={away} role="group" aria-label="Sayaç özeti">
-      <span className="stage-bar__phase">{isFocus ? 'Odak' : 'Mola'}</span>
-      <span className="stage-bar__clock">{formatClock(timer.remaining)}</span>
+      {/* label / clock: sayaç dışı bir süre (kronometre) kendi etiketini ve saatini verir */}
+      <span className="stage-bar__phase">{timer.label ?? (isFocus ? 'Odak' : 'Mola')}</span>
+      <span className="stage-bar__clock">{timer.clock ?? formatClock(timer.remaining)}</span>
       <button type="button" className="site-btn site-btn--primary stage-bar__toggle" onClick={timer.toggle} aria-keyshortcuts="Space">
         {timer.running ? 'Duraklat' : timer.fresh ? 'Başlat' : 'Devam et'}
       </button>

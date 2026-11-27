@@ -1191,6 +1191,83 @@
   gap: 6px;
 }
 
+/* Odam: sayaç türü (Pomodoro / Kronometre); levhanın altında yan yana iki kutu, seçim dili tasarım
+   seçenekleriyle aynı (kil dolgu + terakota halka) */
+.timer-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.timer-mode__opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 12px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-standard), background-color var(--dur-fast) var(--ease-standard);
+}
+
+.timer-mode__opt svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.timer-mode__opt:hover {
+  border-color: var(--line-strong);
+}
+
+.timer-mode__opt:active {
+  transform: var(--press-shrink);
+}
+
+.timer-mode__opt[aria-pressed='true'] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+}
+
+.timer-mode__opt[aria-pressed='true'] svg {
+  color: var(--primary);
+}
+
+.timer-mode__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.timer-mode__name {
+  font-size: var(--text-control);
+  font-weight: 700;
+}
+
+.timer-mode__hint {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-mode__opt[aria-pressed='true'] .timer-mode__hint {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.stopwatch-card__note {
+  font-size: var(--text-label);
+  text-align: center;
+}
+
 .desk__foot {
   display: flex;
   flex-direction: column;
@@ -2691,12 +2768,6 @@
   margin: 0;
 }
 
-.legal__updated {
-  margin: 0 !important;
-  color: var(--muted);
-  font-size: var(--text-label);
-}
-
 .legal__intro {
   margin: 0 !important;
   color: var(--text-2);
@@ -2899,6 +2970,23 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+/* e-postanın altındaki kısa not: değere yakın durur */
+.site .account__note {
+  margin: -8px 0 0;
+  font-size: var(--text-label);
+}
+
+/* şifre değiştirme: e-postadan ince bir çizgiyle ayrılan alt bölüm */
+.account__password {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.site .account__password h3 {
+  margin: 0;
+  font-size: var(--text-lead);
 }
 
 .account__saved {

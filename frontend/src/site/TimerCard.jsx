@@ -1,31 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { PRESETS, formatClock, formatMinutes } from './usePomodoro'
 import useShortcut from './useShortcut'
+import useSpaceToggle from './useSpaceToggle'
 
 const R = 104
 const CIRC = 2 * Math.PI * R
-
-// Boşluk tuşu metin alanlarında yazar, düğme ve bağlantılarda kendi işini yapar; orada kısayol yok.
-const OWNS_SPACE = 'input, textarea, select, button, a[href], summary, [contenteditable]:not([contenteditable="false"]), [role="button"], [role="slider"], [role="textbox"], [role="combobox"]'
-
-// Odadayken Boşluk sayacı duraklatır / sürdürür.
-function useSpaceToggle(toggle) {
-  const ref = useRef(toggle)
-  useEffect(() => {
-    ref.current = toggle
-  })
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.code !== 'Space' && e.key !== ' ') return
-      if (e.repeat || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
-      if (e.target instanceof Element && e.target.closest(OWNS_SPACE)) return
-      e.preventDefault()
-      ref.current()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-}
 
 // Sayacın metinleri. Sayılar ayrı değişken; çeviride sıra değişebilir.
 const TIMER_COPY = {

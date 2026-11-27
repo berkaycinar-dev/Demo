@@ -223,37 +223,7 @@ html:has(.site-stage-main) {
   border-color: var(--line-strong);
 }
 
-/* tema kutusu: düğmenin altına biner, sağ kenara hizalı */
-.mode-menu {
-  position: relative;
-}
-
-.mode-menu__pop {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 30;
-  padding: 8px;
-  border-radius: var(--radius-control-lg);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--line-strong), 0 18px 36px -18px rgba(30, 20, 10, 0.6);
-  animation: motion-drop var(--dur-state) var(--ease-out);
-}
-
-.mode-menu__pop[hidden] {
-  display: none;
-}
-
-/* dar ekranda düğme sağ kenarda değil: kutu ekranın sağ kenarına hizalanır, taşmaz */
-@media (max-width: 640px) {
-  .mode-menu__pop {
-    position: fixed;
-    top: calc(var(--header-h, 64px) + 4px);
-    right: 16px;
-  }
-}
-
-/* Açık / Koyu / Sistem: üç eşit parça */
+/* Açık / Koyu: iki eşit parça */
 .mode-choice {
   display: inline-flex;
   gap: 6px;
@@ -294,10 +264,6 @@ html:has(.site-stage-main) {
 
 .account__mode-label {
   font-weight: 600;
-}
-
-.account__mode-hint {
-  font-size: var(--text-label);
 }
 
 @media (max-width: 420px) {
@@ -798,6 +764,90 @@ html:has(.site-stage-main) {
   border-style: dashed;
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Oda oluştur, "Kimler girebilir": yan yana iki seçenek kartı. Simge, ad ve kısa açıklama kartın içinde;
+   seçim dili choice-row ile aynı (voxel kenar, seçilince kil dolgu + terakota kenar). */
+.access-choice {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.access-choice__opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
+  color: var(--text-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard), box-shadow var(--dur-fast) var(--ease-standard),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.access-choice__opt svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted);
+}
+
+.access-choice__opt:hover {
+  background: var(--surface-2);
+}
+
+.access-choice__opt:active {
+  transform: var(--press-sink);
+}
+
+.access-choice__opt[aria-pressed='true'] {
+  border-color: var(--chip-on-edge);
+  background: var(--chip-on-bg);
+  box-shadow: inset 0 0 0 1px var(--chip-on-edge), var(--voxel-face);
+  color: var(--chip-on-fg);
+}
+
+.access-choice__opt[aria-pressed='true'] svg {
+  color: var(--primary);
+}
+
+.access-choice__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.access-choice__name {
+  font-size: var(--text-label);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.access-choice__hint {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.access-choice__opt[aria-pressed='true'] .access-choice__hint {
+  color: inherit;
+  opacity: 0.85;
+}
+
+/* çok dar ekranda kartlar alt alta */
+@media (max-width: 360px) {
+  .access-choice {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* 3D oda kapsayıcıları: oda bileşeni ebeveyninin boyutunu doldurur */
@@ -2390,10 +2440,6 @@ html:has(.site-stage-main) {
     gap: 10px;
   }
 
-  .create-room__access-hint {
-    margin-top: 6px;
-  }
-
   .create-room__rail .create-room__cta {
     padding-top: 12px;
   }
@@ -2733,13 +2779,6 @@ html:has(.site-stage-main) {
   .create-room__mini {
     animation: none;
   }
-}
-
-/* erişim seçiminin açıklaması: düğmelerin hemen altında, seçime göre değişir */
-.create-room__access-hint {
-  margin: 8px 0 0;
-  line-height: 1.4;
-  text-wrap: pretty;
 }
 
 /* atölye başlığı: solda başlık ve açıklama, sağda odaya giriş; dar ekranda düğme alta iner */
