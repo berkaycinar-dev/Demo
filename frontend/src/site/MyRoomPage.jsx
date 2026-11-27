@@ -5,7 +5,8 @@ import { useRoom } from '../rooms/core/roomContext'
 import { THEMES } from '../rooms/themes'
 import { accessLabel } from './access'
 import RoomStage, { FocusModeButton, FocusModeNote, ShortcutHelp } from './RoomStage'
-import TimerCard from './TimerCard'
+import { TimerArea, TimerModePicker } from './TimerModePicker'
+import { focusStateOf, stageTimerOf } from './timerMode'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
 import AvatarPortrait from './AvatarPortrait'
@@ -305,7 +306,7 @@ function StatusMenu({ status, away, onAway, spotName, aside, children }) {
   )
 }
 
-function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onFocusModeChange, arriving }) {
+function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, onTimerModeChange, onLeave, focusMode, onFocusModeChange, arriving }) {
   const [spot, setSpot] = useState(null)
   const [spots, setSpots] = useState([])
   const [names, setNames] = useState(false)
@@ -342,15 +343,16 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
     people: mates,
   })
 
-  // Durum sayacın aşamasından türer: molada mola yerine (seçildiyse oraya) yürür, aksi hâlde masada.
-  // Uzakta elle seçilir ve sayaçtan önce gelir.
-  const derived = away ? 'away' : timer.phase === 'break' ? 'break' : 'focus'
+  // Durum seçili sayaçtan türer (Pomodoro ya da Kronometre; tür bütün odalarda ortak): molada mola yerine
+  // (seçildiyse oraya) yürür, aksi hâlde masada. Kronometrede mola yok. Uzakta elle seçilir, sayaçtan önce gelir.
+  const focus = focusStateOf(timerMode, timer, stopwatch)
+  const derived = away ? 'away' : focus.phase === 'break' ? 'break' : 'focus'
   useEffect(() => {
     setMyStatus(derived, derived === 'break' ? (spot?.id ?? null) : null)
   }, [derived, spot, setMyStatus])
   // Gösterilen durum: sayaç durmuşken odak aşamasında "Masada" (avatarın pozu aynı kalır, masada
   // oturur). Çip, kişi listesi ve odadaki ad etiketi bunu okur.
-  const idle = derived === 'focus' && !timer.running
+  const idle = derived === 'focus' && !focus.running
   const shownStatus = idle ? 'idle' : myStatus
   const crowd = useMemo(() => occupants.map((o) => (o.me && idle ? { ...o, shown: 'idle' } : o)), [occupants, idle])
 
@@ -422,8 +424,8 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
     if (!p) return null
     const mins = (from) => (from ? Math.max(0, Math.floor((now - from) / 60000)) : null)
     if (p.me) {
-      const focusing = p.status === 'focus' && timer.phase === 'focus' && timer.running
-      return { name: p.name, avatar: p.avatar, status: p.status, focusMin: focusing ? Math.floor((timer.total - timer.remaining) / 60) : null, workingOn: myWork || null, inRoomMin: null }
+      const focusing = p.status === 'focus' && focus.focusing
+      return { name: p.name, avatar: p.avatar, status: p.status, focusMin: focusing ? focus.focusMin : null, workingOn: myWork || null, inRoomMin: null }
     }
     return {
       name: p.name,
@@ -466,7 +468,7 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
   const spotName = useMemo(() => (spot ? spotOptions(spots).find((o) => o.id === spot.id)?.label : null), [spot, spots])
   const togglePeople = () => setPeopleOpen((v) => !v)
 
-  const timerCard = <TimerCard timer={timer} title="Odak sayacı" compact={focusMode} hints={hints} />
+  const timerCard = <TimerArea mode={timerMode} timer={timer} stopwatch={stopwatch} compact={focusMode} hints={hints} />
 
   // Panel tek sütunda, 1440×900'de kaydırmadan sığar. Üstte tek bir masa: oda adı ince ceviz levhada,
   // altında oda bilgisi, durum çipi (Uzaktayım ve mola yeri çipin kutusunda), sayaç ve tam genişlik
@@ -521,6 +523,7 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
         {/* odak modunun açıklaması: ilk ziyarette görünür, sonra yalnızca ekran okuyucuya */}
         <WorkingOnField username={username} className="desk__working" />
         <FocusModeNote hints={hints} />
+        <TimerModePicker mode={timerMode} onPick={onTimerModeChange} presetInfo={timer.presetInfo} />
         {timerCard}
       </div>
 
@@ -584,14 +587,14 @@ function RoomView({ room, meId, username, avatar, timer, onLeave, focusMode, onF
     <RoomStage
       focusMode={focusMode}
       onFocusModeChange={onFocusModeChange}
-      timer={timer}
+      timer={stageTimerOf(timerMode, timer, stopwatch)}
       arrival={arriving ? { lead: ROOM_MOTION_COPY.arriveLead, name: room.name } : null}
       renderRoom={(canvasStyle) => (
         <Room
           capacity={room.capacity}
           canvasStyle={canvasStyle}
           arrive={arriving}
-          lampBoost={timer.running && timer.phase === 'focus'}
+          lampBoost={focus.focusing}
           hint={hints ? SCENE_HINT : false}
           controls={
             <button type="button" aria-pressed={names} onClick={() => setNames((v) => !v)}>

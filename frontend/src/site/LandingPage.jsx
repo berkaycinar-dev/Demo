@@ -86,31 +86,85 @@ const COPY = {
 // Home (kapalı) ve End (sonuna kadar açık). Açı 0 (kapalı) ile DOOR_MAX (tam açık) arasında; sayfa aralık başlar.
 const DOOR_MAX = 105
 const DOOR_START = 72
-// kemer genişliği kadar sürükleme kanadı bu kadar derece döndürür
-const DOOR_DRAG_DEG = 160
 const DOOR_KEY_STEP = 10
+const RAD = Math.PI / 180
+// CSS'teki perspective(1400px) ile aynı (pages.css .lp-door__leaf)
+const DOOR_PERSPECTIVE = 1400
 
+// Kanadın serbest kenarının ekrandaki yeri (menteşeden uzaklık, px). Kanat rotateY(-açı) ile izleyiciye doğru
+// döner; perspektif menteşeden bakar (transform-origin: left), öne gelen kenar büyür: x = W·cos·P/(P − W·sin).
+// Tarayıcıda ölçülen kenar yerleriyle birebir tutar (W 732: 72° → 450 px, 90° → 0, 105° → −382).
+function edgeAt(deg, width) {
+  const a = deg * RAD
+  return (width * Math.cos(a) * DOOR_PERSPECTIVE) / (DOOR_PERSPECTIVE - width * Math.sin(a))
+}
+
+// Kapalıya yakın kanat izleyiciye gelirken kenar önce sağa büyür (tepe ~20-30°), sonra sola gider.
+// Tepe ile tam açık arasında edgeAt azalır: açı orada ikili aramayla bulunur. İmleç tepenin de sağına itilirse
+// kapı kemer genişliğinin onda biri boyunca yumuşakça tam kapanır (sıçrama yok).
+function peakOf(width) {
+  let best = 0
+  for (let d = 0; d <= 60; d += 0.25) if (edgeAt(d, width) > edgeAt(best, width)) best = d
+  return best
+}
+
+function angleFor(edge, width, peak) {
+  const top = edgeAt(peak, width)
+  if (edge >= top) return peak * Math.max(0, 1 - (edge - top) / (width * 0.1))
+  let lo = peak
+  let hi = DOOR_MAX
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2
+    if (edgeAt(mid, width) > edge) lo = mid
+    else hi = mid
+  }
+  return (lo + hi) / 2
+}
+
+// Kanadın serbest kenarı imleci izler: kenarın ekrandaki yeri perspektifle birlikte hesaplanır (edgeAt), açı
+// ondan geri çevrilir. Tutulan nokta ile kenar arasındaki fark korunur, kanadın ortasından tutunca kapı
+// sıçramaz. Güncellemeler ekran yenilemesine bağlıdır (requestAnimationFrame): hızlı fare hareketinde de akıcı.
 function DoorLeaf() {
   const [angle, setAngle] = useState(DOOR_START)
   const [dragging, setDragging] = useState(false)
   const drag = useRef(null)
+  const frame = useRef(0)
   const clamp = (a) => Math.min(DOOR_MAX, Math.max(0, a))
   const pct = Math.round((angle / DOOR_MAX) * 100)
 
+  useEffect(() => () => cancelAnimationFrame(frame.current), [])
+
   const onPointerDown = (e) => {
     if (e.button !== 0) return
-    const width = e.currentTarget.parentElement?.getBoundingClientRect().width || 1
-    drag.current = { x: e.clientX, start: angle, width }
+    const arch = e.currentTarget.parentElement
+    if (!arch) return
+    // menteşe: kemerin iç sol kenarı (çerçeve kalınlığı clientLeft); genişlik: kemerin iç genişliği
+    const hinge = arch.getBoundingClientRect().left + arch.clientLeft
+    const width = arch.clientWidth || 1
+    const edge = hinge + edgeAt(angle, width)
+    drag.current = { hinge, width, peak: peakOf(width), offset: edge - e.clientX, x: e.clientX }
     e.currentTarget.setPointerCapture(e.pointerId)
     setDragging(true)
   }
+  const apply = (d) => setAngle(clamp(angleFor(d.x + d.offset - d.hinge, d.width, d.peak)))
   const onPointerMove = (e) => {
     const d = drag.current
     if (!d) return
-    // sola sürükleme (dx < 0) kapıyı açar
-    setAngle(clamp(d.start - ((e.clientX - d.x) / d.width) * DOOR_DRAG_DEG))
+    d.x = e.clientX
+    if (frame.current) return
+    frame.current = requestAnimationFrame(() => {
+      frame.current = 0
+      if (drag.current) apply(drag.current)
+    })
   }
-  const end = () => {
+  // bırakınca bekleyen son kare beklenmez: son konum hemen uygulanır (hızlı sürüklemede kapı geride kalmaz)
+  const end = (e) => {
+    const d = drag.current
+    if (!d) return
+    cancelAnimationFrame(frame.current)
+    frame.current = 0
+    if (e?.type === 'pointerup') d.x = e.clientX
+    apply(d)
     drag.current = null
     setDragging(false)
   }

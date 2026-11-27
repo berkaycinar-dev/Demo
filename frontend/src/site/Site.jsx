@@ -21,6 +21,7 @@ import useDaypart from './useDaypart'
 import usePomodoro from './usePomodoro'
 import useStopwatch from './useStopwatch'
 import { useGoals } from './goals'
+import { useTimerMode } from './timerMode'
 import './theme.css'
 import './site.css'
 import './pages.css'
@@ -133,6 +134,8 @@ export default function Site() {
     onStart: () => timer.running && timer.toggle(),
   })
   const { running: stopwatchRunning, pause: pauseStopwatch } = stopwatch
+  // sayaç türü (Pomodoro / Kronometre): bütün odalarda ortak
+  const [timerMode, setTimerMode] = useTimerMode(timer, stopwatch)
   useEffect(() => {
     if (timer.running && stopwatchRunning) pauseStopwatch()
     // yalnızca pomodoro başlayınca bakılır; kronometrenin başlaması onStart'ta pomodoroyu durdurur
@@ -353,7 +356,7 @@ export default function Site() {
         {page === 'kayit' && <RegisterPage onDone={signedIn} onGo={go} />}
         {page === 'sifremi-unuttum' && <ForgotPasswordPage onGo={go} />}
         {page === 'sayfam' && <HomePage user={user} avatar={myAvatar} timer={timer} goals={goals} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}
-        {page === 'odam' && <SoloRoomPage user={user} avatar={myAvatar} timer={timer} stopwatch={stopwatch} goals={goals} onGoalsChange={setGoals} focusMode={focusMode} onFocusModeChange={setFocusMode} arriving={arriving} />}
+        {page === 'odam' && <SoloRoomPage user={user} avatar={myAvatar} timer={timer} stopwatch={stopwatch} timerMode={timerMode} onTimerModeChange={setTimerMode} goals={goals} onGoalsChange={setGoals} focusMode={focusMode} onFocusModeChange={setFocusMode} arriving={arriving} />}
         {page === 'oda' && (
           <MyRoomPage
             room={current}
@@ -361,6 +364,9 @@ export default function Site() {
             username={user?.username}
             avatar={myAvatar}
             timer={timer}
+            stopwatch={stopwatch}
+            timerMode={timerMode}
+            onTimerModeChange={setTimerMode}
             focusMode={focusMode}
             onFocusModeChange={setFocusMode}
             arriving={arriving}
