@@ -33,7 +33,7 @@ const DELETED_KEY = 'samedesk.account-deleted'
 const DELETED_COPY = { note: 'Hesabın ve bu tarayıcıdaki kayıtların silindi.', close: 'Kapat' }
 
 // Sitenin kabuğu: sayfa akışı, oturum ve sitenin tasarım çerçevesi.
-// Sayfa adres çubuğundaki #sayfam, #odam... ile seçilir.
+// Sayfa adres çubuğundaki yolla seçilir: /sayfam, /odam... (ana sayfa /).
 
 // Giriş yapınca menüde görünen sayfalar.
 const PAGES = [
@@ -44,7 +44,7 @@ const PAGES = [
 ]
 // Oturum isteyen sayfalar: menüdekiler, Lobi'nin alt sayfaları (oda oluştur, girilen oda) ve hesap.
 const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'olustur', 'oda', 'hesap', 'ayarlar', 'yardim'])
-// Menüde hangi sekmenin seçili görüneceği: oda oluşturma Lobi'nin alt sayfası. Girilen ortak oda (#oda)
+// Menüde hangi sekmenin seçili görüneceği: oda oluşturma Lobi'nin alt sayfası. Girilen ortak oda (/oda)
 // menüdeki hiçbir sekme değildir; orada hiçbiri seçili görünmez ("Lobi" ya da "Odam" sanılmasın).
 const NAV_OF = { olustur: 'lobi' }
 // Eski adresler: Odaya katıl sayfası Lobi'ye taşındı.
@@ -53,7 +53,19 @@ const GUEST_PAGES = new Set(['giris', 'kayit', 'sifremi-unuttum'])
 // Oturum olsun olmasın herkesin açabildiği sayfalar.
 const PUBLIC_PAGES = new Set(['anasayfa', 'kosullar', 'gizlilik'])
 
-const hashPage = () => window.location.hash.slice(1)
+// Adres: sayfa yolun kendisidir (/sayfam, /lobi...); ana sayfa "/". Sunucu (vercel.json, Vite) her yolda
+// uygulamayı açar, sayfayı burası seçer.
+const urlPage = () => decodeURIComponent(window.location.pathname).replace(/^\/+|\/+$/g, '')
+const urlOf = (id) => (id === 'anasayfa' ? '/' : `/${id}`)
+const atUrl = (id) => urlPage() === (id === 'anasayfa' ? '' : id)
+
+// Eski adresler (/#lobi) yeni biçime (/lobi) çevrilir: paylaşılmış, kaydedilmiş bağlantılar çalışmaya
+// devam eder. Uygulama açılmadan, bir kez.
+function migrateHashUrl() {
+  const old = window.location.hash.slice(1)
+  if (old && /^[a-z-]+$/.test(old) && !urlPage()) window.history.replaceState(null, '', `/${old}${window.location.search}`)
+}
+migrateHashUrl()
 
 // Sayfa değişince sekme başlığı ve ekran okuyucu duyurusu sayfanın başlığından (h1) gelir. Çeviride
 // sıra değişebilsin diye kalıp tek yerde.
@@ -98,7 +110,7 @@ function resolvePage(requestedId, user) {
 
 export default function Site() {
   const [user, setUser] = useState(currentUser)
-  const [requested, setRequested] = useState(hashPage)
+  const [requested, setRequested] = useState(urlPage)
   // Sunucudaki odalar; yalnızca oturum varken yüklenir. Misafire uydurma oda gösterilmez.
   const [rooms, setRooms] = useState([])
   // Sunucu hatası gibi kısa bildirimler (sayfanın üstünde, kapatılabilir).
@@ -257,27 +269,23 @@ export default function Site() {
     }
   }, [inRoomId])
 
-  // Geri / ileri düğmeleri ve elle değiştirilen adres. Avatar sayfasında kaydedilmemiş değişiklik varsa
-  // adres avatar sayfasında tutulur ve önce sorulur (UnsavedAvatarDialog).
+  // Geri / ileri düğmeleri. Avatar sayfasında kaydedilmemiş değişiklik varsa adres avatar sayfasında
+  // tutulur ve önce sorulur (UnsavedAvatarDialog).
   useEffect(() => {
     const sync = () => {
-      const next = hashPage()
+      const next = urlPage()
       if (leaveGuard.current && next !== 'avatar') {
-        window.history.pushState(null, '', '#avatar')
+        window.history.pushState(null, '', urlOf('avatar'))
         setLeaving(next)
         return
       }
-      setRequested(hashPage())
-      setNavTarget(hashPage())
+      setRequested(next)
+      setNavTarget(next)
       setReceipt(null)
       setFocusMode(false)
     }
     window.addEventListener('popstate', sync)
-    window.addEventListener('hashchange', sync)
-    return () => {
-      window.removeEventListener('popstate', sync)
-      window.removeEventListener('hashchange', sync)
-    }
+    return () => window.removeEventListener('popstate', sync)
   }, [])
 
   useEffect(() => {
@@ -291,12 +299,12 @@ export default function Site() {
 
   // Düzeltilen sayfa adres çubuğuna da yazılır (geçmişe yeni kayıt eklemeden).
   useEffect(() => {
-    if (page !== NOT_FOUND && hashPage() !== page) window.history.replaceState(null, '', `#${page}`)
+    if (page !== NOT_FOUND && !atUrl(page)) window.history.replaceState(null, '', urlOf(page))
   }, [page])
 
   // Gezinmeden sonra: odak yeni sayfanın başına taşınır, sekme başlığı ve canlı bölge sayfanın adını
   // söyler. Açılışta yalnızca sekme başlığı yazılır (odak tarayıcıda kalır). Oda listesi sonradan
-  // gelince (#oda'da yeniden yükleme) başlık odanın adıyla yenilenir: bağımlılıkta odanın adı da var.
+  // gelince (/oda'da yeniden yükleme) başlık odanın adıyla yenilenir: bağımlılıkta odanın adı da var.
   const currentName = current?.name
   useEffect(() => {
     const heading = navTarget ? focusPageStart(mainRef.current) : mainRef.current?.querySelector('h1')?.textContent.trim()
@@ -310,7 +318,7 @@ export default function Site() {
       setLeaving(id)
       return
     }
-    if (window.location.hash !== `#${id}`) window.history.pushState(null, '', `#${id}`)
+    if (!atUrl(id)) window.history.pushState(null, '', urlOf(id))
     setRequested(id)
     setNavTarget(id)
     setReceipt(null)
@@ -535,7 +543,7 @@ export default function Site() {
               } catch {
                 /* yok say */
               }
-              window.location.hash = 'anasayfa'
+              window.history.replaceState(null, '', urlOf('anasayfa'))
               window.location.reload()
             }}
             onUserChange={(u) => {
