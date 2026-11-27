@@ -446,17 +446,38 @@
   height: auto;
 }
 
+/* kapı kanadı: kemerin tamamı (kemerin yuvarlak üstü kanadı da keser); menteşe solda, açı --door-angle.
+   Sürüklenir (DoorLeaf); sürüklerken geçiş yok, klavyede kısa geçiş. */
 .lp-door__leaf {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  width: 46%;
+  width: 100%;
   background: repeating-linear-gradient(90deg, #6b4d36 0 34px, var(--sign-wood) 34px 36px);
   box-shadow: inset 0 0 0 4px var(--sign-edge), 20px 0 40px rgba(30, 15, 5, 0.35);
-  transform: perspective(1400px) rotateY(-58deg);
+  transform: perspective(1400px) rotateY(var(--door-angle, -72deg));
   transform-origin: left center;
-  pointer-events: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform var(--dur-state) var(--ease-out);
+}
+
+.lp-door__leaf[data-dragging] {
+  cursor: grabbing;
+  transition: none;
+}
+
+.lp-door__leaf:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-door__leaf {
+    transition: none;
+  }
 }
 
 :root[data-mode='dark'] .lp-door__leaf {
@@ -465,8 +486,8 @@
 
 .lp-door__knob {
   position: absolute;
-  top: 52%;
-  right: 22px;
+  top: 55%;
+  right: 28px;
   width: 16px;
   height: 16px;
   border-radius: var(--radius-pill);
@@ -479,6 +500,13 @@
   height: 16px;
   border-radius: 0 0 var(--radius-block) var(--radius-block);
   background: var(--sign-edge);
+}
+
+.lp-door__hint {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: var(--text-meta);
 }
 
 .lp-door__lead {
@@ -2602,52 +2630,12 @@
   white-space: nowrap;
 }
 
-
-
-.lobby {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 24px;
-  align-items: start;
-  margin-top: 28px;
-}
-
-.lobby__main .section-head {
-  margin-bottom: 16px;
-}
-
-.lobby__hidden-head {
-  margin-top: 40px;
-}
-
 .lobby-search {
   position: relative;
   display: flex;
   align-items: center;
   /* tek sütunda kartlarla aynı genişlik; daha geniş ekranda son kart sütununa oturur (aşağıda) */
   width: 100%;
-}
-
-/* iki ve daha çok sütunda başlık satırı kart ızgarasının aynısı (.site-rooms): arama kutusu son kart
-   sütununa oturur, sağ ve sol kenarı altındaki kartla aynı çizgide */
-@media (min-width: 600px) {
-  .lobby__main > .section-head--row {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    align-items: end;
-    gap: 16px;
-  }
-
-  .lobby__main > .section-head--row > div {
-    grid-row: 1;
-    grid-column: 1 / -2;
-  }
-
-  .lobby__main > .section-head--row > .lobby-search {
-    grid-row: 1;
-    grid-column: -2 / -1;
-    width: 100%;
-  }
 }
 
 .lobby-search svg {
@@ -2675,28 +2663,6 @@
   color: var(--text);
   font: inherit;
   font-size: var(--text-label);
-}
-
-.lobby__side {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.lobby-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-}
-
-.site .lobby-panel h2 {
-  margin: 0;
-  font-size: var(--text-lead);
-}
-
-.lobby-panel > p {
-  margin: -4px 0 0 !important;
 }
 
 .lobby-code {
@@ -2737,95 +2703,6 @@
   flex-basis: 100%;
 }
 
-.lobby-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lobby-list li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-}
-
-.lobby-list li + li {
-  border-top: 1px solid var(--line);
-}
-
-.lobby-list__shot {
-  flex: none;
-  width: 52px;
-}
-
-.lobby-list__shot img {
-  width: 100%;
-  height: auto;
-}
-
-.lobby-list__text {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.lobby-list__text strong {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: var(--text-label);
-}
-
-/* uzun oda adı tek satırda "…" ile biter; tam adı title'da */
-.lobby-list__name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.lobby-list__lock {
-  flex: none;
-}
-
-.lobby-list__text .site-muted {
-  font-size: var(--text-label);
-}
-
-.lobby-list__lock {
-  display: inline-flex;
-  color: var(--badge);
-}
-
-.lobby-list .site-btn {
-  flex: none;
-  min-height: 44px;
-}
-
-.lobby-list__remove {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: var(--muted);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.lobby-list__remove:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
 /* sayfa zemininde AA: --primary 4.2:1 kalıyordu, bir ton koyusu */
 .back-link {
   display: inline-flex;
@@ -2838,31 +2715,6 @@
 
 .back-link:hover {
   color: var(--text);
-}
-
-@media (max-width: 1000px) {
-  /* minmax(0, 1fr): son girilen odaların tek satırlık adı (nowrap) sütunu genişletip sayfayı taşırmasın */
-  .lobby {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* tek sütunda davet kodu ve son girilen odalar odaların üstünde: kodu olan ya da geri dönen kişi
-     uzun kart listesinin dibine inmesin. Boş geçmiş kutusu burada yer kaplamaz. */
-  .lobby__side {
-    order: -1;
-  }
-
-  .lobby-panel--empty {
-    display: none;
-  }
-}
-
-@media (min-width: 600px) and (max-width: 1000px) {
-  .lobby__side {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    align-items: start;
-  }
 }
 
 .page-head--row {
@@ -2879,79 +2731,6 @@
 
 .room-section--first {
   margin-top: 8px;
-}
-
-.room-card {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--card-edge);
-}
-
-/* kartın tek eylemi "Gir": düğmeye gelince ya da klavyeyle odaklanınca kart yerinde kalır, içindeki oda
-   hafifçe yükselir (kartın kendisi tıklanmadığı için ona hareket verilmez) */
-.room-card__shot img {
-  transition: transform var(--dur-state) var(--ease-out);
-}
-
-.room-card:has(.site-btn:focus-visible) .room-card__shot img {
-  transform: translateY(-4px);
-}
-
-@media (hover: hover) {
-  .room-card:has(.site-btn:hover) .room-card__shot img {
-    transform: translateY(-4px);
-  }
-}
-
-/* oda görseli: saydam zeminli izometrik oda, kartın üstünde hafif çukur bir zeminde */
-.room-card__shot {
-  display: block;
-  padding: 8px 24px 0;
-  border-bottom: 1px solid var(--line);
-  background: radial-gradient(circle at 50% 45%, var(--surface), var(--surface-sunken));
-}
-
-.room-card__shot .theme-option__img {
-  max-width: 220px;
-  margin: 0 auto;
-}
-
-.room-card__shot img {
-  width: 100%;
-  height: auto;
-}
-
-.room-card__body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 16px 20px 20px;
-}
-
-.room-card__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 6px;
-}
-
-.room-card__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  width: 100%;
-}
-
-.room-card__theme {
-  font-size: var(--text-label);
 }
 
 /* gizli oda: davet kodu penceresi */
@@ -3528,7 +3307,6 @@
     pointer-events: none;
   }
 
-
   .stage-bar__phase {
     display: inline-flex;
     align-items: center;
@@ -3821,7 +3599,6 @@
   text-align: center;
 }
 
-
 /* dokunmatikte satır içi bağlantı düğmelerinin basılan alanı 44 px'e büyür; dolgu negatif boşlukla
    dengelenir, yerleşim değişmez */
 @media (pointer: coarse) {
@@ -3899,14 +3676,6 @@
 
   /* hareketi azalt: çubuk kaymaz, yerinde söner */
   .stage-bar[data-away] {
-    transform: none;
-  }
-
-  .room-card__shot img {
-    transition: none;
-  }
-
-  .room-card:has(.site-btn:hover, .site-btn:focus-visible) .room-card__shot img {
     transform: none;
   }
 
@@ -4416,6 +4185,342 @@
   }
 }
 
+/* ---------- Lobi: katlı bina (tabela, asansör, anahtar, katlar ve kapılar) ---------- */
+
+/* tabela ahşabı: ana sayfadaki kapı tabelasıyla aynı ceviz */
+.lobby-sign,
+.lobby-lift,
+.lobby-key,
+.lobby-floor__sign {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 22px, rgba(0, 0, 0, 0.09) 22px 23px),
+    var(--sign-wood);
+  box-shadow:
+    inset 0 0 0 3px var(--sign-edge),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.2),
+    0 16px 30px -18px rgba(30, 15, 5, 0.7);
+}
+
+.lobby-sign {
+  align-self: flex-start;
+  padding: 12px 24px 10px;
+  border-radius: var(--radius-control-lg);
+  transform: rotate(-1deg);
+}
+
+.lobby-sign__eyebrow {
+  color: var(--sign-ink-2);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.site .lobby-sign h1 {
+  margin: 0;
+  color: var(--sign-ink);
+}
+
+/* arama, asansör ve anahtar tek satırda; dar ekranda alt alta */
+.lobby-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 14px;
+}
+
+.lobby-tools .lobby-search {
+  flex: 1 1 300px;
+  width: auto;
+}
+
+.lobby-lift {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.lobby-lift__label {
+  padding: 0 6px;
+  color: var(--sign-ink-2);
+  font-family: var(--font-pixel);
+  font-size: var(--text-label);
+}
+
+.lobby-lift__btn {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--sign-edge);
+  border-radius: var(--radius-pill);
+  background: #d9b56a;
+  color: #2c2119;
+  font-family: var(--font-pixel);
+  font-size: var(--text-control);
+  font-weight: 600;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
+}
+
+.lobby-lift__btn:hover:not(:disabled) {
+  background: #f2c879;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2), 0 0 16px rgba(242, 200, 121, 0.55);
+}
+
+.lobby-lift__btn:active:not(:disabled) {
+  transform: var(--press-shrink);
+}
+
+.lobby-lift__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lobby-key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+}
+
+.site .lobby-key__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--sign-ink);
+  font-family: var(--font-pixel);
+  font-size: var(--text-body);
+  font-weight: 500;
+}
+
+.lobby-key__title svg {
+  color: #d9b56a;
+}
+
+.lobby-key .lobby-code {
+  flex: 1 1 220px;
+}
+
+/* son açılan kapılar: tek satır çip; çipin tamamı odaya girer, × listeden kaldırır */
+.lobby-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 18px;
+}
+
+.site .lobby-recent__title {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.lobby-recent__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lobby-recent__item {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.lobby-recent__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  max-width: 260px;
+  padding: 0 4px 0 14px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lobby-recent__go:hover .lobby-recent__name {
+  color: var(--primary);
+}
+
+.lobby-recent__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-recent__when {
+  color: var(--muted);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.lobby-recent__remove {
+  width: 32px;
+  height: 32px;
+  margin-right: 2px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lobby-recent__remove:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* bina: her modda gece; katlar arasında ceviz kiriş */
+.lobby-building {
+  padding: 4px 28px 8px;
+  border-top: 6px solid var(--sign-wood);
+  border-radius: var(--radius-card);
+  background: linear-gradient(180deg, #2a211a, #1f1813);
+  color: var(--text);
+}
+
+.lobby-building__hint {
+  margin: 14px 0 0 !important;
+  color: var(--muted);
+  font-size: var(--text-meta);
+  text-align: right;
+}
+
+.lobby-building__empty {
+  margin: 24px 0;
+}
+
+.lobby-floor {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px 0 30px;
+  border-bottom: 12px solid var(--sign-wood);
+  box-shadow: 0 6px 0 var(--sign-edge);
+  scroll-margin-top: calc(var(--header-h, 64px) + 16px);
+}
+
+.lobby-floor:last-child {
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.lobby-floor__sign {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 2px;
+  padding: 14px 10px;
+  border-radius: var(--radius-control-lg);
+  text-align: center;
+}
+
+.lobby-floor__no {
+  color: #f2c879;
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-2xl);
+  line-height: 1;
+}
+
+.site .lobby-floor__title {
+  margin: 0;
+  color: var(--sign-ink);
+  font-family: var(--font-pixel);
+  font-size: var(--text-control);
+  font-weight: 500;
+}
+
+.lobby-floor__title:focus {
+  outline: none;
+}
+
+.lobby-floor__sub {
+  color: var(--sign-ink-2);
+  font-size: var(--text-micro);
+}
+
+.lobby-floor__doors {
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 24px 16px;
+}
+
+/* kapılar ana sayfadaki koridorla ortak (.lp-doors__*); lobide lamba yalnızca odada üye varsa yanar,
+   kilitli odanın kapısı kapalı tahta ve kilit, uzun oda adı levhada "…" ile biter */
+.lp-doors__lamp[data-off] {
+  background: var(--line);
+  box-shadow: none;
+}
+
+.lp-doors__door--locked {
+  background: repeating-linear-gradient(90deg, #4f3a2a 0 28px, #43311f 28px 30px);
+  color: #d9b56a;
+}
+
+.lobby-door .lp-doors__plate {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--text-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lobby-door__go {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+}
+
+@media (max-width: 560px) {
+  .lobby-building {
+    padding: 4px 16px 8px;
+  }
+
+  /* telefonda kat tabelası kapıların üstünde yatay şerit */
+  .lobby-floor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .lobby-floor__sign {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    text-align: left;
+  }
+
+  .lobby-floor__no {
+    font-size: var(--pixel-xl);
+  }
+
+  .lobby-floor__doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 12px;
+  }
+
+  .lobby-lift {
+    flex-wrap: wrap;
+  }
+}
+
 /* ---------- Lobi başı: başlık ve iki eylem, kart yok ---------- */
 
 .lobby-head {
@@ -4798,13 +4903,6 @@
   background: var(--surface);
 }
 
-/* hesap: "Çıkış yap" geniş ekranda header'da; kart yalnızca header'ın gizlediği yerde tekrarlar */
-@media (min-width: 901px) {
-  .account__logout {
-    display: none;
-  }
-}
-
 /* davet kodu oda bilgisinin hemen altında */
 .desk .invite-code {
   margin-top: 0 !important;
@@ -4885,7 +4983,6 @@
     max-width: 260px;
   }
 }
-
 
 /* ---------- kişi listesi satırı: düğme (kişi kartını açar); görünüm satırla aynı ---------- */
 

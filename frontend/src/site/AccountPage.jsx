@@ -28,19 +28,40 @@ export default function AccountPage({ user, onUserChange, modePref, onModeChange
   )
 }
 
-// Görünüm ve oturum: telefonda üst menüde yer olmadığı için koyu mod ve çıkış burada da durur.
+const SESSION_COPY = {
+  title: 'Görünüm ve oturum',
+  theme: 'Tema',
+  themeHint: 'Sitenin açık ya da koyu görünümü.',
+  session: 'Oturum',
+  sessionHint: 'Bu cihazda oturumun açık.',
+  logout: 'Çıkış yap',
+}
+
+// Görünüm ve oturum: ayar listesi. Her satırda solda etiket ve kısa açıklama, sağda denetim; satırlar
+// aynı hizada, ince çizgiyle ayrılır. Koyu mod ve çıkış header'da da var; burada her ekranda durur.
 function SessionCard({ modePref, onModeChange, onLogout }) {
   return (
-    <section className="site-card account__card" aria-labelledby="oturumBaslik">
-      <h2 id="oturumBaslik">Görünüm ve oturum</h2>
-      <div className="account__mode">
-        <p className="account__mode-label">Tema</p>
-        <ModeChoice pref={modePref} onChange={onModeChange} />
-      </div>
-      <div className="site-actions">
-        <button type="button" className="site-btn account__logout" onClick={onLogout}>
-          Çıkış yap
-        </button>
+    <section className="site-card account__card account__session" aria-labelledby="oturumBaslik">
+      <h2 id="oturumBaslik">{SESSION_COPY.title}</h2>
+      <div className="account__rows">
+        <div className="account__row">
+          <div className="account__row-text">
+            <span className="account__row-label">
+              {SESSION_COPY.theme}
+            </span>
+            <span className="site-muted">{SESSION_COPY.themeHint}</span>
+          </div>
+          <ModeChoice pref={modePref} onChange={onModeChange} />
+        </div>
+        <div className="account__row">
+          <div className="account__row-text">
+            <span className="account__row-label">{SESSION_COPY.session}</span>
+            <span className="site-muted">{SESSION_COPY.sessionHint}</span>
+          </div>
+          <button type="button" className="site-btn" onClick={onLogout}>
+            {SESSION_COPY.logout}
+          </button>
+        </div>
       </div>
     </section>
   )
