@@ -1,7 +1,7 @@
 // Markanın statik görsellerini üretir: uygulama ikonları (public/icons/) ve paylaşım görseli
 // (public/og-image.png). Hepsi koddan çizilir: marka işareti SiteChrome.jsx BrandMark ile aynı SVG,
 // paylaşım görselindeki oda public/room-thumbs/library-evening.webp (render-room-thumbs.mjs çıktısı),
-// yazı tipleri src/site/fonts altındaki kendi barındırılan Pixelify Sans ve Inter (OFL). Dışarıdan
+// yazı tipleri src/site/fonts altındaki kendi barındırılan Rubik ve Inter (OFL). Dışarıdan
 // görsel ya da üretken model çıktısı yoktur. Marka, renk ya da başlık değişince yeniden çalıştırılır.
 //
 // Kullanım (frontend klasöründen):
@@ -30,8 +30,8 @@ try {
 const url = (p) => pathToFileURL(resolve(root, p)).href
 const MARK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28"><path d="M14 2.5 25 8.5 14 14.5 3 8.5Z" fill="#e3a47f"/><path d="M3 8.5 14 14.5V26.5L3 20.5Z" fill="#b5502d"/><path d="M25 8.5 14 14.5V26.5L25 20.5Z" fill="#7d3519"/><path d="M6.5 14.4 10.5 16.6V24.6L6.5 22.4Z" fill="#ffd89a"/></svg>`
 const FONTS = `
-@font-face { font-family: 'Pixelify Sans'; src: url('${url('src/site/fonts/pixelify-sans/pixelify-sans-latin-ext.woff2')}') format('woff2'); }
-@font-face { font-family: 'Pixelify Sans'; src: url('${url('src/site/fonts/pixelify-sans/pixelify-sans-latin.woff2')}') format('woff2'); }
+@font-face { font-family: 'Rubik'; font-weight: 400 700; src: url('${url('src/site/fonts/rubik/rubik-latin-ext.woff2')}') format('woff2'); }
+@font-face { font-family: 'Rubik'; font-weight: 400 700; src: url('${url('src/site/fonts/rubik/rubik-latin.woff2')}') format('woff2'); }
 @font-face { font-family: 'Inter'; src: url('${url('src/site/fonts/inter/inter-tr.woff2')}') format('woff2'); font-weight: 100 900; }
 @font-face { font-family: 'Inter'; src: url('${url('src/site/fonts/inter/inter-latin-ext.woff2')}') format('woff2'); font-weight: 100 900; }
 * { margin: 0; box-sizing: border-box; }
@@ -53,7 +53,7 @@ body { position: relative; overflow: hidden; display: grid; grid-template-column
 .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 40px; }
 .brand svg { width: 56px; height: 56px; }
 .brand span { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
-h1 { font-family: 'Pixelify Sans', sans-serif; font-weight: 500; font-size: 66px; line-height: 1.12; letter-spacing: 0; }
+h1 { font-family: 'Rubik', sans-serif; font-weight: 500; font-size: 66px; line-height: 1.12; letter-spacing: 0; }
 p { margin-top: 28px; max-width: 470px; color: #d4ccc1; font-size: 26px; line-height: 1.45; }
 img { width: 640px; height: auto; margin-left: -40px; filter: drop-shadow(0 30px 40px rgba(0,0,0,.45)); }
 </style></head><body>

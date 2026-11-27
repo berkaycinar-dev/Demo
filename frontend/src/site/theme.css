@@ -40,7 +40,7 @@
 }
 
 :root {
-  /* İki aile: Pixelify Sans (başlık ve bir değeri okutan kısa yazı; site.css --font-pixel) ve Inter
+  /* İki aile: Rubik (başlık ve bir değeri okutan kısa yazı; site.css --font-pixel) ve Inter
      (geri kalan her şey). Rol adları kalır, hepsi Inter'e çözülür; rolü font değil, boyut ve ağırlık
      taşır. Dış font CDN'i yok: her şey kendi sunucumuzdan. */
   --font-body: Inter, 'Inter Fallback', system-ui, 'Segoe UI', Roboto, sans-serif;
