@@ -91,7 +91,7 @@ function CodeDialog({ room, onClose, onSuccess }) {
                 setCode(e.target.value)
                 setError('')
               }}
-              placeholder="ör. ORMAN-2741"
+              placeholder="Davet kodu"
               autoComplete="off"
               spellCheck={false}
               aria-invalid={error ? true : undefined}
@@ -119,9 +119,9 @@ function CodeDialog({ room, onClose, onSuccess }) {
 
 // Davet kodu metinleri: hatalar kodun biçimini de söyler (kelime, tire, dört rakam).
 const CODE_COPY = {
-  format: 'Kod bir kelime, tire ve dört rakamdır; ör. ORMAN-2741. Büyük/küçük harf fark etmez.',
-  wrong: 'Kod bu odaya ait değil. Biçim: kelime, tire, dört rakam (ör. ORMAN-2741).',
-  notFound: 'Bu kodla bir oda bulunamadı. Biçim: kelime, tire, dört rakam (ör. ORMAN-2741).',
+  format: 'Kod bir kelime, tire ve dört rakamdır. Büyük/küçük harf fark etmez.',
+  wrong: 'Kod bu odaya ait değil. Biçim: kelime, tire, dört rakam.',
+  notFound: 'Bu kodla bir oda bulunamadı. Biçim: kelime, tire, dört rakam.',
 }
 
 // Kodla doğrudan katılma: kod hangi davetli odaya aitse ona girer.
@@ -151,7 +151,7 @@ function CodeJoin({ rooms, onEnter }) {
           setCode(e.target.value)
           setError('')
         }}
-        placeholder="Davet kodu (ör. ORMAN-2741)"
+        placeholder="Davet kodu"
         autoComplete="off"
         spellCheck={false}
         aria-invalid={error ? true : undefined}
@@ -332,9 +332,9 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
 
 const PICK_COPY = {
   key: 'Anahtarın var mı?',
-  recent: 'Son açtığın kapılar',
-  doors: 'Kapılar',
-  doorsHint: 'Bir kapıya bas, aralansın',
+  recent: 'Son girdiğin odalar',
+  doors: 'Odalar',
+  doorsHint: 'Bir odaya bas, önizlemesi açılsın',
   lampHint: 'Lamba yanıyorsa odada üye var',
   invite: 'Davetli',
   enter: (name) => `${name} odasına gir`,
@@ -537,9 +537,9 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
           )}
         </aside>
 
-        <section className="lobby-corridor material-sign" aria-labelledby="kapilarBaslik">
+        <section className="lobby-corridor material-sign" aria-labelledby="odalarBaslik">
           <div className="lobby-corridor__head">
-            <h2 id="kapilarBaslik">{PICK_COPY.doors}</h2>
+            <h2 id="odalarBaslik">{PICK_COPY.doors}</h2>
             <span>{shown.length > 0 ? PICK_COPY.doorsHint : ''}</span>
           </div>
           {shown.length === 0 ? (

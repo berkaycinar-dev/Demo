@@ -71,6 +71,8 @@ const USER_COPY = {
   label: (name) => `Hesap menüsü: ${name}`,
   profile: 'Profilim',
   avatar: 'Avatarım',
+  settings: 'Ayarlar',
+  help: 'Yardım / Geri bildirim',
   look: 'Görünüm',
   logout: 'Çıkış yap',
 }
@@ -83,6 +85,9 @@ const MenuIcon = ({ d }) => (
 )
 const ICON_PROFILE = 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'
 const ICON_AVATAR = 'M4 4h16v16H4zM9 9h.01M15 9h.01M9 15h6'
+const ICON_SETTINGS =
+  'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'
+const ICON_HELP = 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01'
 const ICON_LOGOUT = 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'
 
 // Hesap menüsü: üst sağdaki ad ve baş harf. Fare üstüne gelince açılır (kısa gecikmeyle kapanır, kutuya
@@ -174,6 +179,14 @@ function UserMenu({ user, page, onGo, onLogout, modePref, onModeChange }) {
         <button type="button" className="user-menu__item" aria-current={page === 'avatar' ? 'page' : undefined} onClick={() => go('avatar')}>
           <MenuIcon d={ICON_AVATAR} />
           {USER_COPY.avatar}
+        </button>
+        <button type="button" className="user-menu__item" aria-current={page === 'ayarlar' ? 'page' : undefined} onClick={() => go('ayarlar')}>
+          <MenuIcon d={ICON_SETTINGS} />
+          {USER_COPY.settings}
+        </button>
+        <button type="button" className="user-menu__item" aria-current={page === 'yardim' ? 'page' : undefined} onClick={() => go('yardim')}>
+          <MenuIcon d={ICON_HELP} />
+          {USER_COPY.help}
         </button>
         <div className="user-menu__look">
           <span className="user-menu__look-label">{USER_COPY.look}</span>
