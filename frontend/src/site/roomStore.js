@@ -61,6 +61,15 @@ export async function joinRoom(room, code) {
   return fromApi(r)
 }
 
+/**
+ * Yalnızca davet koduyla gizli odaya üye olur: gizli oda üye olmayana görünmediği için oda sunucuda
+ * koddan bulunur. Dönüş: sitenin oda biçimi. Hata: ApiError (ROOM_NOT_FOUND, ROOM_FULL, RATE_LIMITED).
+ */
+export async function joinRoomByCode(code) {
+  const r = await api('/api/v1/rooms/join-by-code', { method: 'POST', body: { inviteCode: normalizeCode(code) } })
+  return fromApi(r)
+}
+
 // Odada bulunma (room_sessions): girince oturum açılır, açıkken düzenli "buradayım" denir,
 // çıkınca kapanır. Sunucu 60 sn sinyal almazsa oturumu kendisi kapatır.
 export const HEARTBEAT_MS = 20_000
