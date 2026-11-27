@@ -144,6 +144,38 @@ class RoomControllerTest {
     }
 
     @Test
+    void joinByCodePassesTheCodeToService() throws Exception {
+        when(roomService.joinByCode(ME, "code2345")).thenReturn(sample(RoomRole.MEMBER, null));
+
+        mockMvc.perform(post("/api/v1/rooms/join-by-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inviteCode\":\"code2345\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.myRole").value("MEMBER"));
+        verify(roomService).joinByCode(ME, "code2345");
+    }
+
+    @Test
+    void joinByCodeWithoutCodeReturns400() throws Exception {
+        mockMvc.perform(post("/api/v1/rooms/join-by-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inviteCode\":\"  \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void joinByUnknownCodeReturns404() throws Exception {
+        when(roomService.joinByCode(ME, "NOPE2345")).thenThrow(new NotFoundException("ROOM_NOT_FOUND", "Room not found."));
+
+        mockMvc.perform(post("/api/v1/rooms/join-by-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"inviteCode\":\"NOPE2345\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ROOM_NOT_FOUND"));
+    }
+
+    @Test
     void joinFullRoomReturns409() throws Exception {
         when(roomService.join(ME, ROOM, null)).thenThrow(new BusinessRuleException("ROOM_FULL", "Room is full."));
 

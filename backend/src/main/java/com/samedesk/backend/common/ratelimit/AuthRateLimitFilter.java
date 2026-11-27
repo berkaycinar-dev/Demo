@@ -12,8 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Limits POST requests to the public auth endpoints (login, register, refresh, logout)
- * per client IP. Slows down password guessing and mass sign-ups. Over the limit the
+ * Limits POST requests to the public auth endpoints (login, register, refresh, logout) and to
+ * invite-code joins, per client IP. Slows down password and invite-code guessing and mass sign-ups.
+ * Over the limit the
  * answer is 429 with code RATE_LIMITED and a Retry-After header.
  */
 public class AuthRateLimitFilter extends OncePerRequestFilter {

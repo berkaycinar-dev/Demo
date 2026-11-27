@@ -120,27 +120,37 @@ function CodeDialog({ room, onClose, onSuccess }) {
   )
 }
 
-// Davet kodu metinleri: hatalar kodun biçimini de söyler (kelime, tire, dört rakam).
+// Davet kodu metinleri: hatalar kodun biçimini de söyler (sunucu 8 karakterlik kod üretir).
 const CODE_COPY = {
-  format: 'Kod bir kelime, tire ve dört rakamdır. Büyük/küçük harf fark etmez.',
-  wrong: 'Kod bu odaya ait değil. Biçim: kelime, tire, dört rakam.',
-  notFound: 'Bu kodla bir oda bulunamadı. Biçim: kelime, tire, dört rakam.',
+  format: 'Kod 8 karakterdir (harf ve rakam). Büyük/küçük harf fark etmez.',
+  wrong: 'Kod bu odaya ait değil. Kod 8 karakterdir (harf ve rakam).',
 }
 
-// Kodla doğrudan katılma: kod hangi davetli odaya aitse ona girer.
-function CodeJoin({ rooms, onEnter }) {
+// Kodla doğrudan katılma: kod hangi davetli odaya aitse ona girer. Oda listede yoksa (başkasının gizli
+// odası listede görünmez) kod sunucuya gider; sunucu odayı bulup üye yapar (onEnterByCode).
+function CodeJoin({ rooms, onEnter, onEnterByCode }) {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
-  const submit = (e) => {
+  const [busy, setBusy] = useState(false)
+  const submit = async (e) => {
     e.preventDefault()
-    const room = rooms.find((r) => codeMatches(r, code))
-    if (!room) {
-      setError(CODE_COPY.notFound)
+    if (busy) return
+    const known = rooms.find((r) => codeMatches(r, code))
+    if (known) {
+      setCode('')
+      setError('')
+      onEnter(known)
+      return
+    }
+    setBusy(true)
+    const problem = await onEnterByCode(code)
+    setBusy(false)
+    if (problem) {
+      setError(problem)
       return
     }
     setCode('')
     setError('')
-    onEnter(room)
   }
   return (
     <form className="lobby-code" onSubmit={submit} noValidate>
@@ -160,8 +170,8 @@ function CodeJoin({ rooms, onEnter }) {
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? 'lobbyCode-err' : undefined}
       />
-      <button type="submit" className="site-btn site-btn--primary" disabled={!code.trim()}>
-        Gir
+      <button type="submit" className="site-btn site-btn--primary" disabled={!code.trim() || busy} aria-busy={busy || undefined}>
+        {busy ? 'Giriliyor…' : 'Gir'}
       </button>
       {error && (
         <span id="lobbyCode-err" className="form-error lobby-code__error" role="alert">
@@ -526,7 +536,7 @@ function Pager({ page, count, total, onGo }) {
 // oluştur. Solda üyesi olan odalar kalabalıktan sessize kartlar hâlinde; kartta içeridekiler (yalnızca
 // üyesi olunan odalarda, sunucu kuralı) ve tek eylem. Üyesi olmayan odalar ve kilitli davetli odalar altta
 // küçük düğmeler. Sağda "ne üzerinde çalışıyorum", davet koduyla giriş ve son girilen odalar.
-export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
+export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onEnterByCode, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
@@ -673,7 +683,7 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
               <KeyIcon />
               {LOBBY_COPY.key}
             </h2>
-            <CodeJoin rooms={rooms} onEnter={onEnter} />
+            <CodeJoin rooms={rooms} onEnter={onEnter} onEnterByCode={onEnterByCode} />
           </section>
 
           {history.length > 0 && (
