@@ -161,6 +161,31 @@ class RoomSessionServiceTest {
             public String getAvatar() {
                 return "{\"body\":\"female\"}";
             }
+
+            @Override
+            public Integer getSeat() {
+                return 2;
+            }
+
+            @Override
+            public PresenceStatus getStatus() {
+                return PresenceStatus.BREAK;
+            }
+
+            @Override
+            public String getBreakSpot() {
+                return "sofa";
+            }
+
+            @Override
+            public Integer getBreakSlot() {
+                return 1;
+            }
+
+            @Override
+            public Instant getStatusSince() {
+                return NOW;
+            }
         };
         when(sessions.findActive(ROOM)).thenReturn(List.of(row));
 
@@ -170,6 +195,8 @@ class RoomSessionServiceTest {
         assertThat(res.get(0).username()).isEqualTo("ada_l");
         assertThat(res.get(0).role()).isEqualTo(RoomRole.MEMBER);
         assertThat(res.get(0).avatar()).isEqualTo("{\"body\":\"female\"}");
+        assertThat(res.get(0).seat()).isEqualTo(2);
+        assertThat(res.get(0).slot()).isEqualTo(1);
     }
 
     @Test
@@ -191,6 +218,151 @@ class RoomSessionServiceTest {
     }
 
     // ---------- helpers ----------
+
+    // ---------- status ----------
+
+    @Test
+    void breakAtAFreeSpotIsStored() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        RoomSession open = new RoomSession(ROOM, ME, NOW.minusSeconds(600));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.of(open));
+        when(sessions.findSlotsTakenByOthers(ROOM, ME, "sofa")).thenReturn(List.of(0));
+
+        SessionStatusResponse res = service.changeStatus(ME, ROOM, new ChangeStatusRequest(PresenceStatus.BREAK, "sofa", 2));
+
+        assertThat(res.status()).isEqualTo(PresenceStatus.BREAK);
+        assertThat(res.spot()).isEqualTo("sofa");
+        assertThat(res.slot()).isEqualTo(1); // place 0 is someone else's
+        assertThat(res.statusSince()).isEqualTo(NOW);
+        assertThat(open.getLastSeenAt()).isEqualTo(NOW); // counts as a heartbeat
+        // the room row is locked while counting: two requests at once are handled one after the other
+        verify(rooms).findByIdForUpdate(ROOM);
+    }
+
+    @Test
+    void theAskedPlaceIsGivenWhenFreeOtherwiseTheLowestFreeOne() {
+        assertThat(RoomSessionService.freePlace(List.of(), 2, 1)).isEqualTo(1);
+        assertThat(RoomSessionService.freePlace(List.of(1), 2, 1)).isEqualTo(0);
+        assertThat(RoomSessionService.freePlace(List.of(0), 3, null)).isEqualTo(1);
+        assertThat(RoomSessionService.freePlace(List.of(), 2, 5)).isEqualTo(0); // past the spot's places
+        assertThatThrownBy(() -> RoomSessionService.freePlace(List.of(0, 1), 2, 0))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("SPOT_TAKEN"));
+    }
+
+    // ---------- seats ----------
+
+    @Test
+    void enterGivesTheLowestFreeSeat() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+        when(sessions.findSeatsTaken(ROOM)).thenReturn(List.of(0, 2));
+        when(sessions.save(any(RoomSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.enter(ME, ROOM);
+
+        org.mockito.ArgumentCaptor<RoomSession> saved = org.mockito.ArgumentCaptor.forClass(RoomSession.class);
+        verify(sessions).save(saved.capture());
+        assertThat(saved.getValue().getSeat()).isEqualTo(1);
+    }
+
+    @Test
+    void comingBackGetsTheSeatOfTheLastVisitWhenItIsFree() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        RoomSession last = new RoomSession(ROOM, ME, NOW.minusSeconds(900));
+        last.takeSeat(3);
+        last.end(SessionEndReason.TIMEOUT, NOW.minusSeconds(300));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+        when(sessions.findFirstByRoomIdAndUserIdAndEndedAtIsNotNullOrderByStartedAtDesc(ROOM, ME)).thenReturn(Optional.of(last));
+        when(sessions.findSeatsTaken(ROOM)).thenReturn(List.of(0));
+        when(sessions.save(any(RoomSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.enter(ME, ROOM);
+
+        org.mockito.ArgumentCaptor<RoomSession> saved = org.mockito.ArgumentCaptor.forClass(RoomSession.class);
+        verify(sessions).save(saved.capture());
+        assertThat(saved.getValue().getSeat()).isEqualTo(3); // not 1, the lowest free one
+    }
+
+    @Test
+    void comingBackToATakenSeatGetsTheLowestFreeOne() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        RoomSession last = new RoomSession(ROOM, ME, NOW.minusSeconds(900));
+        last.takeSeat(0);
+        last.end(SessionEndReason.EXIT, NOW.minusSeconds(300));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+        when(sessions.findFirstByRoomIdAndUserIdAndEndedAtIsNotNullOrderByStartedAtDesc(ROOM, ME)).thenReturn(Optional.of(last));
+        when(sessions.findSeatsTaken(ROOM)).thenReturn(List.of(0));
+        when(sessions.save(any(RoomSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.enter(ME, ROOM);
+
+        org.mockito.ArgumentCaptor<RoomSession> saved = org.mockito.ArgumentCaptor.forClass(RoomSession.class);
+        verify(sessions).save(saved.capture());
+        assertThat(saved.getValue().getSeat()).isEqualTo(1);
+    }
+
+    @Test
+    void enterAgainKeepsTheSeat() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        RoomSession open = new RoomSession(ROOM, ME, NOW.minusSeconds(120));
+        open.takeSeat(3);
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.of(open));
+
+        service.enter(ME, ROOM);
+
+        assertThat(open.getSeat()).isEqualTo(3);
+        verify(sessions, never()).findSeatsTaken(any());
+    }
+
+    @Test
+    void fullSpotIsRefusedAndNothingChanges() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        RoomSession open = new RoomSession(ROOM, ME, NOW.minusSeconds(600));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.of(open));
+        when(sessions.findSlotsTakenByOthers(ROOM, ME, "hammock")).thenReturn(List.of(0));
+
+        assertThatThrownBy(() -> service.changeStatus(ME, ROOM, new ChangeStatusRequest(PresenceStatus.BREAK, "hammock", 1)))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("SPOT_TAKEN"));
+        assertThat(open.getStatus()).isEqualTo(PresenceStatus.IDLE);
+        assertThat(open.getBreakSpot()).isNull();
+    }
+
+    @Test
+    void spotCapacityDefaultsToTwo() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME))
+                .thenReturn(Optional.of(new RoomSession(ROOM, ME, NOW.minusSeconds(600))));
+        when(sessions.findSlotsTakenByOthers(ROOM, ME, "sofa")).thenReturn(List.of(0, 1));
+
+        assertThatThrownBy(() -> service.changeStatus(ME, ROOM, new ChangeStatusRequest(PresenceStatus.BREAK, "sofa", null)))
+                .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void leavingTheBreakClearsTheSpotWithoutCounting() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        RoomSession open = new RoomSession(ROOM, ME, NOW.minusSeconds(600));
+        open.changeStatus(PresenceStatus.BREAK, "sofa", 0, NOW.minusSeconds(60));
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.of(open));
+
+        SessionStatusResponse res = service.changeStatus(ME, ROOM, new ChangeStatusRequest(PresenceStatus.AWAY, "sofa", 2));
+
+        assertThat(res.status()).isEqualTo(PresenceStatus.AWAY);
+        assertThat(res.spot()).isNull();
+        verify(sessions, never()).findSlotsTakenByOthers(any(), any(), any());
+    }
+
+    @Test
+    void statusWithoutAnOpenSessionIs404() {
+        stubRoom(RoomVisibility.PUBLIC, true);
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.changeStatus(ME, ROOM, new ChangeStatusRequest(PresenceStatus.FOCUS, null, null)))
+                .isInstanceOfSatisfying(NotFoundException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("SESSION_NOT_FOUND"));
+    }
 
     private void stubRoom(RoomVisibility visibility, boolean member) {
         Room room = room(visibility);

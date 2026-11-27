@@ -77,8 +77,22 @@ export const HEARTBEAT_MS = 20_000
 export const enterRoom = (roomId) => api(`/api/v1/rooms/${roomId}/sessions`, { method: 'POST' })
 export const heartbeat = (roomId) => api(`/api/v1/rooms/${roomId}/sessions/current/heartbeat`, { method: 'POST' })
 export const exitRoom = (roomId) => api(`/api/v1/rooms/${roomId}/sessions/current`, { method: 'DELETE' })
-/** Şu an odada olanlar: [{ userId, username, role, startedAt }] */
+/** Şu an odada olanlar: [{ userId, username, role, startedAt, avatar, status, spot, statusSince }] */
 export const activeMembers = (roomId) => api(`/api/v1/rooms/${roomId}/sessions/active`)
+
+/**
+ * Odadaki durumunu sunucuya yazar; odadakiler görür. status: 'idle' | 'focus' | 'break' | 'away'.
+ * Molada spot (mola yeri kimliği), capacity (o yerin kişi yeri) ve slot (istenen yer, 0'dan) verilir;
+ * sunucu yeri kendisi verir. Dönüş: { status, spot, slot, statusSince }. Yer doluysa ApiError
+ * SPOT_TAKEN (409): başka yer seçilir. Oturum yoksa SESSION_NOT_FOUND (404).
+ */
+export const setRoomStatus = (roomId, { status, spot = null, capacity = null, slot = null }) => {
+  const atSpot = status === 'break' && spot
+  return api(`/api/v1/rooms/${roomId}/sessions/current/status`, {
+    method: 'PUT',
+    body: { status: status.toUpperCase(), spot: atSpot ? spot : null, spotCapacity: atSpot ? capacity : null, slot: atSpot ? slot : null },
+  })
+}
 
 function read(key, fallback) {
   try {

@@ -21,6 +21,35 @@ class RoomSessionTest {
         assertThat(s.isOpen()).isTrue();
         assertThat(s.getLastSeenAt()).isEqualTo(START);
         assertThat(s.getEndReason()).isNull();
+        assertThat(s.getStatus()).isEqualTo(PresenceStatus.IDLE);
+        assertThat(s.getStatusSince()).isEqualTo(START);
+    }
+
+    @Test
+    void statusSinceMovesOnlyWhenTheStatusChanges() {
+        RoomSession s = open();
+
+        s.changeStatus(PresenceStatus.BREAK, "sofa", 0, START.plusSeconds(60));
+        s.changeStatus(PresenceStatus.BREAK, "bar", 1, START.plusSeconds(90)); // another spot, same break
+
+        assertThat(s.getBreakSpot()).isEqualTo("bar");
+        assertThat(s.getStatusSince()).isEqualTo(START.plusSeconds(60));
+        assertThat(s.getLastSeenAt()).isEqualTo(START.plusSeconds(90));
+
+        s.changeStatus(PresenceStatus.FOCUS, "bar", 1, START.plusSeconds(120));
+
+        assertThat(s.getBreakSpot()).isNull(); // a spot only while on break
+        assertThat(s.getStatusSince()).isEqualTo(START.plusSeconds(120));
+    }
+
+    @Test
+    void closedSessionKeepsItsLastStatus() {
+        RoomSession s = open();
+        s.end(SessionEndReason.EXIT, START.plusSeconds(30));
+
+        s.changeStatus(PresenceStatus.AWAY, null, null, START.plusSeconds(40));
+
+        assertThat(s.getStatus()).isEqualTo(PresenceStatus.IDLE);
     }
 
     @Test

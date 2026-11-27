@@ -50,27 +50,49 @@ export const roomMates = (capacity, seed) => roomBots(capacity, seed).slice(1)
  * setMyStatus(status, spot?): kendi durumunu değiştirir; molada spot verilirse o mola noktasına gider.
  * cheer: kendi avatarının sevinme sayacı (usePomodoro completed); artınca avatar yerinde kollarını
  * kaldırıp sevinir, sonra molaya kalkar.
+ * myAvoid: kendi avatarının gitmeyeceği mola yerleri (sunucu dolu dedi); kalabalık başka yer seçer.
+ * mySeat: sunucunun sana verdiği koltuk numarası (people ile birlikte; bilinmiyorsa null).
+ * myPlace: sunucunun molada sana verdiği yer ({ spot, slot } | null); avatarın oraya geçer.
  */
-export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0, people = null }) {
+export default function useRoomPeople({ capacity, seed = 1, me = null, forced = null, cheer = 0, people = null, myAvoid = null, mySeat = null, myPlace = null }) {
   const simulated = useMemo(() => roomBots(capacity, seed), [capacity, seed])
-  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name, avatar?, joinedAt? }]) simüle kişilerin
-  // yerine onlar oturur: koltuk sırası aynı. Avatar kişinin kaydettiği avatardır; hiç kaydetmediyse kimlikten
-  // sabit üretilir. Durumları uydurulmaz, hep masada.
+  // people verilirse (sunucudaki gerçek oda arkadaşları: [{ id, name, avatar?, seat?, joinedAt?, presence? }])
+  // simüle kişilerin yerine onlar oturur. Koltuk sunucunun verdiği numaradır: n. numara, oda tohumundan
+  // karılmış koltuk sırasının n. koltuğu; tohum herkeste aynı olduğu için herkes kişiyi aynı masada görür.
+  // Avatar kişinin kaydettiği avatardır; hiç kaydetmediyse kimlikten sabit üretilir. Durumları uydurulmaz,
+  // sunucudan gelir (presence: { status: 'idle' | 'focus' | 'break' | 'away', spot, slot, since }); gelmezse masada.
   const bots = useMemo(() => {
     if (!people) return simulated
-    const seats = simulated.map((b) => b.seat)
-    const real = people.slice(0, Math.max(0, capacity - 1)).map((p, i) => ({
+    const order = simulated.map((b) => b.seat)
+    const list = people.slice(0, Math.max(0, capacity - 1))
+    // önce sunucunun verdiği koltuklar; numarası olmayan (eski oturum) ya da çakışan boş koltuğa
+    const used = new Set()
+    const serverSeat = (n) => (Number.isInteger(n) && n < order.length && !used.has(order[n]) ? order[n] : null)
+    const mine = serverSeat(mySeat) ?? order.find((s) => !list.some((p) => Number.isInteger(p.seat) && order[p.seat] === s))
+    used.add(mine)
+    const seatsOf = list.map((p) => {
+      const s = serverSeat(p.seat)
+      if (s != null) used.add(s)
+      return s
+    })
+    const free = () => {
+      const s = order.find((x) => !used.has(x))
+      used.add(s)
+      return s
+    }
+    const real = list.map((p, i) => ({
       id: `user-${p.id}`,
       name: p.name,
       avatar: p.avatar ? sanitizeAvatar({ ...p.avatar, name: p.name }) : randomAvatar(seededRandom(roomSeed(p.id)), p.name),
-      seat: seats[i + 1],
+      seat: seatsOf[i] ?? free(),
       rnd: seededRandom(roomSeed(p.id) * 31),
       real: true,
       // odaya giriş zamanı (ms; sunucunun startedAt değeri)
       joinedAt: p.joinedAt ?? null,
+      presence: p.presence ?? null,
     }))
-    return [simulated[0], ...real]
-  }, [simulated, people, capacity])
+    return [{ ...simulated[0], seat: mine ?? simulated[0].seat }, ...real]
+  }, [simulated, people, capacity, mySeat])
 
   const [status, setStatus] = useState(() => {
     const now = Date.now()
@@ -107,21 +129,54 @@ export default function useRoomPeople({ capacity, seed = 1, me = null, forced = 
     setMine({ status: s, spot: s === 'break' ? spot : null, since: s === 'away' ? Date.now() : null })
   }, [])
 
-  // Kendin ilk koltukta, oda arkadaşları kalan koltuklarda.
+  // Kendin bots[0]'ın koltuğunda (sunucunun verdiği ya da ilk koltuk), oda arkadaşları kendi koltuklarında.
   const occupants = useMemo(() => {
     const list = []
     let others = bots
     if (me) {
-      const mySeat = bots[0]?.seat ?? 0
-      list.push({ id: 'me', name: me.name, avatar: me, seat: mySeat, me: true, ...mine, status: forced ?? mine.status, cheer })
+      const mySeatIndex = bots[0]?.seat ?? 0
+      // sunucunun verdiği yer, seçtiğin köşeyle uyuşuyorsa (ya da köşe seçmediysen) geçerli
+      const placed = mine.status === 'break' && myPlace && (!mine.spot || mine.spot === myPlace.spot) ? myPlace : null
+      list.push({
+        id: 'me',
+        name: me.name,
+        avatar: me,
+        seat: mySeatIndex,
+        me: true,
+        ...mine,
+        ...(placed ? { spot: placed.spot, slot: placed.slot } : null),
+        status: forced ?? mine.status,
+        avoid: myAvoid,
+        cheer,
+      })
       others = bots.slice(1)
     }
     for (const b of others) {
+      if (b.real) {
+        // sunucudaki durum: Masada (idle) avatarda odak pozudur, etikette "Masada"
+        const p = b.presence ?? { status: 'focus' }
+        const idle = p.status === 'idle'
+        list.push({
+          id: b.id,
+          name: b.name,
+          avatar: b.avatar,
+          seat: b.seat,
+          status: forced ?? (idle ? 'focus' : p.status),
+          ...(idle && !forced ? { shown: 'idle' } : null),
+          spot: p.status === 'break' ? (p.spot ?? null) : null,
+          // köşedeki yer (sunucu verdi): herkes kişiyi o köşenin aynı yerinde görür
+          slot: p.status === 'break' && p.spot != null && Number.isInteger(p.slot) ? p.slot : null,
+          since: p.since ?? null,
+          real: true,
+          joinedAt: b.joinedAt ?? null,
+        })
+        continue
+      }
       const s = status[b.id] ?? { status: 'focus' }
-      list.push({ id: b.id, name: b.name, avatar: b.avatar, seat: b.seat, status: forced ?? s.status, since: s.since, real: !!b.real, joinedAt: b.joinedAt ?? null })
+      list.push({ id: b.id, name: b.name, avatar: b.avatar, seat: b.seat, status: forced ?? s.status, since: s.since, real: false, joinedAt: null })
     }
     return list
-  }, [bots, status, me, mine, forced, cheer])
+  }, [bots, status, me, mine, forced, cheer, myAvoid, myPlace])
 
   return { occupants, setMyStatus, myStatus: mine.status }
 }

@@ -95,9 +95,12 @@ const HIDDEN = new Matrix4().makeScale(0, 0, 0)
  * Odadaki avatarlar. Oda bileşeninin çocuğu olarak kullanılır; koltukları, mola noktalarını ve
  * yürünebilir alanı odanın kendisinden (useRoom) okur.
  *
- * occupants: [{ id, name, avatar, status: 'focus' | 'break' | 'away', seat, spot?, me?, since?, shown?: 'idle' }]
+ * occupants: [{ id, name, avatar, status: 'focus' | 'break' | 'away', seat, spot?, avoid?, me?, since?, shown?: 'idle' }]
  *   seat: koltuk indeksi (her kişiye ayrı), spot: molada gidilmek istenen mola noktası kimliği,
- *   since: uzakta olunan zamanın başlangıcı (ms; açık etikette dakika olarak görünür).
+ *   avoid: gidilmeyecek mola noktası kimlikleri (sunucu dolu dedi), since: uzakta olunan zamanın
+ *   başlangıcı (ms; açık etikette dakika olarak görünür).
+ * onMyTarget({ id, capacity } | null): kendi avatarının (me) yöneldiği mola yeri değişince çağrılır;
+ *   capacity o yerin kişi yeri sayısıdır. Sayfa bunu sunucuya yazar, odadakiler aynı köşeyi görür.
  * theme: tema anahtarı (rooms/themes.js); çalışma, uyuma ve mola hareketleri buna ve oturulan
  *   yere göre seçilir (activities.js).
  * showNames: true iken herkesin adı görünür; değilse yalnızca durum noktası, kendi adın ve
@@ -112,7 +115,7 @@ const HIDDEN = new Matrix4().makeScale(0, 0, 0)
  * gidilir. Yürürken kimseye 0.5 m'den fazla yaklaşılmaz: önü kesilen bekler, karşı karşıya gelinirse
  * sırası sonra olan kenara çekilip yol verir, duran birinin etrafından dolaşılır.
  */
-export default function AvatarCrowd({ occupants, theme, showNames = false, highlight = null, reducedMotion, onPersonPoint = null }) {
+export default function AvatarCrowd({ occupants, theme, showNames = false, highlight = null, reducedMotion, onPersonPoint = null, onMyTarget = null }) {
   const room = useRoom()
   const invalidate = useThree((s) => s.invalidate)
   const gl = useThree((s) => s.gl)
@@ -158,13 +161,13 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
   const meshRef = useRef(null)
   const zzzRef = useRef(null)
   const shadowRef = useRef(null)
-  const latest = useRef({ occupants, showNames, highlight, onPersonPoint })
+  const latest = useRef({ occupants, showNames, highlight, onPersonPoint, onMyTarget })
   const sim = useRef({ agents: new Map(), slots: new Map(), beds: new Map(), moving: false, labels: null, hoverMesh: null, hoverLabel: null, pointed: null })
 
   useEffect(() => {
-    latest.current = { occupants, showNames, highlight, onPersonPoint }
+    latest.current = { occupants, showNames, highlight, onPersonPoint, onMyTarget }
     invalidate()
-  }, [occupants, showNames, highlight, onPersonPoint, invalidate])
+  }, [occupants, showNames, highlight, onPersonPoint, onMyTarget, invalidate])
 
   // Kişi kartı için sayfaya bildirir: (kimlik | null, etiket öğesi | null, 'hover' | 'tap'). Fareyle
   // üstüne gelme yalnızca değişince bildirilir; dokunma / tıklama her seferinde.
@@ -269,6 +272,12 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
     }
     people.forEach((o, order) => {
       let a = agents.get(o.id)
+      // koltuk değişti (sunucu koltuk numarasını verdi): kişi yeni koltuğunda yeniden başlar
+      if (a && a.seatIndex !== o.seat) {
+        release(state, a)
+        agents.delete(o.id)
+        a = null
+      }
       if (!a) {
         a = createAgent(o, world, order)
         agents.set(o.id, a)
@@ -294,6 +303,17 @@ export default function AvatarCrowd({ occupants, theme, showNames = false, highl
       if (!RESTING.has(a.mode) || a.cheer) moving = true
     }
     state.moving = moving
+    checkArrivals(state, world, t)
+
+    // Kendi avatarının yöneldiği mola yeri ya da oradaki yeri değişince sayfaya bildirilir (sunucuya
+    // yazılır, odadakiler aynı yerde görür): { id, capacity, slot } ya da mola yerinde değilse null.
+    const me = [...agents.values()].find((a) => a.occ.me)
+    const myKey = me?.target.kind === 'slot' ? `${me.target.spot}:${me.target.slot}` : null
+    if (me && myKey !== state.reportedSpot) {
+      state.reportedSpot = myKey
+      const spot = myKey ? world.spots.find((s) => s.id === me.target.spot) : null
+      latest.current.onMyTarget?.(spot ? { id: spot.id, capacity: spot.slots.length, slot: me.target.slot } : null)
+    }
 
     // çizim; etiketler bu karenin kamerasıyla izdüşülür (kamera bu karede döndüyse matrisi henüz eski)
     camera.updateMatrixWorld()
@@ -411,6 +431,7 @@ function createAgent(o, world, order) {
     id: o.id,
     order,
     occ: o,
+    seatIndex: o.seat,
     seat,
     on: seat,
     x: seat.position[0],
@@ -461,16 +482,25 @@ function desired(world, a) {
 
 function slotTarget(spot, si, k) {
   const slot = spot.slots[k]
-  return { kind: 'slot', key: slotKey(si, k), spot: spot.id, x: slot.x, z: slot.z, yaw: slot.yaw, station: slot.station ?? null, activity: spot.activity }
+  return { kind: 'slot', key: slotKey(si, k), spot: spot.id, slot: k, x: slot.x, z: slot.z, yaw: slot.yaw, station: slot.station ?? null, activity: spot.activity }
 }
 
-// İstenen mola noktasında boş yer varsa onu, yoksa from'a en yakın boş yeri ayırır (exclude
-// verilen mola noktası hariç). Aynı mola noktasının öbür yerine yürüyen biri varsa ve yer
-// değiştirmek ikisinin yolunu kısaltıyorsa (birbirinin önünden geçmesinler) yerler değişir.
+// Sunucunun verdiği yer (occ.spot + occ.slot): { spot, si, k } ya da yoksa / bu odada geçersizse null.
+function fixedPlace(world, occ) {
+  if (occ.spot == null || !Number.isInteger(occ.slot)) return null
+  const si = world.spots.findIndex((s) => s.id === occ.spot)
+  if (si < 0 || occ.slot >= world.spots[si].slots.length) return null
+  return { spot: world.spots[si], si, k: occ.slot }
+}
+
+// İstenen mola noktasında boş yer varsa onu, yoksa from'a en yakın boş yeri ayırır (exclude:
+// atlanacak mola noktası kimliği ya da kimlik listesi). Aynı mola noktasının öbür yerine yürüyen biri
+// varsa ve yer değiştirmek ikisinin yolunu kısaltıyorsa (birbirinin önünden geçmesinler) yerler değişir.
 function chooseSlot(state, world, a, wantedId, from, exclude = null) {
+  const skip = Array.isArray(exclude) ? exclude : exclude ? [exclude] : []
   let best = null
   world.spots.forEach((spot, si) => {
-    if (spot.id === exclude) return
+    if (skip.includes(spot.id)) return
     spot.slots.forEach((slot, k) => {
       const owner = state.slots.get(slotKey(si, k))
       if (owner && owner !== a.id) return
@@ -489,6 +519,8 @@ function chooseSlot(state, world, a, wantedId, from, exclude = null) {
     if (j === k) return
     const b = state.agents.get(state.slots.get(slotKey(si, j)))
     if (!b || b.target?.kind !== 'slot' || b.target.key !== slotKey(si, j) || (b.mode !== 'walking' && b.mode !== 'waiting')) return
+    // yeri sunucunun verdiği kişiyle yer değiştirilmez (herkeste aynı yerde kalsın)
+    if (fixedPlace(world, b.occ)) return
     const mine = [spot.slots[k].x, spot.slots[k].z]
     const theirs = [other.x, other.z]
     const keep = dist(from, mine) + dist([b.x, b.z], theirs)
@@ -526,13 +558,68 @@ function chooseBed(state, world, a) {
   return { kind: 'bed', bed: best, x: bed.door[0], z: bed.door[1], door: bed.door, inside: bed.inside, top: bed.top }
 }
 
+// Varış denetimi: mola yerine varıp duran (ayakta ya da eşyada oturan) iki kişi üst üste geliyorsa
+// (iki ayrı istemcide aynı anda seçilen yer, yanlış ayrılmış yer...) sonra varan o mola yerinden
+// kaçınır ve en yakın boş yere yürür. Her kişi bir varışta bir kez denetlenir.
+const OVERLAP = 0.3
+const arrivedAtSlot = (a) => a.target.kind === 'slot' && (a.mode === 'idle' || (a.mode === 'seated' && a.on && !a.on.home))
+function checkArrivals(state, world, t) {
+  for (const a of state.agents.values()) {
+    if (!arrivedAtSlot(a)) {
+      a.arrivedKey = null
+      continue
+    }
+    if (a.arrivedKey === a.target.key) continue
+    a.arrivedKey = a.target.key
+    a.arrivedAt = t
+    for (const b of state.agents.values()) {
+      if (b === a || !arrivedAtSlot(b) || b.arrivedKey !== b.target.key) continue
+      if (Math.hypot(a.x - b.x, a.z - b.z) >= OVERLAP) continue
+      // yeri sunucunun verdiği kalır; ikisinin de verildiyse ikisi de kalır (sunucu ayrı yer verdi)
+      const aFixed = !!fixedPlace(world, a.occ)
+      const bFixed = !!fixedPlace(world, b.occ)
+      if (aFixed && bFixed) continue
+      // yoksa ilk varan kalır; aynı anda vardılarsa sırası sonra olan gider
+      const loser = aFixed ? b : bFixed ? a : b.arrivedAt < a.arrivedAt || (b.arrivedAt === a.arrivedAt && b.order < a.order) ? a : b
+      loser.avoid = [...(loser.avoid ?? []), loser.target.spot]
+      loser.arrivedKey = null
+      break
+    }
+  }
+}
+
 // Hedefi duruma göre günceller; değiştiyse true.
 function retarget(state, world, a) {
   const want = desired(world, a)
   if (want === 'slot') {
+    // Sunucunun verdiği yer varsa tam oraya gidilir: herkes kişiyi o köşenin aynı yerinde görür. O yeri
+    // bu ekranda başkası tutuyorsa (henüz yeri gelmemiş biri) o kişi yer bırakır ve başka yer seçer.
+    const fixed = fixedPlace(world, a.occ)
+    const fixedKey = fixed && slotKey(fixed.si, fixed.k)
+    const holder = fixed && state.agents.get(state.slots.get(fixedKey))
+    // iki kişiye aynı yer verilmiş görünüyorsa (biri eski veri) yer tutanda kalır, bu kişi her karede
+    // yer kapmasın diye olağan seçime düşer; sunucunun bir sonraki listesi düzeltir
+    const contested = holder && holder !== a && (() => {
+      const h = fixedPlace(world, holder.occ)
+      return h && slotKey(h.si, h.k) === fixedKey
+    })()
+    if (fixed && !contested) {
+      const key = fixedKey
+      if (a.target.kind === 'slot' && a.target.key === key && state.slots.get(key) === a.id) return false
+      const owner = state.slots.get(key)
+      if (owner && owner !== a.id) state.slots.delete(key)
+      release(state, a)
+      state.slots.set(key, a.id)
+      a.target = slotTarget(fixed.spot, fixed.si, fixed.k)
+      return true
+    }
     const wanted = a.occ.spot ?? null
-    if (a.target.kind === 'slot' && (!wanted || a.target.spot === wanted)) return false
-    const slot = chooseSlot(state, world, a, wanted, [a.x, a.z])
+    // kaçınılacak yerler: sunucunun dolu dediği (occ.avoid) ve varışta üst üste binilen (a.avoid)
+    const avoid = [...(a.occ.avoid ?? []), ...(a.avoid ?? [])]
+    // yeri elinden alındıysa (sunucunun o yeri verdiği biri geldi) yeniden seçer
+    const blocked = a.target.kind === 'slot' && (avoid.includes(a.target.spot) || state.slots.get(a.target.key) !== a.id)
+    if (a.target.kind === 'slot' && !blocked && (!wanted || a.target.spot === wanted || avoid.includes(wanted))) return false
+    const slot = chooseSlot(state, world, a, avoid.includes(wanted) ? null : wanted, [a.x, a.z], avoid)
     if (slot) {
       a.target = slot
       return true
@@ -731,6 +818,8 @@ function step(state, world, a, t, dt) {
   if (o.status !== a.lastStatus) {
     if (a.lastStatus) a.departAt = t + 0.2 + 1.6 * frac(a.seed * 7.31)
     a.lastStatus = o.status
+    // varışta çakışıp kaçınılan yerler yalnızca o mola için geçerli
+    if (o.status !== 'break') a.avoid = null
   }
   if ((t < a.departAt || t < (a.holdUntil ?? 0)) && RESTING.has(a.mode)) return
 

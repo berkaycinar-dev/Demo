@@ -39,6 +39,25 @@ public class RoomSession {
     @Column(name = "end_reason", length = 10)
     private SessionEndReason endReason;
 
+    // Desk seat (0-based), given on enter and kept for the visit. Null only for sessions older than V9.
+    @Column(name = "seat")
+    private Integer seat;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private PresenceStatus status = PresenceStatus.IDLE;
+
+    // Break spot id while on BREAK, otherwise null (V9 CHECK).
+    @Column(name = "break_spot", length = 40)
+    private String breakSpot;
+
+    // Which place of the break spot (0-based), set together with breakSpot (V9 CHECK).
+    @Column(name = "break_slot")
+    private Integer breakSlot;
+
+    @Column(name = "status_since", nullable = false)
+    private Instant statusSince;
+
     protected RoomSession() {
         // for JPA
     }
@@ -48,6 +67,7 @@ public class RoomSession {
         this.userId = userId;
         this.startedAt = startedAt;
         this.lastSeenAt = startedAt;
+        this.statusSince = startedAt;
     }
 
     public UUID getId() {
@@ -80,6 +100,50 @@ public class RoomSession {
 
     public boolean isOpen() {
         return endedAt == null;
+    }
+
+    public PresenceStatus getStatus() {
+        return status;
+    }
+
+    public String getBreakSpot() {
+        return breakSpot;
+    }
+
+    public Instant getStatusSince() {
+        return statusSince;
+    }
+
+    public Integer getBreakSlot() {
+        return breakSlot;
+    }
+
+    public Integer getSeat() {
+        return seat;
+    }
+
+    /** Gives the desk seat. RoomSessionService picks a free one under the room lock. */
+    public void takeSeat(int seat) {
+        this.seat = seat;
+    }
+
+    /**
+     * Sets what the person is doing. The spot and its place are kept only on BREAK (and only together).
+     * statusSince moves only when the status itself changes (walking to another spot during the same
+     * break keeps it). Counts as a heartbeat.
+     */
+    public void changeStatus(PresenceStatus next, String spot, Integer slot, Instant now) {
+        if (!isOpen()) {
+            return;
+        }
+        if (next != status) {
+            statusSince = now;
+        }
+        status = next;
+        boolean atSpot = next == PresenceStatus.BREAK && spot != null && slot != null;
+        breakSpot = atSpot ? spot : null;
+        breakSlot = atSpot ? slot : null;
+        touch(now);
     }
 
     /** Marks the user as still connected. Ignored once the session has ended. */

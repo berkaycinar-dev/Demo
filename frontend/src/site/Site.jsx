@@ -233,12 +233,26 @@ export default function Site() {
   // Ortak odadayken sunucuda oturum açık tutulur: girişte açılır, düzenli sinyal gider, çıkınca kapanır.
   // Böylece odadaki gerçek kişiler (aktif üyeler) listelenebilir.
   const inRoomId = user && page === 'oda' && current ? current.id : null
+  // Arka plandaki sekmede tarayıcı zamanlayıcıları yavaşlatır; sinyal gecikip sunucu oturumu kapatırsa
+  // (SESSION_NOT_FOUND) odaya yeniden girilir (sunucu boşsa eski koltuğu geri verir). Sekme öne gelince
+  // hemen sinyal gider.
   useEffect(() => {
     if (!inRoomId) return undefined
+    let stopped = false
     enterRoom(inRoomId).catch((e) => setNotice(errorText(e, 'Odaya girilemedi.')))
-    const beat = setInterval(() => heartbeat(inRoomId).catch(() => {}), HEARTBEAT_MS)
+    const beatNow = () =>
+      heartbeat(inRoomId).catch((e) => {
+        if (!stopped && e.code === 'SESSION_NOT_FOUND') enterRoom(inRoomId).catch(() => {})
+      })
+    const beat = setInterval(beatNow, HEARTBEAT_MS)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') beatNow()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
+      stopped = true
       clearInterval(beat)
+      document.removeEventListener('visibilitychange', onVisible)
       exitRoom(inRoomId).catch(() => {})
     }
   }, [inRoomId])
