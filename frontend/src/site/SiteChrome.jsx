@@ -73,7 +73,6 @@ const USER_COPY = {
   avatar: 'Avatarım',
   settings: 'Ayarlar',
   help: 'Yardım / Geri bildirim',
-  look: 'Görünüm',
   logout: 'Çıkış yap',
 }
 
@@ -94,7 +93,7 @@ const ICON_LOGOUT = 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12
 // geçerken kapanmasın); tıklama, dokunma ve klavye de açar. Esc kapatır ve odağı düğmeye verir, dışarı
 // tıklama kapatır. İçinde: ad ve kullanıcı adı, Profilim (hesap ayarları), Avatarım, görünüm (açık / koyu)
 // ve Çıkış yap.
-function UserMenu({ user, page, onGo, onLogout, modePref, onModeChange }) {
+function UserMenu({ user, page, onGo, onLogout }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
   const btnRef = useRef(null)
@@ -188,10 +187,7 @@ function UserMenu({ user, page, onGo, onLogout, modePref, onModeChange }) {
           <MenuIcon d={ICON_HELP} />
           {USER_COPY.help}
         </button>
-        <div className="user-menu__look">
-          <span className="user-menu__look-label">{USER_COPY.look}</span>
-          <ModeChoice pref={modePref} onChange={onModeChange} />
-        </div>
+        <hr className="user-menu__sep" />
         <button
           type="button"
           className="user-menu__item user-menu__item--logout"
@@ -263,7 +259,7 @@ export function SiteHeader({ user, pages, page, navPage = page, onGo, onLogout, 
         {user ? (
           <>
             {/* hesap menüsü: Profilim, Avatarım, görünüm ve Çıkış yap */}
-            <UserMenu user={user} page={page} onGo={onGo} onLogout={onLogout} modePref={modePref} onModeChange={onModeChange} />
+            <UserMenu user={user} page={page} onGo={onGo} onLogout={onLogout} />
           </>
         ) : (
           <>

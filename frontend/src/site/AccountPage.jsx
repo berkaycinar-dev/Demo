@@ -1,58 +1,45 @@
 import { useState } from 'react'
 import { passwordProblem, updateProfile } from './auth'
 import { Field, PasswordInput, PasswordRules } from './AuthPages'
-import { ModeChoice } from './SiteChrome'
 
-// Hesap: header'daki kullanıcı adına tıklayınca açılır. Görünen ad değişir; şifre değiştirme formu
-// hazırdır ama sunucuda ucu henüz yok (gönderince durum söylenir). E-posta değiştirme ucu da yok: form
-// gösterilmez, durum sessiz bir notla yerinde söylenir.
+// Hesap: header'daki hesap menüsünden (Profilim) açılır. Tek sütun, okuma sırasıyla: kim olduğun (ad,
+// kullanıcı adı), giriş bilgileri (e-posta), şifre ve oturum. Görünüm ve dil Ayarlar sayfasında.
+// Şifre değiştirme formu hazırdır ama sunucuda ucu henüz yok (gönderince durum söylenir). E-posta
+// değiştirme ucu da yok: form gösterilmez, durum sessiz bir notla yerinde söylenir.
 const ACCOUNT_COPY = {
   title: 'Hesap ayarları',
   lead: 'Görünen adını ve şifreni buradan değiştirebilirsin.',
 }
 
-export default function AccountPage({ user, onUserChange, modePref, onModeChange, onLogout }) {
+export default function AccountPage({ user, onUserChange, onLogout }) {
   return (
-    <div className="account">
+    <div className="account account--profile">
       <div className="page-head">
         <h1>{ACCOUNT_COPY.title}</h1>
         <p className="site-muted">{ACCOUNT_COPY.lead}</p>
       </div>
-      <div className="account__grid">
-        {/* geniş ekranda iki sütun: Profil | Giriş bilgileri, altında Görünüm ve oturum */}
+      <div className="account__stack">
         <ProfileCard user={user} onUserChange={onUserChange} />
         <LoginCard user={user} />
-        <SessionCard modePref={modePref} onModeChange={onModeChange} onLogout={onLogout} />
+        <PasswordCard user={user} />
+        <SessionCard onLogout={onLogout} />
       </div>
     </div>
   )
 }
 
 const SESSION_COPY = {
-  title: 'Görünüm ve oturum',
-  theme: 'Tema',
-  themeHint: 'Sitenin açık ya da koyu görünümü.',
-  session: 'Oturum',
-  sessionHint: 'Bu cihazda oturumun açık.',
+  title: 'Oturum',
+  session: 'Bu cihazda oturumun açık',
+  sessionHint: 'Ortak bir bilgisayardaysan işin bitince çıkış yap.',
   logout: 'Çıkış yap',
 }
 
-// Görünüm ve oturum: ayar listesi. Her satırda solda etiket ve kısa açıklama, sağda denetim; satırlar
-// aynı hizada, ince çizgiyle ayrılır. Koyu mod ve çıkış header'da da var; burada her ekranda durur.
-function SessionCard({ modePref, onModeChange, onLogout }) {
+function SessionCard({ onLogout }) {
   return (
-    <section className="site-card account__card account__session" aria-labelledby="oturumBaslik">
+    <section className="site-card account__card" aria-labelledby="oturumBaslik">
       <h2 id="oturumBaslik">{SESSION_COPY.title}</h2>
       <div className="account__rows">
-        <div className="account__row">
-          <div className="account__row-text">
-            <span className="account__row-label">
-              {SESSION_COPY.theme}
-            </span>
-            <span className="site-muted">{SESSION_COPY.themeHint}</span>
-          </div>
-          <ModeChoice pref={modePref} onChange={onModeChange} />
-        </div>
         <div className="account__row">
           <div className="account__row-text">
             <span className="account__row-label">{SESSION_COPY.session}</span>
@@ -159,7 +146,7 @@ function ProfileCard({ user, onUserChange }) {
   )
 }
 
-// Giriş bilgileri: e-posta okunur (değiştirme ucu yok); altında şifre değiştirme formu.
+// Giriş bilgileri ve şifre metinleri.
 // Şifre değiştirme ucu sunucuda henüz yok (contracts/openapi.yaml): form doğrular, gönderince durumu
 // söyler ve şifre alanlarını temizler (yazılan şifre ekranda kalmaz). Uç gelince submit içinde istek atılır.
 const LOGIN_COPY = {
@@ -190,7 +177,23 @@ function validatePasswords({ current, next, next2 }) {
   return errors
 }
 
+// Giriş bilgileri: e-posta okunur; değiştirme ucu yok, durum altında kısa bir notla söylenir.
 function LoginCard({ user }) {
+  return (
+    <section className="site-card account__card" aria-labelledby="girisBaslik">
+      <h2 id="girisBaslik">{LOGIN_COPY.title}</h2>
+      <dl className="account__facts">
+        <div>
+          <dt>{LOGIN_COPY.email}</dt>
+          <dd>{user.email}</dd>
+        </div>
+      </dl>
+      <p className="site-muted account__note">{LOGIN_COPY.emailNotYet}</p>
+    </section>
+  )
+}
+
+function PasswordCard({ user }) {
   const f = useForm(EMPTY_PASSWORDS)
   const [pending, setPending] = useState(false)
   const filled = f.form.current && f.form.next && f.form.next2
@@ -217,18 +220,9 @@ function LoginCard({ user }) {
   }
 
   return (
-    <section className="site-card account__card" aria-labelledby="girisBaslik">
-      <h2 id="girisBaslik">{LOGIN_COPY.title}</h2>
-      <dl className="account__facts">
-        <div>
-          <dt>{LOGIN_COPY.email}</dt>
-          <dd>{user.email}</dd>
-        </div>
-      </dl>
-      <p className="site-muted account__note">{LOGIN_COPY.emailNotYet}</p>
-
-      <form className="auth__form account__password" onSubmit={submit} noValidate aria-labelledby="sifreBaslik">
-        <h3 id="sifreBaslik">{LOGIN_COPY.passwordTitle}</h3>
+    <section className="site-card account__card" aria-labelledby="sifreBaslik">
+      <h2 id="sifreBaslik">{LOGIN_COPY.passwordTitle}</h2>
+      <form className="auth__form" onSubmit={submit} noValidate aria-labelledby="sifreBaslik">
         {/* parola yöneticisi hangi hesabın şifresi olduğunu bilsin */}
         <input type="text" name="username" autoComplete="username" value={user.email} readOnly hidden />
         <Field id="acc-pass-current" label={LOGIN_COPY.current} error={f.errors.current}>
