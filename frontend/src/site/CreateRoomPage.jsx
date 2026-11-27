@@ -9,6 +9,23 @@ import { ThemeShot } from './RoomShot'
 import Dotted from './Dotted'
 import { ACCESS, ACCESS_IDS } from './access'
 
+// Kimler girebilir kartlarının simgeleri: kişiler / kilit (yazının rengini alır)
+function AccessIcon({ id }) {
+  const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true }
+  if (id === 'invite')
+    return (
+      <svg {...common}>
+        <rect x="4" y="11" width="16" height="10" rx="2" />
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      </svg>
+    )
+  return (
+    <svg {...common}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  )
+}
+
 const DEFAULT_THEME = 'library'
 const DEFAULT_CAPACITY = 4
 const FORM_ID = 'create-room-form'
@@ -167,18 +184,22 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
               <CapacityStepper value={capacity} max={max} onChange={changeCapacity} />
             </fieldset>
 
-            <fieldset className="field create-room__last" aria-describedby="access-hint">
+            {/* iki seçenek kartı: simge, ad ve ne demek olduğu kartın içinde (ayrı bir not satırı yok) */}
+            <fieldset className="field create-room__last">
               <legend className="field__label">Kimler girebilir</legend>
-              <div className="choice-row">
+              <div className="access-choice">
                 {ACCESS_IDS.map((id) => (
-                  <button key={id} type="button" aria-pressed={access === id} onClick={() => setAccess(id)}>
-                    {ACCESS[id].label}
+                  <button key={id} type="button" className="access-choice__opt" aria-pressed={access === id} aria-describedby={`access-${id}`} onClick={() => setAccess(id)}>
+                    <AccessIcon id={id} />
+                    <span className="access-choice__text">
+                      <span className="access-choice__name">{ACCESS[id].label}</span>
+                      <span id={`access-${id}`} className="access-choice__hint">
+                        {ACCESS[id].hint}
+                      </span>
+                    </span>
                   </button>
                 ))}
               </div>
-              <p id="access-hint" className="field__note create-room__access-hint">
-                {ACCESS[access].hint}
-              </p>
             </fieldset>
           </div>
 

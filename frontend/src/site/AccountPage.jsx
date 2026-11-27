@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { exportAccountData, updateProfile } from './auth'
-import { Field } from './AuthPages'
+import { exportAccountData, passwordProblem, updateProfile } from './auth'
+import { Field, PasswordInput, PasswordRules } from './AuthPages'
 import { ModeChoice } from './SiteChrome'
 
-// Hesap: header'daki kullanıcı adına tıklayınca açılır. Bugün yalnızca görünen ad değişir. Sunucuda
-// henüz ucu olmayan işlemler (e-posta, şifre, hesabı silme) form göstermez: durum sessiz bir notla
-// yerinde söylenir, kullanıcı şifresini boşuna yazmaz.
+// Hesap: header'daki kullanıcı adına tıklayınca açılır. Görünen ad değişir; şifre değiştirme formu
+// hazırdır ama sunucuda ucu henüz yok (gönderince durum söylenir). Ucu olmayan diğer işlemler (e-posta,
+// hesabı silme) form göstermez: durum sessiz bir notla yerinde söylenir.
 const ACCOUNT_COPY = {
   title: 'Hesap ayarları',
-  lead: 'Görünen adını buradan değiştirebilir, verilerini indirebilirsin.',
+  lead: 'Görünen adını ve şifreni buradan değiştirebilir, verilerini indirebilirsin.',
 }
 
 export default function AccountPage({ user, onUserChange, modePref, onModeChange, onLogout }) {
@@ -30,7 +30,6 @@ export default function AccountPage({ user, onUserChange, modePref, onModeChange
 }
 
 // Görünüm ve oturum: telefonda üst menüde yer olmadığı için koyu mod ve çıkış burada da durur.
-// Sistem: cihazın açık / koyu ayarını izler.
 function SessionCard({ modePref, onModeChange, onLogout }) {
   return (
     <section className="site-card account__card" aria-labelledby="oturumBaslik">
@@ -38,7 +37,6 @@ function SessionCard({ modePref, onModeChange, onLogout }) {
       <div className="account__mode">
         <p className="account__mode-label">Tema</p>
         <ModeChoice pref={modePref} onChange={onModeChange} />
-        <p className="site-muted account__mode-hint">Sistem, cihazının açık ya da koyu ayarını izler.</p>
       </div>
       <div className="site-actions">
         <button type="button" className="site-btn account__logout" onClick={onLogout}>
@@ -141,16 +139,63 @@ function ProfileCard({ user, onUserChange }) {
   )
 }
 
-// Giriş bilgileri: e-posta okunur; değiştirme ve şifre ucu sunucuda henüz yok, form gösterilmez.
+// Giriş bilgileri: e-posta okunur (değiştirme ucu yok); altında şifre değiştirme formu.
+// Şifre değiştirme ucu sunucuda henüz yok (contracts/openapi.yaml): form doğrular, gönderince durumu
+// söyler ve şifre alanlarını temizler (yazılan şifre ekranda kalmaz). Uç gelince submit içinde istek atılır.
 const LOGIN_COPY = {
   title: 'Giriş bilgileri',
   email: 'E-posta',
-  password: 'Şifre',
-  passwordValue: 'Giriş yaparken kullandığın şifre',
-  notYet: 'E-postanı ya da şifreni değiştirmek henüz mümkün değil.',
+  emailNotYet: 'E-postanı değiştirmek henüz mümkün değil.',
+  passwordTitle: 'Şifreyi değiştir',
+  current: 'Mevcut şifre',
+  next: 'Yeni şifre',
+  next2: 'Yeni şifre tekrar',
+  currentEmpty: 'Mevcut şifreni yaz.',
+  same: 'Yeni şifre mevcut şifrenden farklı olmalı.',
+  mismatch: 'Şifreler aynı değil.',
+  submit: 'Şifreyi değiştir',
+  pending: 'Şifre değiştirme henüz açık değil; şifren değişmedi. Bu özellik açılınca buradan değiştirebileceksin.',
+}
+
+const PASSWORD_ORDER = ['current', 'next', 'next2']
+const EMPTY_PASSWORDS = { current: '', next: '', next2: '' }
+
+function validatePasswords({ current, next, next2 }) {
+  const errors = {}
+  if (!current) errors.current = LOGIN_COPY.currentEmpty
+  const weak = passwordProblem(next)
+  if (weak) errors.next = weak
+  else if (current && next === current) errors.next = LOGIN_COPY.same
+  if (next2 !== next) errors.next2 = LOGIN_COPY.mismatch
+  return errors
 }
 
 function LoginCard({ user }) {
+  const f = useForm(EMPTY_PASSWORDS)
+  const [pending, setPending] = useState(false)
+  const filled = f.form.current && f.form.next && f.form.next2
+  const set = (key) => (e) => {
+    f.set(key)(e)
+    setPending(false)
+  }
+
+  const submit = (e) => {
+    e.preventDefault()
+    const errors = validatePasswords(f.form)
+    const first = PASSWORD_ORDER.find((k) => errors[k])
+    if (first) {
+      f.setErrors(errors)
+      setPending(false)
+      document.getElementById(`acc-pass-${first}`)?.focus()
+      return
+    }
+    // TODO(şifre değiştirme): sunucuda uç açılınca isteği burada at (mevcut + yeni şifre); başarıda
+    // "Şifren değişti." (Saved), yanlış mevcut şifrede errors.current.
+    f.setForm(EMPTY_PASSWORDS)
+    f.setErrors({})
+    setPending(true)
+  }
+
   return (
     <section className="site-card account__card" aria-labelledby="girisBaslik">
       <h2 id="girisBaslik">{LOGIN_COPY.title}</h2>
@@ -160,9 +205,53 @@ function LoginCard({ user }) {
           <dd>{user.email}</dd>
         </div>
       </dl>
-      <div className="empty-note">
-        <p>{LOGIN_COPY.notYet}</p>
-      </div>
+      <p className="site-muted account__note">{LOGIN_COPY.emailNotYet}</p>
+
+      <form className="auth__form account__password" onSubmit={submit} noValidate aria-labelledby="sifreBaslik">
+        <h3 id="sifreBaslik">{LOGIN_COPY.passwordTitle}</h3>
+        {/* parola yöneticisi hangi hesabın şifresi olduğunu bilsin */}
+        <input type="text" name="username" autoComplete="username" value={user.email} readOnly hidden />
+        <Field id="acc-pass-current" label={LOGIN_COPY.current} error={f.errors.current}>
+          <PasswordInput
+            id="acc-pass-current"
+            value={f.form.current}
+            onChange={set('current')}
+            autoComplete="current-password"
+            invalid={!!f.errors.current}
+            describedBy={f.errors.current ? 'acc-pass-current-err' : undefined}
+          />
+        </Field>
+        <Field id="acc-pass-next" label={LOGIN_COPY.next} error={f.errors.next}>
+          <PasswordInput
+            id="acc-pass-next"
+            value={f.form.next}
+            onChange={set('next')}
+            autoComplete="new-password"
+            placeholder="En az 8 karakter"
+            invalid={!!f.errors.next}
+            describedBy={f.errors.next ? 'acc-pass-next-err' : undefined}
+          />
+          <PasswordRules value={f.form.next} />
+        </Field>
+        <Field id="acc-pass-next2" label={LOGIN_COPY.next2} error={f.errors.next2}>
+          <PasswordInput
+            id="acc-pass-next2"
+            value={f.form.next2}
+            onChange={set('next2')}
+            autoComplete="new-password"
+            invalid={!!f.errors.next2}
+            describedBy={f.errors.next2 ? 'acc-pass-next2-err' : undefined}
+          />
+        </Field>
+        <p className="form-note form-note--inline" role="status" hidden={!pending}>
+          {pending && LOGIN_COPY.pending}
+        </p>
+        <div className="account__actions">
+          <button type="submit" className="site-btn site-btn--primary" disabled={!filled}>
+            {LOGIN_COPY.submit}
+          </button>
+        </div>
+      </form>
     </section>
   )
 }

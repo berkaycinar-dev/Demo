@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SIGNED_OUT_EVENT, errorText } from './api'
 import { currentUser, logout } from './auth'
 import AccountPage from './AccountPage'
-import { LoginPage, RegisterPage } from './AuthPages'
+import { ForgotPasswordPage, LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
 import Icon from './AvatarIcons'
 import { loadAvatar, saveAvatar } from './avatarStore'
@@ -19,6 +19,7 @@ import SoloRoomPage from './SoloRoomPage'
 import useColorMode from './useColorMode'
 import useDaypart from './useDaypart'
 import usePomodoro from './usePomodoro'
+import useStopwatch from './useStopwatch'
 import './theme.css'
 import './site.css'
 import './pages.css'
@@ -43,7 +44,7 @@ const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'olustur', 'oda', 'hesap']
 const NAV_OF = { olustur: 'lobi' }
 // Eski adresler: Odaya katıl sayfası Lobi'ye taşındı.
 const MOVED = { katil: 'lobi' }
-const GUEST_PAGES = new Set(['giris', 'kayit'])
+const GUEST_PAGES = new Set(['giris', 'kayit', 'sifremi-unuttum'])
 // Oturum olsun olmasın herkesin açabildiği sayfalar.
 const PUBLIC_PAGES = new Set(['anasayfa', 'kosullar', 'gizlilik'])
 
@@ -122,6 +123,18 @@ export default function Site() {
   const { pref: modePref, isDark, setPref: setModePref } = useColorMode()
   useDaypart()
   const timer = usePomodoro()
+  // Odam'daki kronometre: pomodoro gibi sayfadan bağımsız sayar; her tam dakika bugünkü odağa eklenir.
+  // İkisi aynı anda çalışmaz: kronometre başlarken pomodoro duraklar, pomodoro başlarken kronometre.
+  const stopwatch = useStopwatch({
+    onMinutes: timer.addFocus,
+    onStart: () => timer.running && timer.toggle(),
+  })
+  const { running: stopwatchRunning, pause: pauseStopwatch } = stopwatch
+  useEffect(() => {
+    if (timer.running && stopwatchRunning) pauseStopwatch()
+    // yalnızca pomodoro başlayınca bakılır; kronometrenin başlaması onStart'ta pomodoroyu durdurur
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timer.running])
   const page = resolvePage(requested, user)
   // Eski kayıtta avatar hâlâ varsayılan adı ("Sen") taşıyorsa sayfalarda hesabın görünen adı görünür:
   // Sayfam, Avatarım ve odalarda aynı ad.
@@ -295,7 +308,7 @@ export default function Site() {
   }
 
   const roomPage = page === 'odam' || (page === 'oda' && current)
-  const baseClass = roomPage ? 'site-stage-main' : page === 'anasayfa' ? 'site-landing-main' : page === 'giris' || page === 'kayit' ? 'site-main site-main--auth' : 'site-main'
+  const baseClass = roomPage ? 'site-stage-main' : page === 'anasayfa' ? 'site-landing-main' : GUEST_PAGES.has(page) ? 'site-main site-main--auth' : 'site-main'
   const mainClass = navTarget ? `${baseClass} site-enter` : baseClass
   // Odaya bir gezinmeyle gelindiyse varış anı oynar (yenilemede oynamaz).
   const arriving = navTarget === page
@@ -335,8 +348,9 @@ export default function Site() {
         {page === 'anasayfa' && <LandingPage user={user} avatar={myAvatar} rooms={rooms} onGo={go} onEnter={enter} />}
         {page === 'giris' && <LoginPage onDone={signedIn} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={signedIn} onGo={go} />}
+        {page === 'sifremi-unuttum' && <ForgotPasswordPage onGo={go} />}
         {page === 'sayfam' && <HomePage user={user} avatar={myAvatar} timer={timer} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}
-        {page === 'odam' && <SoloRoomPage user={user} avatar={myAvatar} timer={timer} focusMode={focusMode} onFocusModeChange={setFocusMode} arriving={arriving} />}
+        {page === 'odam' && <SoloRoomPage user={user} avatar={myAvatar} timer={timer} stopwatch={stopwatch} focusMode={focusMode} onFocusModeChange={setFocusMode} arriving={arriving} />}
         {page === 'oda' && (
           <MyRoomPage
             room={current}

@@ -3,8 +3,6 @@
 // Backend devreye girince "Verileri nerede saklıyoruz" bölümleri güncellenmeli.
 // NOT: Yayından önce hukuki inceleme gerekir; aşağıdaki boş sabitler doldurulmalı.
 
-export const LEGAL_UPDATED = '5 Kasım 2026'
-
 // TODO(iletişim): gerçek iletişim adresi ve veri sorumlusu gelince bu sabitleri doldur. Uydurulmaz;
 // kişisel e-posta kullanılmaz. Boşken ilgili satır sayfada hiç gösterilmez (yer tutucu yayına
 // sızmaz). Yayına çıkmadan önce doldurulmalı.

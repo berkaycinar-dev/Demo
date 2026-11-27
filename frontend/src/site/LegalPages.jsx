@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { LEGAL_DOCS, LEGAL_UPDATED } from './legalText'
+import { LEGAL_DOCS } from './legalText'
 import { revealEl } from './scroll'
 
 // İçindekiler (yalnızca ayrı sayfada): bağlantı değil düğme, çünkü adres çubuğundaki # sayfa yönlendirmesi
@@ -17,7 +17,6 @@ function LegalBody({ doc, headingId, toc = false }) {
     <>
       <div className="legal__head">
         <h1 id={headingId}>{doc.title}</h1>
-        <p className="legal__updated">Son güncelleme: {LEGAL_UPDATED}</p>
         <p className="legal__intro">{doc.intro}</p>
       </div>
       {toc && (
