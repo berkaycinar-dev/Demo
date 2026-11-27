@@ -45,3 +45,9 @@ export function quoteForVisit() {
   visitQuote = i
   return i
 }
+
+/** Günün sözü (Sayfam): gün boyunca aynı kalır, ertesi gün sıradakine geçer. Yerel takvim gününe göre. */
+export function quoteForDay(d = new Date()) {
+  const dayNumber = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000)
+  return dayNumber % QUOTES.length
+}

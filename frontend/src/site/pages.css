@@ -655,14 +655,16 @@
 
 /* ---------- Sayfam ---------- */
 
+/* solda avatar ve söz, sağda süreler ve haftalık grafik; odalar altta tam genişlikte */
 .home {
   display: grid;
-  /* avatar sütunu ekranla akar: 900 px'te 280, geniş ekranda 400 */
-  grid-template-columns: minmax(0, 1fr) clamp(280px, 30vw, 400px);
+  /* yan sütun ekranla akar: 900 px'te 280, geniş ekranda 360 */
+  grid-template-columns: clamp(280px, 28vw, 360px) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
 }
 
+.home__side,
 .home__main {
   display: flex;
   flex-direction: column;
@@ -670,65 +672,228 @@
   min-width: 0;
 }
 
-.home__hero {
+.home__me {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: var(--pad-card-lg);
+  overflow: hidden;
+  padding: 0;
+}
+
+.home__avatar-stage {
+  overflow: hidden;
+  height: clamp(220px, 22vw, 280px);
+}
+
+.home__me-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px var(--pad-card) var(--pad-card);
 }
 
 .home__date {
+  display: block;
+  font-size: var(--text-meta);
   text-transform: capitalize;
 }
 
-.site .home__hero h1 {
+.site .home__me h1 {
   margin: 0;
-  font-size: var(--pixel-2xl);
-}
-
-.home__lead {
-  max-width: 34em;
-  text-wrap: pretty;
-  margin: 0 !important;
-  color: var(--text-2);
-  font-size: var(--text-lead);
-  line-height: 1.6;
-}
-
-/* tek birincil eylem ve yanında sayacın durumu (eylem değil, bilgi) */
-.home__go {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 20px;
+  font-size: var(--pixel-xl);
 }
 
 .home__timer {
-  color: var(--text-2);
+  color: var(--muted);
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
-  font-variant-numeric: tabular-nums;
-  font-size: var(--text-body);
+  font-size: var(--text-label);
+  text-align: center;
 }
 
-.home__today {
+/* günün sözü: kâğıt (koyu modda ahşap) yüzey, altın etiket */
+.home__quote {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
+  margin: 0;
+  background: var(--surface-2);
+}
+
+.home__quote-label {
+  color: var(--badge);
+  font-size: var(--text-meta);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.home__quote blockquote {
+  margin: 0;
+  font-size: var(--text-title-s);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+.home__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.home__stat {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.home__stat-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .stat__value {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
-  font-variant-numeric: tabular-nums;
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 700;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
-.home__rooms .section-head {
-  margin-bottom: 10px;
+/* henüz sayılacak blok yokken: büyük "0 dk" yerine kısa bir cümle */
+.stat__value--zero {
+  font-size: var(--text-lead);
+  letter-spacing: 0;
+}
+
+.home__trend--up {
+  color: var(--success);
+  font-size: var(--text-label);
+}
+
+.home__ring {
+  flex: none;
+}
+
+.home__ring circle {
+  fill: none;
+  stroke-width: 12;
+}
+
+.home__ring-track {
+  stroke: var(--line);
+}
+
+.home__ring-fill {
+  stroke: var(--timer);
+  stroke-linecap: round;
+}
+
+.home__ring text {
+  fill: var(--text);
+  font-family: var(--font-numeric);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* haftalık grafik: gün başına bir sütun; yükseklik günün dakikası / (en uzun gün ya da hedef) */
+.home__chart {
+  padding: var(--pad-card-lg);
+}
+
+.site .home__chart h2,
+.site .home__rooms h2 {
+  margin: 0;
+  font-size: var(--text-title-s);
+  font-weight: 600;
+}
+
+.home__bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: clamp(6px, 2vw, 18px);
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home__bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.home__bar-value {
+  min-height: 1.4em;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-meta);
+  white-space: nowrap;
+}
+
+.home__bar-short {
+  display: none;
+}
+
+.home__bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 220px;
+}
+
+/* boş gün: alçak batık şerit; dolu gün: kil tonu; bugün: terakota dolgu */
+.home__bar-fill {
+  width: 100%;
+  max-width: 56px;
+  height: 8px;
+  border-radius: 10px;
+  background: var(--surface-sunken);
+}
+
+.home__bar-fill[style] {
+  background: color-mix(in srgb, var(--primary) 32%, var(--surface));
+}
+
+.home__bar[data-today] {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.home__bar[data-today] .home__bar-fill[style] {
+  background: var(--primary-fill);
+  box-shadow: 0 0 24px -6px color-mix(in srgb, var(--primary) 60%, transparent);
+}
+
+.home__bar-day {
+  font-size: var(--text-label);
+}
+
+@media (max-width: 560px) {
+  .home__bar-long {
+    display: none;
+  }
+
+  .home__bar-short {
+    display: inline;
+  }
+
+  .home__bar-track {
+    height: 160px;
+  }
+}
+
+/* odalar: görsel, tema, ad, kapasite · üye ve her kartta kendi "Gir" düğmesi */
+.home__rooms {
+  grid-column: 1 / -1;
+  padding: var(--pad-card-lg);
 }
 
 .home__rooms p {
@@ -736,81 +901,10 @@
   text-wrap: pretty;
 }
 
-/* Sayfam'daki odalar: görsel, ad, tema · kişi, odaya girince görülecek yüzler ve Gir.
-   Satırın tamamı tek düğme; "Gir" çerçevesiz işaret, böylece "Odama gir" sayfanın tek güçlü eylemi kalır. */
-.site .home__rooms-label {
-  margin: 14px 0 8px;
-  color: var(--muted);
-  font-size: var(--text-label);
-  font-weight: 600;
-}
-
-.home__room-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.home__room {
-  min-width: 0;
-  padding: 4px 0;
-  border-top: 1px solid var(--line);
-}
-
-.home__room-go {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: calc(100% + 20px);
-  min-width: 0;
-  margin-inline: -10px;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color var(--dur-fast) var(--ease-standard);
-}
-
-.home__room-go:hover {
-  background: var(--surface-2);
-}
-
-.home__room-go:active .home__room-cue {
-  transform: var(--press-shrink);
-}
-
-.home__room-cue {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
+.home__rooms .home__first {
+  max-width: 40em;
+  margin-top: 8px;
   color: var(--text-2);
-  font-size: var(--text-label);
-  font-weight: 600;
-  transition: color var(--dur-fast) var(--ease-standard), transform var(--dur-press) var(--ease-out);
-}
-
-.home__room-go:hover .home__room-cue {
-  color: var(--text);
-}
-
-.home__room-cue svg {
-  transition: transform var(--dur-fast) var(--ease-out);
-}
-
-.home__room-go:hover .home__room-cue svg {
-  transform: translateX(2px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home__room-go:hover .home__room-cue svg {
-    transform: none;
-  }
 }
 
 .home__lobby {
@@ -820,14 +914,60 @@
   margin-right: -10px;
 }
 
-.home__room-img {
-  flex: none;
-  width: 112px;
+.home__room-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.home__room-img img {
+.home__room-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.home__room-shot {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  height: 130px;
+}
+
+.home__room-shot .home__room-img {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+.home__room-shot .home__room-img img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home__room-theme {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  padding: 3px 8px;
+  border-radius: var(--radius-block);
+  background: rgba(20, 16, 12, 0.66);
+  color: #fff8f1;
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+.home__room-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 16px;
 }
 
 .home__room-text {
@@ -840,63 +980,36 @@
   font-size: var(--text-label);
 }
 
-/* uzun oda adı iki satıra kadar sarar, sonra "…" (tam ad title'da) */
+/* uzun oda adı tek satır, sonra "…" (tam ad title'da) */
 .home__room-text strong {
-  display: -webkit-box;
   overflow: hidden;
   color: var(--text);
   font-size: var(--text-body);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (max-width: 560px) {
-  .home__room-img {
-    width: 80px;
-  }
-}
-
-.home__rooms .home__first {
-  max-width: 40em;
-  margin-bottom: 8px;
-  color: var(--text-2);
-}
-
-.home__avatar {
-  position: sticky;
-  top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-}
-
-.home__avatar-stage {
-  overflow: hidden;
-  height: clamp(300px, 28vw, 380px);
-  border-radius: var(--radius-control-lg);
-}
-
-.home__avatar-foot {
-  display: flex;
-  flex-wrap: wrap;
+.home__room-enter {
+  display: inline-flex;
+  flex: none;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 4px 4px;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
 }
 
-.home__avatar-foot > div {
-  display: flex;
-  flex-direction: column;
+.home__room-enter svg {
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 
-.home__avatar-name {
-  font-family: var(--font-display);
-  font-size: var(--text-title-s);
-  font-weight: 700;
+.home__room-enter:hover svg {
+  transform: translateX(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__room-enter:hover svg {
+    transform: none;
+  }
 }
 
 /* ---------- oda sahnesi (Odam ve çok kişili oda) ---------- */
@@ -2824,15 +2937,6 @@
   .home {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  /* dar ekranda "Odama gir" ilk ekranda kalır; avatar ardından gelir */
-  .home__avatar {
-    position: static;
-  }
-
-  .home__avatar-stage {
-    height: 300px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -3255,10 +3359,6 @@
 
   .auth__row {
     grid-template-columns: 1fr;
-  }
-
-  .site .home__hero h1 {
-    font-size: var(--pixel-xl);
   }
 
   .user-chip__name {
@@ -3772,14 +3872,6 @@
   text-wrap: pretty;
   color: var(--muted);
   font-size: var(--text-label);
-}
-
-/* Sayfam: bugün sayılan blok yokken tek satır */
-.home__zero {
-  margin: 14px 0 0 !important;
-  color: var(--muted);
-  font-size: var(--text-label);
-  text-wrap: pretty;
 }
 
 /* açık / koyu geçişi: renkler kısa sürede döner */
