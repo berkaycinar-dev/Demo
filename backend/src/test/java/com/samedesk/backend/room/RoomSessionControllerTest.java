@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +20,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -108,9 +110,11 @@ class RoomSessionControllerTest {
     void activeReturnsPeopleInside() throws Exception {
         when(sessionService.active(ME, ROOM)).thenReturn(List.of(
                 new ActiveMemberResponse(ME, "ada_l", RoomRole.MEMBER, Instant.parse("2026-11-09T10:00:00Z"),
-                        "{\"body\":\"female\",\"bangs\":true}"),
+                        "{\"body\":\"female\",\"bangs\":true}", 0, PresenceStatus.BREAK, "sofa", 1,
+                        Instant.parse("2026-11-09T10:05:00Z")),
                 new ActiveMemberResponse(UUID.randomUUID(), "bob_b", RoomRole.MEMBER,
-                        Instant.parse("2026-11-09T10:01:00Z"), null)));
+                        Instant.parse("2026-11-09T10:01:00Z"), null, 1, PresenceStatus.FOCUS, null, null,
+                        Instant.parse("2026-11-09T10:01:00Z"))));
 
         mockMvc.perform(get(BASE + "/active"))
                 .andExpect(status().isOk())
@@ -121,6 +125,52 @@ class RoomSessionControllerTest {
                 // the avatar is a JSON object, not a string holding JSON
                 .andExpect(jsonPath("$[0].avatar.body").value("female"))
                 .andExpect(jsonPath("$[0].avatar.bangs").value(true))
-                .andExpect(jsonPath("$[1].avatar").isEmpty());
+                .andExpect(jsonPath("$[0].status").value("BREAK"))
+                .andExpect(jsonPath("$[0].spot").value("sofa"))
+                .andExpect(jsonPath("$[0].slot").value(1))
+                .andExpect(jsonPath("$[0].seat").value(0))
+                .andExpect(jsonPath("$[0].statusSince").exists())
+                .andExpect(jsonPath("$[1].avatar").isEmpty())
+                .andExpect(jsonPath("$[1].status").value("FOCUS"));
+    }
+
+    @Test
+    void changeStatusReturnsTheNewStatus() throws Exception {
+        ChangeStatusRequest body = new ChangeStatusRequest(PresenceStatus.BREAK, "sofa", 2);
+        when(sessionService.changeStatus(ME, ROOM, body)).thenReturn(
+                new SessionStatusResponse(PresenceStatus.BREAK, "sofa", 1, Instant.parse("2026-11-09T10:05:00Z")));
+
+        mockMvc.perform(put(BASE + "/current/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BREAK\",\"spot\":\"sofa\",\"spotCapacity\":2}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BREAK"))
+                .andExpect(jsonPath("$.spot").value("sofa"));
+        verify(sessionService).changeStatus(ME, ROOM, body);
+    }
+
+    @Test
+    void changeStatusToAFullSpotReturns409() throws Exception {
+        when(sessionService.changeStatus(ME, ROOM, new ChangeStatusRequest(PresenceStatus.BREAK, "sofa", 1)))
+                .thenThrow(new BusinessRuleException("SPOT_TAKEN", "This break spot is full."));
+
+        mockMvc.perform(put(BASE + "/current/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BREAK\",\"spot\":\"sofa\",\"spotCapacity\":1}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("SPOT_TAKEN"));
+    }
+
+    @Test
+    void changeStatusRejectsUnknownStatusAndOddSpotIds() throws Exception {
+        mockMvc.perform(put(BASE + "/current/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BREAK\",\"spot\":\"so fa!\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(put(BASE + "/current/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"spot\":\"sofa\"}"))
+                .andExpect(status().isBadRequest());
     }
 }

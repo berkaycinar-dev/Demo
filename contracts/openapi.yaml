@@ -588,6 +588,64 @@ paths:
                 detail: No open session in this room.
                 code: SESSION_NOT_FOUND
 
+  /api/v1/rooms/{roomId}/sessions/current/status:
+    put:
+      tags: [rooms]
+      operationId: changeSessionStatus
+      summary: Tell the room what you are doing (and where you are on a break)
+      description: |
+        Sets the caller's status in the room: `IDLE` (at the desk, timer stopped), `FOCUS`, `BREAK` or
+        `AWAY`. On `BREAK` the client sends the break spot it walked to (`spot`, the room furniture id)
+        and how many people fit there (`spotCapacity`, default 2; the frontend knows the room layout),
+        and may say which place it would like (`slot`). The server gives the place: the asked one if free,
+        otherwise the lowest free one, and returns it; the client moves the avatar there. So every screen
+        shows each person at the same place. Everyone in the room sees it in `ActiveMemberResponse`
+        (REST and presence snapshots).
+
+        **Full spot.** If the other people on a break at that spot already fill it, the answer is 409
+        `SPOT_TAKEN` and nothing changes; the client picks another spot and sends again. The room row is
+        locked while counting, so when two people pick the last place at the same moment only the first
+        gets it. A spot is kept only on `BREAK` (any other status clears it). `statusSince` moves only
+        when the status changes. Counts as a heartbeat.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeStatusRequest"
+      responses:
+        "200":
+          description: Status saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStatusResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          description: The room does not exist or the caller has no open session in it (`code` is ROOM_NOT_FOUND or SESSION_NOT_FOUND).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: The break spot is full (`code` is SPOT_TAKEN).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: This break spot is full. Pick another one.
+                code: SPOT_TAKEN
+
   /api/v1/rooms/{roomId}/sessions/current:
     delete:
       tags: [rooms]
@@ -1086,6 +1144,72 @@ components:
             - $ref: "#/components/schemas/Avatar"
           nullable: true
           description: This person's saved avatar, or null if they never saved one.
+        seat:
+          type: integer
+          nullable: true
+          description: |
+            Desk seat (0-based), given on enter (lowest free seat) and kept for the whole visit, so every
+            screen shows the person at the same desk. Null only for sessions opened before seats existed.
+        status:
+          $ref: "#/components/schemas/PresenceStatus"
+        spot:
+          type: string
+          nullable: true
+          description: Break spot id while on BREAK, otherwise null.
+        slot:
+          type: integer
+          nullable: true
+          description: Which place of the break spot (0-based) the server gave; set together with spot.
+        statusSince:
+          type: string
+          format: date-time
+          description: When the current status started.
+
+    PresenceStatus:
+      type: string
+      enum: [IDLE, FOCUS, BREAK, AWAY]
+      description: "What a person inside a room is doing. IDLE: at the desk, timer stopped."
+
+    ChangeStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: "#/components/schemas/PresenceStatus"
+        spot:
+          type: string
+          nullable: true
+          pattern: "^[A-Za-z0-9_-]{1,40}$"
+          description: Break spot id (room furniture, e.g. sofa or sofa-2). Used only with BREAK.
+        spotCapacity:
+          type: integer
+          minimum: 1
+          maximum: 8
+          nullable: true
+          description: How many people fit at the spot. Default 2.
+        slot:
+          type: integer
+          minimum: 0
+          maximum: 7
+          nullable: true
+          description: The place the client would like (0-based). The server gives it if free, otherwise the lowest free place.
+
+    SessionStatusResponse:
+      type: object
+      required: [status, statusSince]
+      properties:
+        status:
+          $ref: "#/components/schemas/PresenceStatus"
+        spot:
+          type: string
+          nullable: true
+        slot:
+          type: integer
+          nullable: true
+          description: The place of the spot the server gave (may differ from the one asked for). Move the avatar there.
+        statusSince:
+          type: string
+          format: date-time
 
     TimerPhase:
       type: string

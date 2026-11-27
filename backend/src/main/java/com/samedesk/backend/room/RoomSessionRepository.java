@@ -15,6 +15,9 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
 
     boolean existsByRoomIdAndUserIdAndEndedAtIsNull(UUID roomId, UUID userId);
 
+    /** The user's most recent finished visit to the room (its seat is offered again on the next enter). */
+    Optional<RoomSession> findFirstByRoomIdAndUserIdAndEndedAtIsNotNullOrderByStartedAtDesc(UUID roomId, UUID userId);
+
     /** Rooms where the user is inside right now (open sessions). Used to decide where a user's events go. */
     @Query("select s.roomId from RoomSession s where s.userId = :userId and s.endedAt is null")
     List<UUID> findOpenRoomIds(@Param("userId") UUID userId);
@@ -33,7 +36,8 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
     /** Everyone with an open session in the room, longest-inside first. */
     @Query("""
             select s.userId as userId, u.username as username, m.role as role, s.startedAt as startedAt,
-                   u.avatar as avatar
+                   u.avatar as avatar, s.seat as seat, s.status as status, s.breakSpot as breakSpot,
+                   s.breakSlot as breakSlot, s.statusSince as statusSince
             from RoomSession s
             join User u on u.id = s.userId
             join RoomMember m on m.roomId = s.roomId and m.userId = s.userId
@@ -41,6 +45,18 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
             order by s.startedAt asc
             """)
     List<ActiveSession> findActive(@Param("roomId") UUID roomId);
+
+    /** Desk seats held by the people inside the room now (open sessions only). */
+    @Query("select s.seat from RoomSession s where s.roomId = :roomId and s.endedAt is null and s.seat is not null")
+    List<Integer> findSeatsTaken(@Param("roomId") UUID roomId);
+
+    /** Places of this break spot that other people in the room hold now (open sessions only). */
+    @Query("""
+            select s.breakSlot from RoomSession s
+            where s.roomId = :roomId and s.endedAt is null and s.userId <> :userId and s.breakSpot = :spot
+            """)
+    List<Integer> findSlotsTakenByOthers(@Param("roomId") UUID roomId, @Param("userId") UUID userId,
+                                         @Param("spot") String spot);
 
     /**
      * Closes every open session whose last heartbeat is older than the cutoff.
@@ -67,5 +83,18 @@ public interface RoomSessionRepository extends JpaRepository<RoomSession, UUID> 
 
         /** Stored avatar JSON, or null. */
         String getAvatar();
+
+        /** Desk seat (0-based); null only for sessions older than V9. */
+        Integer getSeat();
+
+        PresenceStatus getStatus();
+
+        /** Break spot id while on BREAK, otherwise null. */
+        String getBreakSpot();
+
+        /** Place of the break spot (0-based) while on BREAK, otherwise null. */
+        Integer getBreakSlot();
+
+        Instant getStatusSince();
     }
 }
