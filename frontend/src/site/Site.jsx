@@ -20,6 +20,7 @@ import useColorMode from './useColorMode'
 import useDaypart from './useDaypart'
 import usePomodoro from './usePomodoro'
 import useStopwatch from './useStopwatch'
+import { useGoals } from './goals'
 import './theme.css'
 import './site.css'
 import './pages.css'
@@ -123,6 +124,8 @@ export default function Site() {
   const { pref: modePref, isDark, setPref: setModePref } = useColorMode()
   useDaypart()
   const timer = usePomodoro()
+  // günlük / haftalık odak hedefi: Odam'da seçilir, Sayfam okur
+  const [goals, setGoals] = useGoals(user)
   // Odam'daki kronometre: pomodoro gibi sayfadan bağımsız sayar; her tam dakika bugünkü odağa eklenir.
   // İkisi aynı anda çalışmaz: kronometre başlarken pomodoro duraklar, pomodoro başlarken kronometre.
   const stopwatch = useStopwatch({
@@ -349,8 +352,8 @@ export default function Site() {
         {page === 'giris' && <LoginPage onDone={signedIn} onGo={go} />}
         {page === 'kayit' && <RegisterPage onDone={signedIn} onGo={go} />}
         {page === 'sifremi-unuttum' && <ForgotPasswordPage onGo={go} />}
-        {page === 'sayfam' && <HomePage user={user} avatar={myAvatar} timer={timer} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}
-        {page === 'odam' && <SoloRoomPage user={user} avatar={myAvatar} timer={timer} stopwatch={stopwatch} focusMode={focusMode} onFocusModeChange={setFocusMode} arriving={arriving} />}
+        {page === 'sayfam' && <HomePage user={user} avatar={myAvatar} timer={timer} goals={goals} rooms={rooms} joined={joined} onGo={go} onEnter={enter} />}
+        {page === 'odam' && <SoloRoomPage user={user} avatar={myAvatar} timer={timer} stopwatch={stopwatch} goals={goals} onGoalsChange={setGoals} focusMode={focusMode} onFocusModeChange={setFocusMode} arriving={arriving} />}
         {page === 'oda' && (
           <MyRoomPage
             room={current}

@@ -8,6 +8,8 @@ import RoomStage, { FocusModeButton, FocusModeNote, ShortcutHelp } from './RoomS
 import TimerCard from './TimerCard'
 import StopwatchCard from './StopwatchCard'
 import { formatElapsed } from './useStopwatch'
+import { GoalDialog, GoalSummary } from './GoalPanel'
+import { weekOf } from './weekStats'
 import { swatchOf } from './themeLook'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
@@ -42,7 +44,9 @@ const StopwatchIcon = () => (
   </svg>
 )
 
-export default function SoloRoomPage({ user, avatar, timer, stopwatch, focusMode, onFocusModeChange, arriving }) {
+export default function SoloRoomPage({ user, avatar, timer, stopwatch, goals, onGoalsChange, focusMode, onFocusModeChange, arriving }) {
+  const [goalsOpen, setGoalsOpen] = useState(false)
+  const weekMinutes = weekOf(timer.history ?? {}).total
   const [settings, setSettings] = useState(() => loadMyRoom(user))
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { label, Room } = THEMES[settings.theme]
@@ -140,6 +144,8 @@ export default function SoloRoomPage({ user, avatar, timer, stopwatch, focusMode
           </p>
         </div>
         {timerCard}
+        {/* hedefler: bugün ve bu hafta; düzenleme penceresi açılır (Sayfam aynı hedefleri okur) */}
+        <GoalSummary today={timer.stats.minutes} week={weekMinutes} goals={goals} onEdit={() => setGoalsOpen(true)} />
         <div className="desk__foot">
           <div className="desk__foot-row">
             <FocusModeButton onClick={() => onFocusModeChange(true)} hints={hints} />
@@ -217,6 +223,7 @@ export default function SoloRoomPage({ user, avatar, timer, stopwatch, focusMode
           </fieldset>
         </div>
       </section>
+      <GoalDialog open={goalsOpen} goals={goals} onSave={onGoalsChange} onClose={() => setGoalsOpen(false)} />
     </>
   )
 

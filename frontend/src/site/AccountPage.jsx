@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { exportAccountData, passwordProblem, updateProfile } from './auth'
+import { passwordProblem, updateProfile } from './auth'
 import { Field, PasswordInput, PasswordRules } from './AuthPages'
 import { ModeChoice } from './SiteChrome'
 
 // Hesap: header'daki kullanıcı adına tıklayınca açılır. Görünen ad değişir; şifre değiştirme formu
-// hazırdır ama sunucuda ucu henüz yok (gönderince durum söylenir). Ucu olmayan diğer işlemler (e-posta,
-// hesabı silme) form göstermez: durum sessiz bir notla yerinde söylenir.
+// hazırdır ama sunucuda ucu henüz yok (gönderince durum söylenir). E-posta değiştirme ucu da yok: form
+// gösterilmez, durum sessiz bir notla yerinde söylenir.
 const ACCOUNT_COPY = {
   title: 'Hesap ayarları',
-  lead: 'Görünen adını ve şifreni buradan değiştirebilir, verilerini indirebilirsin.',
+  lead: 'Görünen adını ve şifreni buradan değiştirebilirsin.',
 }
 
 export default function AccountPage({ user, onUserChange, modePref, onModeChange, onLogout }) {
@@ -19,10 +19,9 @@ export default function AccountPage({ user, onUserChange, modePref, onModeChange
         <p className="site-muted">{ACCOUNT_COPY.lead}</p>
       </div>
       <div className="account__grid">
-        {/* geniş ekranda iki sütun: Profil | Giriş bilgileri, altında Verilerin | Görünüm ve oturum */}
+        {/* geniş ekranda iki sütun: Profil | Giriş bilgileri, altında Görünüm ve oturum */}
         <ProfileCard user={user} onUserChange={onUserChange} />
         <LoginCard user={user} />
-        <DataCard user={user} />
         <SessionCard modePref={modePref} onModeChange={onModeChange} onLogout={onLogout} />
       </div>
     </div>
@@ -252,49 +251,6 @@ function LoginCard({ user }) {
           </button>
         </div>
       </form>
-    </section>
-  )
-}
-
-// Verilerin: indir ve hesabı sil. Metinler tam cümle; çeviride birleştirilmez.
-const DATA_COPY = {
-  title: 'Verilerin',
-  lead: 'Hesabın ve kayıtların yalnızca bu tarayıcıda tutuluyor. İstediğin an indirebilir ya da silebilirsin.',
-  download: 'Verilerimi indir',
-  downloaded: 'Dosya indirildi.',
-  fileName: (username) => `samedesk-${username}.json`,
-  // hesabı silme ucu sunucuda henüz yok: onay formu yerine durum
-  deleteNotYet: 'Hesabını buradan silmek henüz mümkün değil.',
-}
-
-function DataCard({ user }) {
-  const [saved, setSaved] = useState('')
-
-  const download = () => {
-    const data = exportAccountData(user.username)
-    if (!data) return
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
-    const a = document.createElement('a')
-    a.href = url
-    a.download = DATA_COPY.fileName(user.username)
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-    setSaved(DATA_COPY.downloaded)
-  }
-
-  return (
-    <section className="site-card account__card account__data" aria-labelledby="veriBaslik">
-      <h2 id="veriBaslik">{DATA_COPY.title}</h2>
-      <p className="site-muted account__lead">{DATA_COPY.lead}</p>
-      <div className="account__actions">
-        <button type="button" className="site-btn" onClick={download}>
-          {DATA_COPY.download}
-        </button>
-        <Saved text={saved} />
-      </div>
-      <div className="empty-note">
-        <p>{DATA_COPY.deleteNotYet}</p>
-      </div>
     </section>
   )
 }

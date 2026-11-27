@@ -35,7 +35,7 @@ html:has(.site-stage-main) {
   line-height: 1.5;
 }
 
-/* İki ses: sayfa başlığı (h1) piksel (Pixelify Sans, ızgara boyutu 33 px); alt başlık (h2, h3, kart ve
+/* İki ses: sayfa başlığı (h1) başlık fontu (Rubik, 33 px); alt başlık (h2, h3, kart ve
    bölüm başlığı) ile okunan ve tıklanan her şey Inter. Alt başlığı boyut, ağırlık ve sıkı harf aralığı
    ayırır. Piksel ayrıntısı aşağıda. */
 .site h1 {
@@ -2164,51 +2164,52 @@ html:has(.site-stage-main) {
 /* ==========================================================================
    Piksel yazı (bütün sayfa başlıkları) + Avatar atölyesi ve Oda oluştur: kâğıt dokusu
    Terakota vurgu ve seçim rolleri sitenin geneliyle aynı (theme.css); burada yalnızca doku eklenir.
-   Kontrollerin köşe, kenar ve boşlukları sitenin geri kalanıyla aynı; voxel hissi yalnızca
-   tipografiden gelir (Pixelify Sans, OFL 1.1, fonts/pixelify-sans/OFL.txt).
+   Kontrollerin köşe, kenar ve boşlukları sitenin geri kalanıyla aynı; voxel hissi başlık fontundan
+   gelir (Rubik, OFL 1.1, fonts/rubik/OFL.txt).
    ========================================================================== */
 
-/* Pixelify Sans: değişken font (wght 400-700), yalnızca 500 kullanılır; latin + latin-ext. */
+/* Rubik (OFL 1.1, fonts/rubik/OFL.txt): değişken font (wght 400-700); başlık rolü 500 kullanır.
+   latin + latin-ext; Türkçe harfler (ğ Ğ ş Ş İ ı) iki dosyada da tam. */
 @font-face {
-  font-family: 'Pixelify Sans';
+  font-family: Rubik;
   font-style: normal;
-  font-weight: 500;
+  font-weight: 400 700;
   font-display: swap;
-  src: url('./fonts/pixelify-sans/pixelify-sans-latin-ext.woff2') format('woff2');
+  src: url('./fonts/rubik/rubik-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
     U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
 @font-face {
-  font-family: 'Pixelify Sans';
+  font-family: Rubik;
   font-style: normal;
-  font-weight: 500;
+  font-weight: 400 700;
   font-display: swap;
-  src: url('./fonts/pixelify-sans/pixelify-sans-latin.woff2') format('woff2');
+  src: url('./fonts/rubik/rubik-latin.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* yükleme sürerken yedek: Arial, Pixelify ölçülerine eşlenmiş (genişlik ×1.15, üst 0.92 / alt 0.28 em);
-   font gelince satır yüksekliği ve satır kırılması kaymaz */
+/* yükleme sürerken yedek: Arial, Rubik ölçülerine yaklaştırılmış (genişlik ×1.04, üst 0.935 / alt 0.25 em);
+   font gelince satır yüksekliği ve satır kırılması az kayar */
 @font-face {
-  font-family: 'Pixelify Fallback';
+  font-family: 'Rubik Fallback';
   src: local('Arial'), local('Helvetica'), local('Liberation Sans');
-  size-adjust: 115%;
-  ascent-override: 80%;
-  descent-override: 24.4%;
+  size-adjust: 104%;
+  ascent-override: 89.9%;
+  descent-override: 24%;
   line-gap-override: 0%;
 }
 
-/* İki font, iki görev. Piksel (Pixelify Sans): sayfa başlığı (her sayfanın h1'i) ve bir değeri okutan kısa
-   yazı; tabela, sayaç, seçili değer. Inter: bölüm, kart ve alt sayfa başlığı; okunan ve
-   tıklanan her şey; gövde, açıklama, not, form etiketi (tabeladaki "Oda adı" dahil), karakter sayacı gibi
-   yardım metni, seçenek ve düğme yazısı.
-   Piksel ızgarası: bir font pikseli 92/1000 em. Yalnızca 11'in katlarında (22 / 33 / 44 / 55 px) bu tam
-   ekran pikseline oturur ve kenarlar keskin kalır; ara boyut (16, 28…) kenarları bulanıklaştırır,
-   kullanılmaz. 11 px okunmaz: okunması gereken piksel yazı 22 px'in altına inmez. */
+/* İki font, iki görev. Başlık sesi (Rubik; değişken adı tarihsel olarak --font-pixel): sayfa başlığı (her
+   sayfanın h1'i) ve bir değeri okutan kısa yazı; tabela, sayaç, seçili değer. Köşeleri hafif yuvarlak,
+   tıknaz harfler voxel bloklarla aynı dili konuşur ama piksel değildir, her boyutta okunur. Inter: bölüm,
+   kart ve alt sayfa başlığı; okunan ve tıklanan her şey; gövde, açıklama, not, form etiketi (tabeladaki
+   "Oda adı" dahil), karakter sayacı gibi yardım metni, seçenek ve düğme yazısı.
+   Boyut ölçeği 22 / 33 / 44 / 55 px (eski piksel ızgarasından kalan basamaklar; okunan başlık yazısı
+   22 px'in altına inmez). */
 :root {
-  --font-pixel: 'Pixelify Sans', 'Pixelify Fallback', var(--font-display);
+  --font-pixel: Rubik, 'Rubik Fallback', var(--font-display);
   --pixel-hero: 55px; /* tanıtım sayfasının ana başlığı; dar ekranda --pixel-2xl */
   --pixel-2xl: 44px; /* Sayfam karşılama başlığı */
   --pixel-xl: 33px; /* sayfa başlığı, kapı tabelası, kapasite sayacı */
