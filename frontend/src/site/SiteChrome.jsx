@@ -70,7 +70,6 @@ export function ModeToggle({ pref, onChange }) {
 const USER_COPY = {
   label: (name) => `Hesap menüsü: ${name}`,
   profile: 'Profilim',
-  avatar: 'Avatarım',
   settings: 'Ayarlar',
   help: 'Yardım / Geri bildirim',
   logout: 'Çıkış yap',
@@ -83,7 +82,6 @@ const MenuIcon = ({ d }) => (
   </svg>
 )
 const ICON_PROFILE = 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z'
-const ICON_AVATAR = 'M4 4h16v16H4zM9 9h.01M15 9h.01M9 15h6'
 const ICON_SETTINGS =
   'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'
 const ICON_HELP = 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01'
@@ -174,10 +172,6 @@ function UserMenu({ user, page, onGo, onLogout }) {
         <button type="button" className="user-menu__item" aria-current={page === 'hesap' ? 'page' : undefined} onClick={() => go('hesap')}>
           <MenuIcon d={ICON_PROFILE} />
           {USER_COPY.profile}
-        </button>
-        <button type="button" className="user-menu__item" aria-current={page === 'avatar' ? 'page' : undefined} onClick={() => go('avatar')}>
-          <MenuIcon d={ICON_AVATAR} />
-          {USER_COPY.avatar}
         </button>
         <button type="button" className="user-menu__item" aria-current={page === 'ayarlar' ? 'page' : undefined} onClick={() => go('ayarlar')}>
           <MenuIcon d={ICON_SETTINGS} />
