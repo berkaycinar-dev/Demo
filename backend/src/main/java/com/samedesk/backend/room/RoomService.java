@@ -13,6 +13,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -127,6 +128,18 @@ public class RoomService {
     }
 
     /**
+     * Joins the private room the invite code belongs to. Same rules as {@link #join}: already a member
+     * changes nothing, a full room gives ROOM_FULL. An unknown code gives ROOM_NOT_FOUND. Case and
+     * spaces are forgiven (codes are typed by hand). Public rooms have no code, so they never match.
+     */
+    @Transactional
+    public RoomResponse joinByCode(UUID userId, String inviteCode) {
+        String code = normalizeCode(inviteCode);
+        Room room = rooms.findByInviteCode(code).orElseThrow(RoomService::notFound);
+        return join(userId, room.getId(), code);
+    }
+
+    /**
      * Gives up membership. The open session (if any) ends with LEFT_ROOM and MEMBER_LEFT is published.
      * The OWNER cannot leave (409 OWNER_CANNOT_LEAVE). Leaving a room you are not in changes nothing,
      * except that a private room looks like it does not exist.
@@ -175,7 +188,12 @@ public class RoomService {
         // Constant-time compare, so response time does not leak how much of the code was right.
         return MessageDigest.isEqual(
                 expected.getBytes(StandardCharsets.UTF_8),
-                given.trim().toUpperCase().getBytes(StandardCharsets.UTF_8));
+                normalizeCode(given).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Spaces removed, upper case. Locale.ROOT: on a Turkish JVM "i" must not become "İ". */
+    static String normalizeCode(String code) {
+        return code == null ? "" : code.replaceAll("\\s+", "").toUpperCase(Locale.ROOT);
     }
 
     private static NotFoundException notFound() {

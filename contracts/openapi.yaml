@@ -444,6 +444,52 @@ paths:
                 detail: Room is full
                 code: ROOM_FULL
 
+  /api/v1/rooms/join-by-code:
+    post:
+      tags: [rooms]
+      operationId: joinRoomByCode
+      summary: Join a private room with only its invite code
+      description: |
+        For people who got an invite code but cannot see the room (a private room is hidden from
+        non-members). The server finds the room the code belongs to and joins it with the same rules as
+        `joinRoom`: already a member changes nothing (200), a full room gives 409 `ROOM_FULL`. Spaces and
+        letter case are ignored. An unknown code gives 404 `ROOM_NOT_FOUND`. Rate limited per IP
+        (default 10 per minute) to slow down guessing.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinByCodeRequest"
+      responses:
+        "200":
+          description: The caller is now a member; use the returned room id to enter it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+        "409":
+          description: Room is full (`code` is ROOM_FULL).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: 409
+                title: Business rule violated
+                detail: Room is full
+                code: ROOM_FULL
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /api/v1/rooms/{roomId}/leave:
     post:
       tags: [rooms]
@@ -756,7 +802,7 @@ components:
     RateLimited:
       description: |
         Too many requests from this IP to this endpoint (`code` is RATE_LIMITED). Wait `Retry-After`
-        seconds. Default limits per minute: login 10, register 5, refresh 30, logout 30.
+        seconds. Default limits per minute: login 10, register 5, refresh 30, logout 30, join-by-code 10.
       headers:
         Retry-After:
           description: Seconds until the limit resets
@@ -958,6 +1004,15 @@ components:
         inviteCode:
           type: string
           description: Needed only for private rooms.
+
+    JoinByCodeRequest:
+      type: object
+      required: [inviteCode]
+      properties:
+        inviteCode:
+          type: string
+          maxLength: 32
+          description: The private room's invite code (8 characters, e.g. K7MP3QXA). Spaces and case are ignored.
 
     RoomResponse:
       type: object

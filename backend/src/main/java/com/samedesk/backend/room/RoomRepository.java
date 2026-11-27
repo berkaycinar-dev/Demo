@@ -15,6 +15,8 @@ public interface RoomRepository extends JpaRepository<Room, UUID> {
 
     boolean existsByInviteCode(String inviteCode);
 
+    Optional<Room> findByInviteCode(String inviteCode);
+
     @Query("select r from Room r where r.id in (select m.roomId from RoomMember m where m.userId = :userId) order by r.createdAt desc")
     List<Room> findJoinedBy(@Param("userId") UUID userId);
 

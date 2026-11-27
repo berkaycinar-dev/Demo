@@ -43,7 +43,8 @@ app:
     access-ttl-seconds: 900
     refresh-ttl-days: 14
   rate-limit:
-    # Limits on the public auth endpoints, per client IP, per window. Over the limit = 429.
+    # Limits on the public auth endpoints and on invite-code joins (slows down code guessing),
+    # per client IP, per window. Over the limit = 429.
     enabled: ${RATE_LIMIT_ENABLED:true}
     window-seconds: 60
     # Header that carries the caller's IP behind a proxy. Empty = use the TCP peer address.
@@ -54,6 +55,7 @@ app:
       "[/api/v1/auth/register]": 5
       "[/api/v1/auth/refresh]": 30
       "[/api/v1/auth/logout]": 30
+      "[/api/v1/rooms/join-by-code]": 10
   room-sessions:
     # No heartbeat for this long = connection lost, the session is closed (reason TIMEOUT).
     # Shared with D's real-time side: change it only together with D.
