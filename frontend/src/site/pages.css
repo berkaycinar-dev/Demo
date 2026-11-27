@@ -4540,6 +4540,39 @@
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+  scroll-margin-top: calc(var(--header-h, 64px) + 16px);
+}
+
+/* sayfa düğmeleri: solda hangi odaların gösterildiği, sağda Önceki · numaralar · Sonraki */
+.lobby-pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding-top: 4px;
+}
+
+.lobby-pager__range {
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
+.lobby-pager__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lobby-pager__num {
+  min-width: 44px;
+  padding: 0 10px;
+}
+
+.lobby-pager__num[aria-current='page'] {
+  border-color: var(--sel-ring);
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
 }
 
 .lobby-people__head {
@@ -4579,18 +4612,20 @@
   box-shadow: inset 0 0 0 1px var(--line);
 }
 
+/* görüntü kutunun kenarına yaslanmaz: çevresinde boşluk, altta tema etiketine yer */
 .lobby-room__shot {
   position: relative;
   display: grid;
   place-items: center;
   min-height: 160px;
+  padding: 18px 18px 44px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 60%, #5a4330, #1a1613 85%);
+  background: radial-gradient(circle at 50% 55%, #5a4330, #1a1613 85%);
 }
 
 .lobby-room__img {
-  width: 118%;
-  max-width: none;
+  width: 100%;
+  max-width: 100%;
   aspect-ratio: auto;
 }
 

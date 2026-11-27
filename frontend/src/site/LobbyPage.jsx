@@ -6,6 +6,7 @@ import useShortcut from './useShortcut'
 import { ThemeShot } from './RoomShot'
 import Dotted from './Dotted'
 import ThemeLabel from './ThemeLabel'
+import { revealEl } from './scroll'
 
 const LockIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
@@ -352,12 +353,19 @@ const LOBBY_COPY = {
   since: (min) => (min < 1 ? 'az önce geldi' : min < 60 ? `${min} dk’dır burada` : `${Math.floor(min / 60)} sa’tir burada`),
   more: (n) => `+${n} kişi`,
   noRooms: 'Şu an açık oda yok.',
+  pager: 'Oda sayfaları',
+  prev: 'Önceki',
+  next: 'Sonraki',
+  pageLabel: (n) => `${n}. sayfa`,
+  range: (from, to, total) => `${total} odadan ${from}–${to} arası`,
   create: 'Yeni oda oluştur',
 }
 
 const isLocked = (room) => room.access === 'invite' && !room.myRole
 const countOf = (room) => (Number.isFinite(room.memberCount) ? room.memberCount : 0)
 const PEOPLE_SHOWN = 6
+// bir sayfada en fazla bu kadar oda
+const PAGE_SIZE = 10
 const PEOPLE_REFRESH_MS = 30_000
 // avatar kutusunun rengi kullanıcı adından sabit seçilir (aynı kişi her yerde aynı renk)
 const AV_COLORS = ['#e8b77a', '#9fc7c0', '#e0a08a', '#c8b6e2', '#b9d08f']
@@ -473,6 +481,37 @@ function RoomCard({ room, people, onOpen }) {
   )
 }
 
+// Sayfa düğmeleri: Önceki, sayfa numaraları, Sonraki; hangi odaların gösterildiği yazılır.
+function Pager({ page, count, total, onGo }) {
+  const from = page * PAGE_SIZE + 1
+  const to = Math.min(total, (page + 1) * PAGE_SIZE)
+  return (
+    <nav className="lobby-pager" aria-label={LOBBY_COPY.pager}>
+      <span className="lobby-pager__range">{LOBBY_COPY.range(from, to, total)}</span>
+      <div className="lobby-pager__buttons">
+        <button type="button" className="site-btn" onClick={() => onGo(page - 1)} disabled={page === 0}>
+          {LOBBY_COPY.prev}
+        </button>
+        {Array.from({ length: count }, (_, i) => (
+          <button
+            key={i}
+            type="button"
+            className="site-btn lobby-pager__num"
+            aria-current={i === page ? 'page' : undefined}
+            aria-label={LOBBY_COPY.pageLabel(i + 1)}
+            onClick={() => onGo(i)}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button type="button" className="site-btn" onClick={() => onGo(page + 1)} disabled={page === count - 1}>
+          {LOBBY_COPY.next}
+        </button>
+      </div>
+    </nav>
+  )
+}
+
 // Lobi ("Kim çalışıyor"): odalar içindeki insanlarla birlikte. Üstte tabela, arama, Hızlı gir ve Oda
 // oluştur. Solda üyesi olan odalar kalabalıktan sessize kartlar hâlinde; kartta içeridekiler (yalnızca
 // üyesi olunan odalarda, sunucu kuralı) ve tek eylem. Üyesi olmayan odalar ve kilitli davetli odalar altta
@@ -480,6 +519,8 @@ function RoomCard({ room, people, onOpen }) {
 export default function LobbyPage({ rooms, joined, username, receipt, onCloseReceipt, onEnter, onForget, onCreate }) {
   const [asking, setAsking] = useState(null)
   const [query, setQuery] = useState('')
+  const [page, setPage] = useState(0)
+  const listRef = useRef(null)
   // "/": aramaya atla
   const searchRef = useRef(null)
   useShortcut('/', () => searchRef.current?.focus())
@@ -495,9 +536,21 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
   // kartlar: kilitli olmayan ve üyesi olan odalar, kalabalıktan sessize; geri kalanlar altta düğme
   const busy = shown.filter((r) => !isLocked(r) && countOf(r) > 0).sort((a, b) => countOf(b) - countOf(a))
   const quiet = [...shown.filter((r) => !isLocked(r) && countOf(r) === 0), ...shown.filter(isLocked)]
+  // sayfalama: en fazla PAGE_SIZE oda (kartlar önce, sonra küçük düğmeler); arama değişince ilk sayfa
+  const ordered = [...busy, ...quiet]
+  const pageCount = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE))
+  const current = Math.min(page, pageCount - 1)
+  const onPage = new Set(ordered.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE).map((r) => r.id))
+  const busyHere = busy.filter((r) => onPage.has(r.id))
+  const quietHere = quiet.filter((r) => onPage.has(r.id))
+  const goPage = (n) => {
+    setPage(n)
+    requestAnimationFrame(() => revealEl(listRef.current, 'start'))
+  }
 
   const clearSearch = () => {
     setQuery('')
+    setPage(0)
     searchRef.current?.focus()
   }
   const openRoom = (room) => (isLocked(room) ? setAsking(room) : onEnter(room))
@@ -525,7 +578,10 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
               id="lobbySearch"
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setPage(0)
+              }}
               placeholder={SEARCH_COPY.placeholder}
               aria-keyshortcuts="/"
               title={SEARCH_COPY.key}
@@ -540,7 +596,7 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
       </header>
 
       <div className="lobby-people">
-        <section className="lobby-people__main" aria-labelledby="odalarBaslik">
+        <section className="lobby-people__main" aria-labelledby="odalarBaslik" ref={listRef}>
           <div className="lobby-people__head">
             <h2 id="odalarBaslik">{LOBBY_COPY.busy}</h2>
             {busy.length > 0 && <span>{LOBBY_COPY.busyHint}</span>}
@@ -567,15 +623,15 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
             </div>
           ) : (
             <>
-              {busy.map((room) => (
+              {busyHere.map((room) => (
                 <RoomCard key={room.id} room={room} people={people[room.id]} onOpen={openRoom} />
               ))}
-              {quiet.length > 0 && (
+              {quietHere.length > 0 && (
                 <div className="lobby-quiet" role="group" aria-labelledby="digerBaslik">
                   <span id="digerBaslik" className="lobby-quiet__label">
                     {LOBBY_COPY.quiet}
                   </span>
-                  {quiet.map((room) => (
+                  {quietHere.map((room) => (
                     <button
                       key={room.id}
                       type="button"
@@ -590,6 +646,7 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
                   ))}
                 </div>
               )}
+              {pageCount > 1 && <Pager page={current} count={pageCount} total={ordered.length} onGo={goPage} />}
             </>
           )}
         </section>
