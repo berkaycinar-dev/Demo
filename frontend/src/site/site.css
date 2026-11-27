@@ -255,23 +255,55 @@ html:has(.site-stage-main) {
   color: var(--chip-on-fg);
 }
 
-.account__mode {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+/* hesap, Görünüm ve oturum: ayar satırları. Solda etiket + açıklama, sağda denetim; dar ekranda alt alta */
+.account__session {
+  grid-column: 1 / -1;
 }
 
-.account__mode-label {
+.account__rows {
+  display: grid;
+}
+
+.account__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+
+.account__row:last-child {
+  padding-bottom: 0;
+}
+
+.account__row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account__row-label {
+  color: var(--text);
   font-weight: 600;
 }
 
+.account__row-text .site-muted {
+  font-size: var(--text-label);
+}
+
+.account__row .site-btn {
+  min-width: 120px;
+}
+
 @media (max-width: 420px) {
-  .account__mode .mode-choice {
-    display: flex;
+  .account__row .mode-choice,
+  .account__row .site-btn {
+    flex: 1 1 100%;
   }
 
-  .account__mode .mode-choice button {
+  .account__row .mode-choice button {
     flex: 1;
     min-width: 0;
   }
@@ -420,17 +452,6 @@ html:has(.site-stage-main) {
   min-height: 54px;
   border-radius: var(--radius-control-lg);
   font-size: var(--text-body);
-}
-
-/* oda kartı ızgarası */
-
-.site-rooms {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 /* oda oluştur */
@@ -2424,7 +2445,6 @@ html:has(.site-stage-main) {
   .create-room__rail .create-room__cta .site-btn {
     min-height: 48px;
   }
-
 
   /* ad ve açıklama aynı paragrafta akar */
   .create-room__rail .create-room__theme-note {

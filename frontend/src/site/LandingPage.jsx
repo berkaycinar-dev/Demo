@@ -69,7 +69,10 @@ const COPY = {
   lead: 'Birlikte çalışınca odaklanmak kolaylaşır. Kamera ve mikrofon yok; bir oda seç, sayacını başlat, avatarın masanda seninle otursun.',
   open: 'Kapıyı aç',
   home: 'Sayfama git',
-  corridor: 'Koridoru gez',
+  corridor: 'Odaları gör',
+  door: 'Kapı',
+  doorOpen: (pct) => `Yüzde ${pct} açık`,
+  doorHint: 'Kapıyı sürükleyerek aç ya da kapat',
   roomLabel: (name, dark) => `${name}, ${dark ? 'akşam ışığında' : 'gündüz'}`,
   corridorEyebrow: 'Gece koridoru',
   corridorTitle: 'On kapı, on oda',
@@ -77,6 +80,76 @@ const COPY = {
   doorsLabel: (n) => `${n} oda teması`,
   start: 'Hemen başla',
   quoteNote: 'Her 25 dakikalık blok bir damla. Masan seni bekliyor.',
+}
+
+// Sürüklenebilir kapı kanadı: menteşe solda. Sola çekince açılır, sağa itince kapanır; klavyede ok tuşları,
+// Home (kapalı) ve End (sonuna kadar açık). Açı 0 (kapalı) ile DOOR_MAX (tam açık) arasında; sayfa aralık başlar.
+const DOOR_MAX = 105
+const DOOR_START = 72
+// kemer genişliği kadar sürükleme kanadı bu kadar derece döndürür
+const DOOR_DRAG_DEG = 160
+const DOOR_KEY_STEP = 10
+
+function DoorLeaf() {
+  const [angle, setAngle] = useState(DOOR_START)
+  const [dragging, setDragging] = useState(false)
+  const drag = useRef(null)
+  const clamp = (a) => Math.min(DOOR_MAX, Math.max(0, a))
+  const pct = Math.round((angle / DOOR_MAX) * 100)
+
+  const onPointerDown = (e) => {
+    if (e.button !== 0) return
+    const width = e.currentTarget.parentElement?.getBoundingClientRect().width || 1
+    drag.current = { x: e.clientX, start: angle, width }
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDragging(true)
+  }
+  const onPointerMove = (e) => {
+    const d = drag.current
+    if (!d) return
+    // sola sürükleme (dx < 0) kapıyı açar
+    setAngle(clamp(d.start - ((e.clientX - d.x) / d.width) * DOOR_DRAG_DEG))
+  }
+  const end = () => {
+    drag.current = null
+    setDragging(false)
+  }
+  const onKeyDown = (e) => {
+    const next = {
+      ArrowLeft: angle + DOOR_KEY_STEP,
+      ArrowUp: angle + DOOR_KEY_STEP,
+      ArrowRight: angle - DOOR_KEY_STEP,
+      ArrowDown: angle - DOOR_KEY_STEP,
+      Home: 0,
+      End: DOOR_MAX,
+    }[e.key]
+    if (next === undefined) return
+    e.preventDefault()
+    setAngle(clamp(next))
+  }
+
+  return (
+    <span
+      className="lp-door__leaf"
+      role="slider"
+      tabIndex={0}
+      aria-label={COPY.door}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      aria-valuetext={COPY.doorOpen(pct)}
+      title={COPY.doorHint}
+      data-dragging={dragging || undefined}
+      style={{ '--door-angle': `${-angle}deg` }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onKeyDown={onKeyDown}
+    >
+      <span className="lp-door__knob" aria-hidden="true" />
+    </span>
+  )
 }
 
 const Arrow = () => (
@@ -109,12 +182,13 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
           <figure className="lp-door__frame">
             <div className="lp-door__arch">
               <HeroRoom dark={dark} />
-              {/* aralık kapı kanadı: süs */}
-              <span className="lp-door__leaf" aria-hidden="true">
-                <span className="lp-door__knob" />
-              </span>
+              {/* aralık kapı kanadı: kullanıcı sürükleyip açar ya da kapatır */}
+              <DoorLeaf />
             </div>
             <span className="lp-door__sill" aria-hidden="true" />
+            <span className="lp-door__hint" aria-hidden="true">
+              {COPY.doorHint}
+            </span>
             <figcaption className="visually-hidden">{COPY.roomLabel(THEMES[HERO_THEME].label, dark)}</figcaption>
           </figure>
           <p className="lp-lead lp-door__lead">{COPY.lead}</p>
