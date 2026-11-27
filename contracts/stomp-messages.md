@@ -1,13 +1,13 @@
 # STOMP mesaj sözleşmesi
 
-Sürüm 5 · Sahip D · Oda olayları, kişisel sayaç, heartbeat ve yeniden bağlantı istemcisi
+Sürüm 6 · Sahip D · Güncel oda görünürlüğü, kişisel sayaç, heartbeat ve yük doğrulaması
 
 ## Bağlantı ve yetki
 
 - WebSocket adresi `/ws`. Yayın ortamında WSS kullanılır. Tarayıcı bağlantıları aynı origin veya `CORS_ORIGINS` içindeki açıkça belirtilen origin üzerinden açılır.
 - İstemci STOMP 1.2 `CONNECT` çerçevesinde `Authorization: Bearer <accessToken>` başlığını gönderir. Token URL'ye yazılmaz. HTTP el sıkışmasından sonra kimlik doğrulanır.
 - REST ve STOMP aynı `JwtDecoder` kullanır. JWT imzası, `iss` ve süre doğrulanır. Kimlik `sub` alanındaki kullanıcı UUID'sidir. Claim ve refresh davranışı [REST sözleşmesinde](openapi.yaml) tanımlanır.
-- Oda kanallarını yalnızca `RoomAccessChecker` tarafından üye olduğu doğrulanan kullanıcı dinleyebilir. Oda kimliği küçük harfli UUID olarak yazılır. Kişisel sayaç için yalnızca `/user/queue/timers` adresi açıktır; kimlik JWT'den gelir. Wildcard, ham `/queue/...`, başka kullanıcı kimliği içeren ve diğer abonelik adresleri reddedilir.
+- Oda kanallarını `RoomAccessChecker.canAccess` tarafından erişimi doğrulanan kullanıcı dinleyebilir. PUBLIC odalar giriş yapmış kullanıcılara, PRIVATE odalar yalnızca üyelere açıktır. Oda kimliği küçük harfli UUID olarak yazılır. Kişisel sayaç için yalnızca `/user/queue/timers` adresi açıktır; kimlik JWT'den gelir. Wildcard, ham `/queue/...`, başka kullanıcı kimliği içeren ve diğer abonelik adresleri reddedilir.
 - İstemci `CONNECT`, `SUBSCRIBE`, `UNSUBSCRIBE` ve `DISCONNECT` kullanır. Odaya katılma ve oturum heartbeat'i REST üzerinden yapılır. İstemciden `SEND` kabul edilmez.
 - Token süresi dolduğunda açık aboneliğe olay teslimi durur. Sonraki abonelik işlemi de reddedilir. İstemci access token'ı REST üzerinden yenileyip tekrar bağlanır ve abone olur. Üyelik teslim anında yeniden kontrol edilir.
 - Hatalı işlemde `ERROR` çerçevesinin `message` başlığı `UNAUTHENTICATED`, `FORBIDDEN` veya `INVALID_FRAME` olur ve bağlantı kapanır.
@@ -38,7 +38,7 @@ Bu modül ekranlara bağlanana kadar mevcut UI akışı otomatik WebSocket bağl
 
 ## Oda olayları
 
-Oda üyeleri `/topic/rooms/{roomId}/events` adresine abone olur. Sunucu, ilk katılım kaydı PostgreSQL'e başarıyla yazıldıktan sonra `MEMBER_JOINED` yayınlar. Aynı üyelik için yinelenen katılım isteği yeni olay üretmez.
+Odaya erişimi olan kullanıcılar `/topic/rooms/{roomId}/events` adresine abone olur. Sunucu, ilk üyelik kaydı PostgreSQL'e başarıyla yazıldıktan sonra `MEMBER_JOINED` yayınlar. Aynı üyelik için yinelenen katılım isteği yeni olay üretmez.
 
 ```json
 {
@@ -60,13 +60,17 @@ Oda üyeleri `/topic/rooms/{roomId}/events` adresine abone olur. Sunucu, ilk kat
 
 ## Aktif katılımcı listesi
 
-Üyeler `/topic/rooms/{roomId}/presence` kanalına abone olur. Odayı dinleyen en az bir abonelik varsa sunucu varsayılan olarak iki saniyede bir tam liste yayınlar. Süre `app.presence.publish-interval-ms` ile ayarlanır. Aynı odayı çok kişi dinlerken liste bir kez okunup odaya yayınlanır. Abone olmayan odalar için liste sorgulanmaz.
+Odaya erişimi olan kullanıcılar `/topic/rooms/{roomId}/presence` kanalına abone olur. Odayı dinleyen en az bir abonelik varsa sunucu varsayılan olarak iki saniyede bir tam liste yayınlar. Süre `app.presence.publish-interval-ms` ile ayarlanır. Aynı odayı çok kişi dinlerken liste bir kez okunup odaya yayınlanır. Abone olmayan odalar için liste sorgulanmaz.
 
-Mesaj, oda olaylarıyla aynı zarfı kullanır. `type` alanı `PRESENCE_SNAPSHOT`, `payload` alanı `{ "members": [...] }` olur. Her katılımcıda REST `ActiveMemberResponse` ile aynı alanlar bulunur: `userId`, `username`, `role`, `startedAt`, `avatar`, `seat` (masadaki koltuk, herkeste aynı), `status` (IDLE, FOCUS, BREAK, AWAY), `spot` ve `slot` (moladaki köşe ve köşedeki yer, yalnızca BREAK iken) ve `statusSince`. Son kişi çıktığında `members` boş dizi olur. İstemci her snapshot geldiğinde mevcut listeyi yenisiyle değiştirir. Tam liste kullanıldığı için delta tamponu veya sıra numarası gerekmiyor. Bir bağlantıda yayın sırası korunur.
+Mesaj, oda olaylarıyla aynı zarfı kullanır. `type` alanı `PRESENCE_SNAPSHOT`, `payload` alanı `{ "members": [...] }` olur. Her katılımcıda REST `ActiveMemberResponse` ile aynı alanlar bulunur: `userId`, `username`, `role`, `startedAt`, `avatar`, `seat` (masadaki koltuk, herkeste aynı), `status` (IDLE, FOCUS, BREAK, AWAY), `spot` ve `slot` (moladaki köşe ve köşedeki yer, yalnızca BREAK iken), `statusSince` ve `online`.
 
-Bu sürümün veri kaynağı C'nin mevcut `room_sessions` modelidir. REST üzerinden `POST /api/v1/rooms/{roomId}/sessions` ile girilir, 15–20 saniyede bir `POST .../sessions/current/heartbeat` gönderilir ve `DELETE .../sessions/current` ile çıkılır. Giriş/çıkış bir sonraki snapshot'ta görünür. Ağ kesilince heartbeat durur. Varsayılan 60 saniyelik timeout ve 15 saniyelik temizleme aralığından sonra katılımcı listeden çıkar. WebSocket aboneliğinin kapanması tek başına çalışma oturumunu bitirmez, böylece diğer sekmelerde devam eden oturum korunur.
+PUBLIC odada yalnızca açık oturumu olan kişiler listelenir; son kişi çıktığında `members` boş dizi olur. PRIVATE odada tüm kalıcı üyeler listelenir. Oturumu olmayan üye listeden silinmez: `online=false`, `status=AWAY`, `startedAt=null`, `spot=null`, `slot=null` olur ve koltuğu korunur. `online=true` olup `status=AWAY` olan biri ise odadaki açık oturumunda manuel olarak uzakta durumunu seçmiştir. Bu yüzden bağlantıda bulunma kararı yalnızca `status` alanından çıkarılmaz.
 
-Bağlantı yenilendiğinde kanal aboneliği yeniden kurulur ve sıradaki tam listeyle durum toparlanır. Kanalın hem abonelik hem teslim aşamasında mevcut oda üyeliği ve JWT süresi kontrol edilir. Bu teslim tek Spring uygulaması için mevcut PostgreSQL oturum kayıtlarını kullanır. Redis üzerinden geçici durum ve çoklu sunucu dağıtımı ilerleyen aşamalarda değerlendirilir.
+İstemci her snapshot geldiğinde mevcut listeyi yenisiyle değiştirir. Tam liste kullanıldığı için delta tamponu gerekmiyor. Bir bağlantıda yayın sırası korunur.
+
+Bu sürümün veri kaynağı C'nin mevcut oda üyelikleri ve `room_sessions` modelidir. REST üzerinden `POST /api/v1/rooms/{roomId}/sessions` ile girilir, 15–20 saniyede bir `POST .../sessions/current/heartbeat` gönderilir ve `DELETE .../sessions/current` ile çıkılır. Giriş/çıkış bir sonraki snapshot'ta görünür. Ağ kesilince heartbeat durur. Varsayılan 60 saniyelik timeout ve 15 saniyelik temizleme aralığından sonra açık oturum kapatılır: kişi PUBLIC listeden çıkar, PRIVATE listede offline/uzakta kalır. WebSocket aboneliğinin kapanması tek başına çalışma oturumunu bitirmez, böylece diğer sekmelerde devam eden oturum korunur.
+
+Bağlantı yenilendiğinde kanal aboneliği yeniden kurulur ve sıradaki tam listeyle durum toparlanır. Kanalın hem abonelik hem teslim aşamasında güncel oda erişimi ve JWT süresi kontrol edilir. Bu teslim tek Spring uygulaması için mevcut PostgreSQL üyelik/oturum kayıtlarını kullanır. Redis üzerinden geçici durum ve çoklu sunucu dağıtımı ilerleyen aşamalarda değerlendirilir.
 
 ## Kişisel sayaç
 
@@ -126,6 +130,8 @@ Node 24 ile çalışan bu istemci, deneme hesapları ve özel bir oda oluşturur
 Backend CI bu istemciyi PostgreSQL üzerinde otomatik çalıştırır. Yalnızca geçici CI sürecinde oturum timeout'u 4 saniye; STOMP heartbeat, presence ve temizleme aralıkları 200 ms olarak kısaltılır. Yerel ve yayın varsayılanları aynı kalır.
 
 Frontend bağlantı yöneticisi ayrıca `node frontend/scripts/realtime-smoke.mjs http://127.0.0.1:8080` ile denenir. Bu istemci bağlantıyı zorla keser; aboneliklerin otomatik geri kurulmasını ve kesintide kaçırılan sayaç değişikliğinin REST'ten okunmasını doğrular. Backend CI bu ikinci denemeyi de çalıştırır. Frontend CI `npm test` ile bağlantı/token yaşam döngüsünü sınar.
+
+20 kullanıcılı yük doğrulaması `frontend/scripts/realtime-load.mjs` ile yapılır. Varsayılan iki saniyelik presence yayınıyla özel ve herkese açık odalar, odak/mola durumu, koltuk sürekliliği, kişisel sayaç ayrımı, dört bağlantının yeniden kurulması ve çıkış/giriş ölçülür. JSON raporu CI artifact'i olarak saklanır. Kurulum, ölçümün anlamı ve sınırları: [yük testi kılavuzu](../frontend/scripts/REALTIME_LOAD.md).
 
 ## Sonraki teslimler
 

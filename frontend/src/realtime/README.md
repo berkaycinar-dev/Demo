@@ -50,3 +50,5 @@ node frontend/scripts/realtime-smoke.mjs http://127.0.0.1:8080
 ```
 
 Bu komut depo kökünde çalıştırılır; tek bir deneme hesabı ve özel oda oluşturur. Gerçek WebSocket zorla kesilir; otomatik yeniden bağlantı, geri kurulan abonelikler ve kesinti sırasında değişen sayacın REST'ten toparlanması doğrulanır. Backend CI, mevcut backend STOMP denemesinden sonra bu istemciyi de çalıştırır.
+
+20 kullanıcılı, özel/açık oda ve durum/koltuk doğrulaması içeren ölçüm: [yük testi kılavuzu](../../scripts/REALTIME_LOAD.md). Bu ölçüm varsayılan yayın aralıklarıyla çalışır ve CI'da JSON raporu üretir.
