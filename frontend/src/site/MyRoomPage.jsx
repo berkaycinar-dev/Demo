@@ -156,7 +156,6 @@ export default function MyRoomPage({ room, onBrowse, ...rest }) {
       <div className="site-main">
         <section className="site-card empty-state">
           <h1>Henüz bir odaya girmedin</h1>
-          <p className="site-muted">Herkese açık odalardan birine katıl ya da kodla davetli bir odaya gir.</p>
           <button type="button" className="site-btn site-btn--primary" onClick={onBrowse}>
             Odalara göz at
           </button>
@@ -531,7 +530,7 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
         {/* odak modunun açıklaması: ilk ziyarette görünür, sonra yalnızca ekran okuyucuya */}
         <WorkingOnField username={username} className="desk__working" />
         <FocusModeNote hints={hints} />
-        <TimerModePicker mode={timerMode} onPick={onTimerModeChange} presetInfo={timer.presetInfo} />
+        <TimerModePicker mode={timerMode} onPick={onTimerModeChange} />
         {timerCard}
       </div>
 

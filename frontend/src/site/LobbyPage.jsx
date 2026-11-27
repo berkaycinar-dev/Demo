@@ -353,12 +353,10 @@ function LeaveReceipt({ receipt, onEnter, onClose }) {
 const LOBBY_COPY = {
   title: 'Kimin yanına oturacaksın?',
   busy: 'Şu an çalışılan odalar',
-  busyHint: 'En kalabalık önce · içeridekileri üyesi olduğun odalarda görürsün',
   quiet: 'Diğer odalar',
   key: 'Anahtarın var mı?',
   recent: 'Son girdiğin odalar',
   working: 'Sen bugün ne üzerinde çalışacaksın?',
-  workingHint: 'Odaya girince adının yanında görünür.',
   invite: 'Davetli',
   sitWith: 'Yanlarına otur',
   enter: (name) => `${name} odasına gir`,
@@ -619,7 +617,6 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
         <section className="lobby-people__main" aria-labelledby="odalarBaslik" ref={listRef}>
           <div className="lobby-people__head">
             <h2 id="odalarBaslik">{LOBBY_COPY.busy}</h2>
-            {busy.length > 0 && <span>{LOBBY_COPY.busyHint}</span>}
           </div>
 
           {shown.length === 0 ? (
@@ -675,7 +672,6 @@ export default function LobbyPage({ rooms, joined, username, receipt, onCloseRec
           <section className="lobby-working" aria-labelledby="calisiyorumBaslik">
             <h2 id="calisiyorumBaslik">{LOBBY_COPY.working}</h2>
             <WorkingOnField username={username} className="lobby-working__field" />
-            <p>{LOBBY_COPY.workingHint}</p>
           </section>
 
           <section className="lobby-key material-sign" aria-labelledby="kodBaslik">

@@ -852,18 +852,6 @@ html:has(.site-stage-main) {
   line-height: 1.25;
 }
 
-.access-choice__hint {
-  color: var(--muted);
-  font-size: var(--text-meta);
-  line-height: 1.4;
-  text-wrap: pretty;
-}
-
-.access-choice__opt[aria-pressed='true'] .access-choice__hint {
-  color: inherit;
-  opacity: 0.85;
-}
-
 /* çok dar ekranda kartlar alt alta */
 @media (max-width: 360px) {
   .access-choice {
@@ -1794,13 +1782,6 @@ html:has(.site-stage-main) {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 6px;
-}
-
-.sheet__note {
-  margin: 0 0 12px;
-  color: var(--text-2);
-  font-size: var(--text-label);
-  line-height: 1.4;
 }
 
 .site .sheet__title {
@@ -2955,16 +2936,6 @@ html:has(.site-stage-main) {
     flex: 1 1 0;
     min-width: 0;
   }
-}
-
-/* kombinlerin ne işe yaradığı: başlığın altında tek satır */
-.wardrobe__hint {
-  margin: -4px 0 8px;
-  color: var(--muted);
-  font-size: var(--type-caption, 14px);
-  line-height: 1.4;
-  /* son satırda tek kelime kalmasın */
-  text-wrap: pretty;
 }
 
 @media (prefers-reduced-motion: reduce) {

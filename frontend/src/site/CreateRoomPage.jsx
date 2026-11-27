@@ -189,13 +189,10 @@ export default function CreateRoomPage({ onCreate, onBack, isDark = false }) {
               <legend className="field__label">Kimler girebilir</legend>
               <div className="access-choice">
                 {ACCESS_IDS.map((id) => (
-                  <button key={id} type="button" className="access-choice__opt" aria-pressed={access === id} aria-describedby={`access-${id}`} onClick={() => setAccess(id)}>
+                  <button key={id} type="button" className="access-choice__opt" aria-pressed={access === id} onClick={() => setAccess(id)}>
                     <AccessIcon id={id} />
                     <span className="access-choice__text">
                       <span className="access-choice__name">{ACCESS[id].label}</span>
-                      <span id={`access-${id}`} className="access-choice__hint">
-                        {ACCESS[id].hint}
-                      </span>
                     </span>
                   </button>
                 ))}

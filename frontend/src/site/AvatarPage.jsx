@@ -131,7 +131,6 @@ function Wardrobe({ avatar, onLoad }) {
           </button>
         )}
       </div>
-      <p className="wardrobe__hint">Kaydet simgesi şu anki görünümü bir kombine saklar. Kombini seçince hepsini birden giyersin.</p>
       <p className="form-error wardrobe__error" role="alert">
         {notice?.kind === 'error' && noticeText(notice)}
       </p>
@@ -183,14 +182,13 @@ function PoseSheet({ open, onClose, mode, setMode, activity, setActivity, childr
   }, [open])
   const seated = SEATED.includes(mode)
   return (
-    <dialog ref={ref} className="sheet" aria-labelledby="pose-sheet-title" aria-describedby="pose-sheet-note" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
+    <dialog ref={ref} className="sheet" aria-labelledby="pose-sheet-title" onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}>
       <div className="sheet__head">
         <h2 id="pose-sheet-title" className="sheet__title">Poz ve kombinler</h2>
         <button type="button" className="sheet__close" onClick={onClose} aria-label="Kapat">
           <Icon name="close" />
         </button>
       </div>
-      <p id="pose-sheet-note" className="sheet__note">Önizleme pozu: odadaki durumunu değiştirmez</p>
       <div className="segmented segmented--fill" role="group" aria-label="Poz" style={{ '--count': MODES.length }}>
         {MODES.map((m) => (
           <button key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => setMode(m.id)}>
@@ -462,9 +460,6 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom, cloud = null
         <div>
           <h1>Avatar atölyesi</h1>
           <p className="site-muted">
-            {cloud
-              ? 'Burada yaptığın avatar odalarda “Sen” olarak oturur. Odadakilerin de görmesi için Kaydet’e bas.'
-              : 'Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler bu tarayıcıda hemen kaydedilir.'}
             {saveStamp && (
               <span key={saveStamp.id} className="save-stamp" data-ok={saveStamp.ok ? '' : undefined} aria-hidden="true">
                 {saveStamp.ok && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>}

@@ -8,7 +8,6 @@ import { Field, PasswordInput, PasswordRules } from './AuthPages'
 // değiştirme ucu da yok: form gösterilmez, durum sessiz bir notla yerinde söylenir.
 const ACCOUNT_COPY = {
   title: 'Hesap ayarları',
-  lead: 'Görünen adını ve şifreni buradan değiştirebilirsin.',
 }
 
 export default function AccountPage({ user, onUserChange, onLogout }) {
@@ -16,7 +15,6 @@ export default function AccountPage({ user, onUserChange, onLogout }) {
     <div className="account account--profile">
       <div className="page-head">
         <h1>{ACCOUNT_COPY.title}</h1>
-        <p className="site-muted">{ACCOUNT_COPY.lead}</p>
       </div>
       <div className="account__stack">
         <ProfileCard user={user} onUserChange={onUserChange} />
@@ -31,7 +29,6 @@ export default function AccountPage({ user, onUserChange, onLogout }) {
 const SESSION_COPY = {
   title: 'Oturum',
   session: 'Bu cihazda oturumun açık',
-  sessionHint: 'Ortak bir bilgisayardaysan işin bitince çıkış yap.',
   logout: 'Çıkış yap',
 }
 
@@ -43,7 +40,6 @@ function SessionCard({ onLogout }) {
         <div className="account__row">
           <div className="account__row-text">
             <span className="account__row-label">{SESSION_COPY.session}</span>
-            <span className="site-muted">{SESSION_COPY.sessionHint}</span>
           </div>
           <button type="button" className="site-btn" onClick={onLogout}>
             {SESSION_COPY.logout}
@@ -91,7 +87,6 @@ function inputProps(id, errors, key) {
 const PROFILE_COPY = {
   title: 'Profil',
   displayName: 'Görünen ad',
-  displayNameHint: 'Sayfanda ve avatarının adında böyle görünür.',
   username: 'Kullanıcı adı',
   noChange: 'Değişiklik yok. Adı düzenleyince Kaydet açılır.',
   saved: 'Görünen adın kaydedildi.',
@@ -116,7 +111,7 @@ function ProfileCard({ user, onUserChange }) {
     <section className="site-card account__card" aria-labelledby="profilBaslik">
       <h2 id="profilBaslik">{PROFILE_COPY.title}</h2>
       <form className="auth__form" onSubmit={submit} noValidate>
-        <Field id="acc-displayName" label={PROFILE_COPY.displayName} error={f.errors.displayName} hint={PROFILE_COPY.displayNameHint}>
+        <Field id="acc-displayName" label={PROFILE_COPY.displayName} error={f.errors.displayName}>
           <input {...inputProps('acc-displayName', f.errors, 'displayName')} value={f.form.displayName} onChange={f.set('displayName')} autoComplete="name" maxLength={40} />
         </Field>
         {/* kullanıcı adı değişmez: alan değil, okunan bir satır */}
@@ -152,7 +147,6 @@ function ProfileCard({ user, onUserChange }) {
 const LOGIN_COPY = {
   title: 'Giriş bilgileri',
   email: 'E-posta',
-  emailNotYet: 'E-postanı değiştirmek henüz mümkün değil.',
   passwordTitle: 'Şifreyi değiştir',
   current: 'Mevcut şifre',
   next: 'Yeni şifre',
@@ -188,7 +182,6 @@ function LoginCard({ user }) {
           <dd>{user.email}</dd>
         </div>
       </dl>
-      <p className="site-muted account__note">{LOGIN_COPY.emailNotYet}</p>
     </section>
   )
 }

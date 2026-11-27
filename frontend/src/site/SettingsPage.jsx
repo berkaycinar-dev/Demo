@@ -8,26 +8,20 @@ import { PRESETS, formatMinutes } from './usePomodoro'
 // Dil: site şimdilik yalnızca Türkçe; İngilizce seçeneği görünür ama kapalı ("Yakında").
 const SETTINGS_COPY = {
   title: 'Ayarlar',
-  lead: 'Siteyi kendine göre ayarla. Değişiklikler hemen kaydedilir.',
   look: 'Görünüm',
   theme: 'Tema',
-  themeHint: 'Sitenin açık ya da koyu görünümü.',
   language: 'Dil',
-  languageHint: 'Site şimdilik yalnızca Türkçe.',
   languageGroup: 'Site dili',
   soon: 'Yakında',
   timer: 'Sayaç',
   mode: 'Sayaç türü',
-  modeHint: 'Odalara girince hangisi açılsın.',
   modeGroup: 'Sayaç türü',
   preset: 'Pomodoro süresi',
-  presetHint: 'Odak / mola, dakika.',
   presetLocked: 'Sayaç başladı; süreyi değiştirmek için önce sayacı sıfırla.',
   presetGroup: 'Pomodoro süresi',
   goals: 'Çalışma hedefleri',
   daily: 'Günlük hedef',
   weekly: 'Haftalık hedef',
-  goalsHint: 'Sayfam ve Odam bu hedeflere göre ilerlemeni gösterir.',
   edit: 'Hedefleri değiştir',
 }
 
@@ -62,16 +56,15 @@ export default function SettingsPage({ modePref, onModeChange, timer, timerMode,
     <div className="account settings">
       <div className="page-head">
         <h1>{SETTINGS_COPY.title}</h1>
-        <p className="site-muted">{SETTINGS_COPY.lead}</p>
       </div>
       <div className="account__grid">
         <section className="site-card account__card" aria-labelledby="ayarGorunum">
           <h2 id="ayarGorunum">{SETTINGS_COPY.look}</h2>
           <div className="account__rows">
-            <Row label={SETTINGS_COPY.theme} hint={SETTINGS_COPY.themeHint}>
+            <Row label={SETTINGS_COPY.theme}>
               <ModeChoice pref={modePref} onChange={onModeChange} />
             </Row>
-            <Row label={SETTINGS_COPY.language} hint={SETTINGS_COPY.languageHint}>
+            <Row label={SETTINGS_COPY.language}>
               <div className="mode-choice" role="group" aria-label={SETTINGS_COPY.languageGroup}>
                 {LANGUAGES.map((l) => (
                   <button key={l.id} type="button" lang={l.id} aria-pressed={l.id === 'tr'} disabled={!l.ready} title={l.ready ? undefined : SETTINGS_COPY.soon}>
@@ -87,7 +80,7 @@ export default function SettingsPage({ modePref, onModeChange, timer, timerMode,
         <section className="site-card account__card" aria-labelledby="ayarSayac">
           <h2 id="ayarSayac">{SETTINGS_COPY.timer}</h2>
           <div className="account__rows">
-            <Row label={SETTINGS_COPY.mode} hint={SETTINGS_COPY.modeHint}>
+            <Row label={SETTINGS_COPY.mode}>
               <div className="mode-choice" role="group" aria-label={SETTINGS_COPY.modeGroup}>
                 {TIMER_MODES.map((m) => (
                   <button key={m.id} type="button" aria-pressed={timerMode === m.id} onClick={() => onTimerModeChange(m.id)}>
@@ -96,7 +89,7 @@ export default function SettingsPage({ modePref, onModeChange, timer, timerMode,
                 ))}
               </div>
             </Row>
-            <Row label={SETTINGS_COPY.preset} hint={presetLocked ? SETTINGS_COPY.presetLocked : SETTINGS_COPY.presetHint}>
+            <Row label={SETTINGS_COPY.preset} hint={presetLocked ? SETTINGS_COPY.presetLocked : null}>
               <div className="mode-choice" role="group" aria-label={SETTINGS_COPY.presetGroup}>
                 {PRESETS.map((p) => (
                   <button key={p.id} type="button" aria-pressed={timer.preset === p.id} disabled={presetLocked && timer.preset !== p.id} onClick={() => timer.setPreset(p.id)}>
@@ -110,7 +103,6 @@ export default function SettingsPage({ modePref, onModeChange, timer, timerMode,
 
         <section className="site-card account__card account__session" aria-labelledby="ayarHedef">
           <h2 id="ayarHedef">{SETTINGS_COPY.goals}</h2>
-          <p className="site-muted settings__lead">{SETTINGS_COPY.goalsHint}</p>
           <div className="account__rows">
             <Row label={SETTINGS_COPY.daily}>
               <span className="settings__value">{formatMinutes(goals.daily)}</span>

@@ -5,9 +5,7 @@ import StopwatchCard from './StopwatchCard'
 const MODE_COPY = {
   group: 'Sayaç türü',
   pomodoro: 'Pomodoro',
-  pomodoroHint: (focus, rest) => `${focus} dk odak · ${rest} dk mola`,
   stopwatch: 'Kronometre',
-  stopwatchHint: 'Süre sınırı yok',
 }
 
 const PomodoroIcon = () => (
@@ -26,21 +24,19 @@ const StopwatchIcon = () => (
 )
 
 /** Yan yana iki kutu: Pomodoro / Kronometre. */
-export function TimerModePicker({ mode, onPick, presetInfo }) {
+export function TimerModePicker({ mode, onPick }) {
   return (
     <div className="timer-mode" role="group" aria-label={MODE_COPY.group}>
       <button type="button" className="timer-mode__opt" aria-pressed={mode === 'pomodoro'} onClick={() => onPick('pomodoro')}>
         <PomodoroIcon />
         <span className="timer-mode__text">
           <span className="timer-mode__name">{MODE_COPY.pomodoro}</span>
-          <span className="timer-mode__hint">{MODE_COPY.pomodoroHint(presetInfo.focus, presetInfo.break)}</span>
         </span>
       </button>
       <button type="button" className="timer-mode__opt" aria-pressed={mode === 'stopwatch'} onClick={() => onPick('stopwatch')}>
         <StopwatchIcon />
         <span className="timer-mode__text">
           <span className="timer-mode__name">{MODE_COPY.stopwatch}</span>
-          <span className="timer-mode__hint">{MODE_COPY.stopwatchHint}</span>
         </span>
       </button>
     </div>

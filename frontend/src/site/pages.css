@@ -1674,19 +1674,6 @@
   font-weight: 700;
 }
 
-.timer-mode__hint {
-  overflow: hidden;
-  color: var(--muted);
-  font-size: var(--text-micro);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.timer-mode__opt[aria-pressed='true'] .timer-mode__hint {
-  color: inherit;
-  opacity: 0.8;
-}
-
 /* Odam: hedefler. Sayacın altında iki küçük kart (bugün / bu hafta) ve "Hedefleri düzenle". */
 .goal-summary {
   display: flex;
@@ -3416,12 +3403,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-}
-
-/* e-postanın altındaki kısa not: değere yakın durur */
-.site .account__note {
-  margin: -8px 0 0;
-  font-size: var(--text-label);
 }
 
 .account__saved {
@@ -5502,7 +5483,6 @@ button.people__row.people__row--me {
   min-width: 0;
 }
 
-
 /* ---------- Ayarlar ---------- */
 
 /* kapalı dil seçeneği (henüz hazır değil): soluk, altında küçük "Yakında" */
@@ -5580,10 +5560,6 @@ button.people__row.people__row--me {
   font-size: var(--text-label);
 }
 
-.site .help__lead {
-  margin: -6px 0 0;
-}
-
 .help__kinds {
   display: flex;
   flex-direction: column;
@@ -5622,7 +5598,3 @@ button.people__row.people__row--me {
   border-color: #b4432f;
 }
 
-.site .settings__lead {
-  margin: -8px 0 0;
-  font-size: var(--text-label);
-}
