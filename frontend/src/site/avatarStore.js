@@ -32,42 +32,33 @@ const forServer = (avatar) => {
   return look
 }
 
-// Avatar sayfası her seçimde kaydeder; sunucuya son değişiklikten bu kadar sonra tek istek gider.
-const PUSH_DELAY_MS = 800
-let pushTimer = null
-let pending = null
-
-async function putAvatar(avatar) {
-  const user = await api('/api/v1/users/me/avatar', { method: 'PUT', body: forServer(avatar) })
-  const session = readSession()
-  if (session && session.user.id === user.id) writeSession({ ...session, user })
-  return user
-}
-
-/** Avatarı sunucuya yazar (gecikmeli, üst üste gelenlerden yalnız sonuncusu). onError: yazılamazsa. */
-export function pushAvatar(avatar, onError = () => {}) {
-  pending = avatar
-  clearTimeout(pushTimer)
-  pushTimer = setTimeout(() => {
-    const next = pending
-    pending = null
-    if (readSession()) putAvatar(next).catch(onError)
-  }, PUSH_DELAY_MS)
+/** İki avatar aynı görünüyor mu (ad sayılmaz). b null ise (sunucuda hiç yok) false. */
+export function sameLook(a, b) {
+  if (!a || !b) return false
+  return JSON.stringify(forServer(sanitizeAvatar(a))) === JSON.stringify(forServer(sanitizeAvatar(b)))
 }
 
 /**
- * Girişte bir kez: sunucuda avatar varsa o kazanır (bu tarayıcıya da yazılır, döner). Yoksa bu
- * tarayıcıdaki avatar sunucuya yüklenir ve null döner (önceden tasarlanmış avatar kaybolmaz).
+ * Avatar sayfasındaki Kaydet: avatarı sunucuya yazar; odadakiler bu görünümü görür.
+ * Dönüş: sunucuda artık kayıtlı görünüm. Hata: ApiError.
+ */
+export async function saveAvatarToServer(avatar) {
+  const user = await api('/api/v1/users/me/avatar', { method: 'PUT', body: forServer(avatar) })
+  const session = readSession()
+  if (session && session.user.id === user.id) writeSession({ ...session, user })
+  return sanitizeAvatar({ ...user.avatar, name: avatar.name })
+}
+
+/**
+ * Girişte bir kez: sunucudaki avatarı döner (bu tarayıcıya da yazılır); sunucuda yoksa null. Yerel
+ * avatar kendiliğinden yüklenmez: kullanıcı Kaydet'e basınca gider.
  */
 export async function syncAvatar(local) {
   const me = await api('/api/v1/auth/me')
-  if (me.avatar) {
-    const next = sanitizeAvatar({ ...me.avatar, name: local.name })
-    saveAvatar(next)
-    return next
-  }
-  await putAvatar(local)
-  return null
+  if (!me.avatar) return null
+  const next = sanitizeAvatar({ ...me.avatar, name: local.name })
+  saveAvatar(next)
+  return next
 }
 
 // Kombin slotları (gardırop): üç kayıtlı görünüm; boş slot null. Ad kaydedilmez (yüklenince mevcut

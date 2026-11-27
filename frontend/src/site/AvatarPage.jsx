@@ -274,12 +274,77 @@ function useSaveAnnouncer() {
   return [message, announce, stamp]
 }
 
+// Sunucuya kaydet düğmesi (yalnızca giriş yapılmışken). Değişiklik varken birincil "Kaydet"; kaydederken
+// dönen halka; kayıtlıyken yeşil "Kaydedildi" (basılamaz); hata olursa nedeni ve "Tekrar dene".
+const CLOUD_TEXT = {
+  dirty: 'Kaydedilmemiş değişiklik var',
+  save: 'Kaydet',
+  saving: 'Kaydediliyor…',
+  saved: 'Kaydedildi',
+  retry: 'Tekrar dene',
+  savedLive: 'Avatar kaydedildi. Odadakiler bu görünümü görecek.',
+}
+function CloudSave({ cloud }) {
+  const { loading, dirty, saving, error, onSave } = cloud
+  const state = saving ? 'saving' : error ? 'error' : dirty ? 'dirty' : 'saved'
+  // ekran okuyucu: yalnızca kayıt bitince ve hata olunca konuşur (her seçimde değil)
+  const [live, setLive] = useState('')
+  const wasSaving = useRef(false)
+  useEffect(() => {
+    if (wasSaving.current && !saving) setLive(error || CLOUD_TEXT.savedLive)
+    wasSaving.current = saving
+  }, [saving, error])
+  const canSave = !loading && !saving && (dirty || !!error)
+  // Ctrl+S / Cmd+S: tarayıcının "sayfayı kaydet"i yerine avatarı kaydeder
+  const keys = useRef(null)
+  useEffect(() => {
+    keys.current = { canSave, onSave }
+  })
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 's') return
+      e.preventDefault()
+      if (keys.current.canSave) keys.current.onSave()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+  return (
+    <div className="cloud-save" data-state={state}>
+      {(state === 'dirty' || state === 'error') && !loading && (
+        <span className="cloud-save__note" data-error={state === 'error' || undefined}>
+          {state === 'error' ? error : CLOUD_TEXT.dirty}
+        </span>
+      )}
+      <button
+        type="button"
+        className={`site-btn cloud-save__btn${state === 'saved' ? '' : ' site-btn--primary'}`}
+        onClick={onSave}
+        disabled={!canSave}
+        aria-busy={saving || undefined}
+        aria-keyshortcuts="Control+S"
+        title={canSave ? 'Kaydet (Ctrl+S)' : undefined}
+      >
+        {state === 'saving' ? (
+          <span className="cloud-save__spinner" aria-hidden="true" />
+        ) : (
+          <Icon name={state === 'saved' ? 'check' : 'save'} size={18} />
+        )}
+        {state === 'saving' ? CLOUD_TEXT.saving : state === 'saved' ? CLOUD_TEXT.saved : state === 'error' ? CLOUD_TEXT.retry : CLOUD_TEXT.save}
+      </button>
+      <span className="visually-hidden" role="status" aria-live="polite">
+        {live}
+      </span>
+    </div>
+  )
+}
+
 // Avatarım: avatar atölyesi. Solda canlı 3D önizleme (poz ve çalışma türü seçilir; kamera seçilen
 // bölgeye yaklaşır), geri al / ileri al ve kombin slotları; sağda karakter menüsü (CharacterMenu). Her
-// değişiklik hemen kaydedilir; odalarda "Sen" olarak bu avatar oturur.
-// fallbackName: boş ad bırakılınca kullanılan ad (hesabın görünen adı).
+// değişiklik bu tarayıcıda hemen saklanır; giriş yapılmışsa Kaydet ile sunucuya gider (cloud) ve
+// odadakiler o görünümü görür. Odalarda "Sen" olarak bu avatar oturur.
 // Avatarın adı ayrı tutulmaz: hesabın görünen adıdır (Hesap > Profil'den değişir).
-export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
+export default function AvatarPage({ avatar, onChange, onEnterRoom, cloud = null }) {
   const [mode, setMode] = useState('focus')
   const [activity, setActivity] = useState('read')
   const [zone, setZone] = useState('full')
@@ -306,8 +371,12 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
   const [history, setHistory] = useState({ past: [], future: [] })
 
   const [saveMessage, announceSave, saveStamp] = useSaveAnnouncer()
-  // onChange kaydeder; false dönerse depolama yazılamadı
-  const save = (next) => announceSave(onChange(next))
+  // onChange bu tarayıcıya yazar; false dönerse depolama yazılamadı. Giriş yapılmışsa "Kaydedildi"
+  // damgası yalnızca Kaydet düğmesinde görünür; burada yalnızca depolama hatası duyurulur.
+  const save = (next) => {
+    const ok = onChange(next)
+    if (!cloud || ok === false) announceSave(ok)
+  }
   const commit = (next) => {
     if (JSON.stringify(next) === JSON.stringify(avatar)) return
     setHistory((h) => ({ past: [...h.past, avatar].slice(-HISTORY_LIMIT), future: [] }))
@@ -393,7 +462,9 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
         <div>
           <h1>Avatar atölyesi</h1>
           <p className="site-muted">
-            Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler hemen kaydedilir.
+            {cloud
+              ? 'Burada yaptığın avatar odalarda “Sen” olarak oturur. Odadakilerin de görmesi için Kaydet’e bas.'
+              : 'Burada yaptığın avatar odalarda “Sen” olarak oturur. Değişiklikler bu tarayıcıda hemen kaydedilir.'}
             {saveStamp && (
               <span key={saveStamp.id} className="save-stamp" data-ok={saveStamp.ok ? '' : undefined} aria-hidden="true">
                 {saveStamp.ok && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5L20 7" /></svg>}
@@ -406,6 +477,7 @@ export default function AvatarPage({ avatar, onChange, onEnterRoom }) {
           </p>
         </div>
         <div className="avatar-workshop__tools">
+          {cloud && <CloudSave cloud={cloud} />}
           {onEnterRoom && (
             <button type="button" className="site-btn avatar-workshop__enter" onClick={onEnterRoom}>
               Bu hâliyle odama gir

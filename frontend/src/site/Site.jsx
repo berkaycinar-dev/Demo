@@ -7,7 +7,7 @@ import HelpPage from './HelpPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
 import Icon from './AvatarIcons'
-import { loadAvatar, pushAvatar, saveAvatar, syncAvatar } from './avatarStore'
+import { loadAvatar, sameLook, saveAvatar, saveAvatarToServer, syncAvatar } from './avatarStore'
 import CreateRoomPage from './CreateRoomPage'
 import HomePage from './HomePage'
 import LandingPage from './LandingPage'
@@ -105,6 +105,9 @@ export default function Site() {
   const [joined, setJoined] = useState(() => (user ? loadJoined(user) : []))
   const [currentId, setCurrentId] = useState(() => (user ? loadCurrentId() : null))
   const [avatar, setAvatar] = useState(loadAvatar)
+  // Sunucuda kayıtlı avatar: undefined = henüz okunmadı, null = hiç kaydedilmemiş.
+  const [serverAvatar, setServerAvatar] = useState(undefined)
+  const [avatarCloud, setAvatarCloud] = useState({ saving: false, error: '' })
   const [focusMode, setFocusMode] = useState(false)
   // Kullanıcının gezinerek geldiği sayfa. Açılışta (yenileme) null: sayfa geçiş hareketi, varış
   // levhası ve odak taşıma yalnızca bir gezinmeden sonra olur.
@@ -190,17 +193,21 @@ export default function Site() {
     }
   }, [listsRooms, page])
 
-  // Girişte avatar sunucuyla eşitlenir: sunucudaki varsa o gösterilir, yoksa buradaki yüklenir.
-  // Odadaki başkaları avatarı sunucudan okur.
+  // Girişte sunucudaki avatar okunur: varsa o gösterilir. Odadaki başkaları avatarı sunucudan okur;
+  // değişiklikler avatar sayfasındaki Kaydet ile sunucuya gider.
   const userId = user?.id
   useEffect(() => {
     if (!userId) return undefined
     let stale = false
     syncAvatar(loadAvatar())
       .then((next) => {
-        if (!stale && next) setAvatar(next)
+        if (stale) return
+        if (next) setAvatar(next)
+        setServerAvatar(next)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!stale) setServerAvatar(null)
+      })
     return () => {
       stale = true
     }
@@ -314,9 +321,27 @@ export default function Site() {
   }
   const changeAvatar = (next) => {
     setAvatar(next)
-    if (user) pushAvatar(next, () => setNotice('Avatarın sunucuya kaydedilemedi; odadakiler eski görünümü görebilir.'))
     return saveAvatar(next)
   }
+  // Kaydet: avatar sunucuya gider. Kaydederken avatar yine değişirse düğme tekrar "Kaydet" olur.
+  const saveAvatarCloud = async () => {
+    setAvatarCloud({ saving: true, error: '' })
+    try {
+      setServerAvatar(await saveAvatarToServer(avatar))
+      setAvatarCloud({ saving: false, error: '' })
+    } catch (e) {
+      setAvatarCloud({ saving: false, error: errorText(e, 'Kaydedilemedi. Tekrar dene.') })
+    }
+  }
+  const avatarCloudState = user
+    ? {
+        loading: serverAvatar === undefined,
+        dirty: !sameLook(avatar, serverAvatar),
+        saving: avatarCloud.saving,
+        error: avatarCloud.error,
+        onSave: saveAvatarCloud,
+      }
+    : null
   const signedIn = (u) => {
     setUser(u)
     setJoined(loadJoined(u))
@@ -410,7 +435,7 @@ export default function Site() {
           />
         )}
         {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} isDark={isDark} />}
-        {page === 'avatar' && <AvatarPage avatar={myAvatar} onChange={changeAvatar} onEnterRoom={() => go('odam')} />}
+        {page === 'avatar' && <AvatarPage avatar={myAvatar} onChange={changeAvatar} cloud={avatarCloudState} onEnterRoom={() => go('odam')} />}
         {page === 'hesap' && (
           <AccountPage
             user={user}
