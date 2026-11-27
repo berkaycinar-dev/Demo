@@ -2944,6 +2944,47 @@
   margin-top: 4px;
 }
 
+/* avatar: kaydetmeden çıkış uyarısı (davet kodu penceresinin kabuğu) */
+.unsaved-dialog {
+  --unsaved-warn: #b4432f;
+  width: min(480px, calc(100vw - 32px));
+}
+
+:root[data-mode='dark'] .unsaved-dialog {
+  --unsaved-warn: #f08a72;
+}
+
+.unsaved-dialog__icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* atma düğmesi: geri dönüşü yok, uyarı renginde yazı */
+.unsaved-dialog__discard {
+  color: var(--unsaved-warn);
+  border-color: color-mix(in srgb, var(--unsaved-warn) 45%, var(--line-strong));
+}
+
+.unsaved-dialog__discard:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--unsaved-warn) 8%, transparent);
+}
+
+/* Vazgeç solda, iki karar sağda */
+.unsaved-dialog__foot > :first-child {
+  margin-right: auto;
+}
+
+@media (max-width: 480px) {
+  .unsaved-dialog__foot {
+    flex-direction: column-reverse;
+  }
+
+  .unsaved-dialog__foot > .site-btn {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+
 /* şifre koşulları listesi */
 .pass-rules {
   display: flex;
