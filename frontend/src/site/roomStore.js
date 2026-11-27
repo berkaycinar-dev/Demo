@@ -28,10 +28,24 @@ export function fromApi(r) {
     capacity: r.maxMembers,
     access: r.visibility === 'PRIVATE' ? 'invite' : 'public',
     code: r.inviteCode ?? undefined,
+    // davetli odanın üye sayısı (herkese açık odada üyelik yok: 0)
     memberCount: r.memberCount,
+    // şu an içeride olan kişi sayısı (doluluk bununla gösterilir)
+    insideCount: Number.isFinite(r.insideCount) ? r.insideCount : 0,
     myRole: r.myRole ?? null,
   }
 }
+
+// Sunucunun sınırları (RoomService.MAX_OWNED_ROOMS / MAX_JOINED_ROOMS): en fazla bu kadar oda kurulur ve
+// başkasının bu kadar davetli odasına üye olunur. Sınıra gelince sunucu ROOM_LIMIT / JOIN_LIMIT der.
+export const MAX_OWNED_ROOMS = 3
+export const MAX_JOINED_ROOMS = 5
+
+/** Odayı siler (yalnızca sahibi). İçeridekiler Lobi'ye döner. */
+export const deleteRoom = (roomId) => api(`/api/v1/rooms/${roomId}`, { method: 'DELETE' })
+
+/** Davetli odanın üyeliğinden ayrılır (sahip ayrılamaz, odayı siler). */
+export const leaveRoom = (roomId) => api(`/api/v1/rooms/${roomId}/leave`, { method: 'POST' })
 
 /** Herkese açık odalar + üyesi olduğun (gizliler dahil) odalar; en yeni başta, tekrarsız. */
 export async function fetchRooms() {

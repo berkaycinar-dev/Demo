@@ -50,11 +50,25 @@ tags:
       listed and need the invite code to join. For a user who is not a member, a private room looks
       like it does not exist (404 `ROOM_NOT_FOUND`), so ids cannot be probed.
 
-      **Roles (room membership, not in the JWT).** `OWNER` (exactly one per room, the creator) and `MEMBER`.
-      The owner sees the invite code; members do not. Roles are read from the database on every check,
-      so a change applies at once. D's STOMP checks call `RoomAccessChecker` (`isMember`, `roleOf`).
+      **Membership only in private rooms.** A public room has no members: anyone signed in enters while
+      a seat is free (409 `ROOM_FULL` otherwise), works and leaves; `join`/`leave` change nothing there.
+      A private room keeps members: you join once with the invite code and stay a member until you
+      leave. A member who is not inside (closed the app, in another room) is still listed in the room,
+      as `AWAY` at their own seat (`ActiveMemberResponse.online` false).
 
-      **Capacity.** `maxMembers` is 2 to 10 (default 8). Joining a full room gives 409 `ROOM_FULL`.
+      **Limits.** A user creates at most 3 rooms (409 `ROOM_LIMIT`) and is a member of at most 5 other
+      people's private rooms (409 `JOIN_LIMIT`). The client then asks the user to delete or leave a room.
+
+      **Deleting.** Only the owner deletes a room (`DELETE /api/v1/rooms/{roomId}`; 409 `NOT_ROOM_OWNER`
+      otherwise). Members and visits go with it; `ROOM_DELETED` is published so people inside go back.
+
+      **Roles (not in the JWT).** `OWNER` (the creator, `ownerId`) and `MEMBER` (a private room's member).
+      The owner sees the invite code; members do not. Roles are read from the database on every check,
+      so a change applies at once. D's STOMP checks call `RoomAccessChecker` (`canAccess`: any public
+      room, a private room as a member; `roleOf`).
+
+      **Capacity.** `maxMembers` is 2 to 10 (default 8): people inside a public room, members of a
+      private room. Past it the answer is 409 `ROOM_FULL`.
 
       **Events.** On a first join the server publishes `MEMBER_JOINED` through `RoomEventPublisher`
       with payload `{roomId, userId, username, role}`. When a member gives up membership (`leave`) it
@@ -359,7 +373,9 @@ paths:
       tags: [rooms]
       operationId: createRoom
       summary: Create a room
-      description: The caller becomes the `OWNER` and the first member. A private room gets an invite code.
+      description: |
+        The caller becomes the `OWNER`. A private room gets an invite code and the owner as its first
+        member (public rooms have no members). A user creates at most 3 rooms.
       security:
         - bearerAuth: []
       requestBody:
@@ -379,6 +395,12 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthenticated"
+        "409":
+          description: The caller already created 3 rooms (`code` is ROOM_LIMIT); delete one first.
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/rooms/{roomId}:
     get:
@@ -401,6 +423,30 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "404":
           $ref: "#/components/responses/RoomNotFound"
+    delete:
+      tags: [rooms]
+      operationId: deleteRoom
+      summary: Delete a room (owner only)
+      description: |
+        Deletes the room with its members and visits. Only the owner can. `ROOM_DELETED` is published
+        after the commit; people inside go back to the lobby.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/RoomId"
+      responses:
+        "204":
+          description: Room deleted
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/RoomNotFound"
+        "409":
+          description: The caller is not the owner (`code` is NOT_ROOM_OWNER).
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /api/v1/rooms/{roomId}/join:
     post:
@@ -433,7 +479,7 @@ paths:
         "404":
           $ref: "#/components/responses/RoomNotFound"
         "409":
-          description: Room is full (`code` is ROOM_FULL).
+          description: Room is full (`code` is ROOM_FULL), or the caller is already in 5 other people's private rooms (`code` is JOIN_LIMIT).
           content:
             application/problem+json:
               schema:
@@ -477,7 +523,7 @@ paths:
         "404":
           $ref: "#/components/responses/RoomNotFound"
         "409":
-          description: Room is full (`code` is ROOM_FULL).
+          description: Room is full (`code` is ROOM_FULL), or the caller is already in 5 other people's private rooms (`code` is JOIN_LIMIT).
           content:
             application/problem+json:
               schema:
@@ -528,9 +574,10 @@ paths:
       operationId: enterRoom
       summary: Enter a room (open a session)
       description: |
-        Members only. If the caller already has an open session in this room it is kept and refreshed,
-        so a page reload does not create a second one. A private room is 404 for non-members;
-        a public room answers 409 `NOT_A_MEMBER` (join it first).
+        Public room: anyone signed in, while a seat is free (409 `ROOM_FULL` otherwise); the seat of the
+        last visit is given again when free. Private room: members only (404 for others), at their member
+        seat. If the caller already has an open session in this room it is kept and refreshed, so a page
+        reload does not create a second one.
       security:
         - bearerAuth: []
       parameters:
@@ -1090,6 +1137,10 @@ components:
           type: integer
         memberCount:
           type: integer
+          description: Members of a private room (public rooms have none, 0).
+        insideCount:
+          type: integer
+          description: People inside the room now (open sessions).
         ownerId:
           type: string
           format: uuid
@@ -1144,6 +1195,11 @@ components:
             - $ref: "#/components/schemas/Avatar"
           nullable: true
           description: This person's saved avatar, or null if they never saved one.
+        online:
+          type: boolean
+          description: |
+            True when inside now. A private room's member who is not inside is listed with online false,
+            status AWAY, startedAt null and statusSince = when they left.
         seat:
           type: integer
           nullable: true

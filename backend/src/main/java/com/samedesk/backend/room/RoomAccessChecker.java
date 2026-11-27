@@ -12,7 +12,11 @@ import java.util.UUID;
  */
 public interface RoomAccessChecker {
 
+    /** Member of a private room (public rooms have no members). */
     boolean isMember(UUID userId, UUID roomId);
+
+    /** May see the room and its events: any public room, a private room only as a member. */
+    boolean canAccess(UUID userId, UUID roomId);
 
     /** True while the user has an open session in the room (entered and not yet exited or timed out). */
     boolean hasActiveSession(UUID userId, UUID roomId);

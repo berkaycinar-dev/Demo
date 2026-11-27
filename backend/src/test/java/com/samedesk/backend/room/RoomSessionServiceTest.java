@@ -61,13 +61,78 @@ class RoomSessionServiceTest {
     }
 
     @Test
-    void enterPublicRoomWithoutMembershipAsksToJoinFirst() {
+    void anyoneEntersAPublicRoomWithoutMembership() {
         stubRoom(RoomVisibility.PUBLIC, false);
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+        when(sessions.save(any(RoomSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.enter(ME, ROOM);
+
+        verify(sessions).save(any(RoomSession.class));
+    }
+
+    @Test
+    void aFullPublicRoomCannotBeEntered() {
+        stubRoom(RoomVisibility.PUBLIC, false); // 4 seats
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+        when(sessions.findSeatsTaken(ROOM)).thenReturn(List.of(0, 1, 2, 3));
 
         assertThatThrownBy(() -> service.enter(ME, ROOM))
                 .isInstanceOfSatisfying(BusinessRuleException.class,
-                        e -> assertThat(e.getCode()).isEqualTo("NOT_A_MEMBER"));
+                        e -> assertThat(e.getCode()).isEqualTo("ROOM_FULL"));
         verify(sessions, never()).save(any());
+    }
+
+    @Test
+    void aPrivateRoomMemberSitsAtTheirMemberSeat() {
+        stubRoom(RoomVisibility.PRIVATE, true); // member seat 2
+        when(sessions.findByRoomIdAndUserIdAndEndedAtIsNull(ROOM, ME)).thenReturn(Optional.empty());
+        when(sessions.save(any(RoomSession.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.enter(ME, ROOM);
+
+        org.mockito.ArgumentCaptor<RoomSession> saved = org.mockito.ArgumentCaptor.forClass(RoomSession.class);
+        verify(sessions).save(saved.capture());
+        assertThat(saved.getValue().getSeat()).isEqualTo(2);
+        verify(sessions, never()).findSeatsTaken(any());
+    }
+
+    @Test
+    void aPrivateRoomListsEveryMemberAndThoseNotInsideAsAway() {
+        stubRoomForRead(RoomVisibility.PRIVATE, true);
+        UUID other = UUID.randomUUID();
+        when(sessions.findMemberPresence(ROOM)).thenReturn(List.of(
+                presence(ME, 0, NOW.minusSeconds(600), PresenceStatus.FOCUS, null),
+                presence(other, 1, null, null, NOW.minusSeconds(3600))));
+
+        List<ActiveMemberResponse> res = service.active(ME, ROOM);
+
+        assertThat(res).hasSize(2);
+        assertThat(res.get(0).online()).isTrue();
+        assertThat(res.get(0).status()).isEqualTo(PresenceStatus.FOCUS);
+        assertThat(res.get(1).online()).isFalse();
+        assertThat(res.get(1).status()).isEqualTo(PresenceStatus.AWAY); // closed the app / in another room
+        assertThat(res.get(1).seat()).isEqualTo(1);
+        assertThat(res.get(1).statusSince()).isEqualTo(NOW.minusSeconds(3600)); // away since they left
+        verify(sessions, never()).findActive(any());
+    }
+
+    private static RoomSessionRepository.MemberPresence presence(UUID user, int seat, Instant startedAt,
+                                                                 PresenceStatus status, Instant lastLeftAt) {
+        return new RoomSessionRepository.MemberPresence() {
+            public UUID getUserId() { return user; }
+            public String getUsername() { return "u" + seat; }
+            public RoomRole getRole() { return RoomRole.MEMBER; }
+            public Integer getSeat() { return seat; }
+            public String getAvatar() { return null; }
+            public Instant getJoinedAt() { return NOW.minusSeconds(86400); }
+            public Instant getStartedAt() { return startedAt; }
+            public PresenceStatus getStatus() { return status; }
+            public String getBreakSpot() { return null; }
+            public Integer getBreakSlot() { return null; }
+            public Instant getStatusSince() { return startedAt; }
+            public Instant getLastLeftAt() { return lastLeftAt; }
+        };
     }
 
     @Test
@@ -367,13 +432,20 @@ class RoomSessionServiceTest {
     private void stubRoom(RoomVisibility visibility, boolean member) {
         Room room = room(visibility);
         when(rooms.findByIdForUpdate(ROOM)).thenReturn(Optional.of(room));
-        when(members.existsByRoomIdAndUserId(ROOM, ME)).thenReturn(member);
+        stubMember(member);
     }
 
     private void stubRoomForRead(RoomVisibility visibility, boolean member) {
         Room room = room(visibility);
         when(rooms.findById(ROOM)).thenReturn(Optional.of(room));
+        stubMember(member);
+    }
+
+    // ME as a member at seat 2 (only private rooms have members)
+    private void stubMember(boolean member) {
         when(members.existsByRoomIdAndUserId(ROOM, ME)).thenReturn(member);
+        when(members.findByRoomIdAndUserId(ROOM, ME))
+                .thenReturn(member ? Optional.of(new RoomMember(ROOM, ME, RoomRole.MEMBER, NOW, 2)) : Optional.empty());
     }
 
     private static Room room(RoomVisibility visibility) {

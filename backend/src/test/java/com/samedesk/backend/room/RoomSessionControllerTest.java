@@ -111,10 +111,11 @@ class RoomSessionControllerTest {
         when(sessionService.active(ME, ROOM)).thenReturn(List.of(
                 new ActiveMemberResponse(ME, "ada_l", RoomRole.MEMBER, Instant.parse("2026-11-09T10:00:00Z"),
                         "{\"body\":\"female\",\"bangs\":true}", 0, PresenceStatus.BREAK, "sofa", 1,
-                        Instant.parse("2026-11-09T10:05:00Z")),
+                        Instant.parse("2026-11-09T10:05:00Z"), true),
+                // a private room's member who is not inside: away at their seat
                 new ActiveMemberResponse(UUID.randomUUID(), "bob_b", RoomRole.MEMBER,
-                        Instant.parse("2026-11-09T10:01:00Z"), null, 1, PresenceStatus.FOCUS, null, null,
-                        Instant.parse("2026-11-09T10:01:00Z"))));
+                        null, null, 1, PresenceStatus.AWAY, null, null,
+                        Instant.parse("2026-11-09T10:01:00Z"), false)));
 
         mockMvc.perform(get(BASE + "/active"))
                 .andExpect(status().isOk())
@@ -131,7 +132,10 @@ class RoomSessionControllerTest {
                 .andExpect(jsonPath("$[0].seat").value(0))
                 .andExpect(jsonPath("$[0].statusSince").exists())
                 .andExpect(jsonPath("$[1].avatar").isEmpty())
-                .andExpect(jsonPath("$[1].status").value("FOCUS"));
+                .andExpect(jsonPath("$[1].status").value("AWAY"))
+                .andExpect(jsonPath("$[0].online").value(true))
+                .andExpect(jsonPath("$[1].online").value(false))
+                .andExpect(jsonPath("$[1].startedAt").isEmpty());
     }
 
     @Test

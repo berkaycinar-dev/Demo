@@ -11,7 +11,11 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
-/** One user's membership (and role) in one room. Maps the {@code room_members} table (V4). */
+/**
+ * One user's membership (and role) in one private room. Maps the {@code room_members} table (V4, V10).
+ * Public rooms have no members. seat: the member's desk, kept while they are a member (inside they sit
+ * there; when not inside they are shown there as away).
+ */
 @Entity
 @Table(name = "room_members")
 public class RoomMember {
@@ -33,15 +37,19 @@ public class RoomMember {
     @Column(name = "joined_at", nullable = false, updatable = false)
     private Instant joinedAt;
 
+    @Column(nullable = false)
+    private int seat;
+
     protected RoomMember() {
         // for JPA
     }
 
-    public RoomMember(UUID roomId, UUID userId, RoomRole role, Instant joinedAt) {
+    public RoomMember(UUID roomId, UUID userId, RoomRole role, Instant joinedAt, int seat) {
         this.roomId = roomId;
         this.userId = userId;
         this.role = role;
         this.joinedAt = joinedAt;
+        this.seat = seat;
     }
 
     public UUID getRoomId() {
@@ -54,5 +62,13 @@ public class RoomMember {
 
     public RoomRole getRole() {
         return role;
+    }
+
+    public Instant getJoinedAt() {
+        return joinedAt;
+    }
+
+    public int getSeat() {
+        return seat;
     }
 }

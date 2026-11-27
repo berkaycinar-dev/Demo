@@ -29,9 +29,13 @@ const PRESENCE = { IDLE: 'idle', FOCUS: 'focus', BREAK: 'break', AWAY: 'away' }
  * { mates, mySeat, reload }. mates: [{ id, name, avatar, seat, joinedAt, presence: { status, spot, slot,
  * since } }] ya da yüklenene kadar []. seat / mySeat: sunucunun verdiği koltuk numarası (herkeste aynı),
  * bilinmiyorsa null. joinedAt / since: ms (sunucunun startedAt / statusSince değeri), okunamazsa null. */
-function useLiveMates(roomId, meId) {
+function useLiveMates(roomId, meId, onGone) {
   const [members, setMembers] = useState([])
   const loadRef = useRef(() => {})
+  const goneRef = useRef(onGone)
+  useLayoutEffect(() => {
+    goneRef.current = onGone
+  })
   useEffect(() => {
     let stopped = false
     let last = ''
@@ -44,7 +48,10 @@ function useLiveMates(roomId, meId) {
           last = key
           setMembers(list)
         })
-        .catch(() => {})
+        .catch((e) => {
+          // oda silindi (sahibi kapattı): sayfa Lobi'ye döner
+          if (!stopped && e.code === 'ROOM_NOT_FOUND') goneRef.current?.(roomId)
+        })
     loadRef.current = load
     load()
     const id = setInterval(load, MEMBERS_POLL_MS)
@@ -165,6 +172,7 @@ const SPOT_COPY = {
 
 const SCENE_HINT = 'Halkaya tıkla: mola yerini seç · Sürükle: döndür'
 const LEAVE = 'Odadan çık'
+const DELETE_ROOM = 'Odayı sil'
 // Kişi listesi yalnızca şu an odada olanları gösterir. Başkalarının bugünkü odak süresi sunucuda yok;
 // uydurulmaz (seninki sayaçtaki "Bugün" satırında).
 const PEOPLE_COPY = { title: 'Odadakiler', list: 'Şu an buradakiler' }
@@ -393,7 +401,7 @@ function StatusMenu({ status, away, onAway, spotName, aside, children }) {
   )
 }
 
-function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, onTimerModeChange, onLeave, focusMode, onFocusModeChange, arriving }) {
+function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, onTimerModeChange, onLeave, onDelete, onGone, focusMode, onFocusModeChange, arriving }) {
   const [spot, setSpot] = useState(null)
   const [spots, setSpots] = useState([])
   const [names, setNames] = useState(false)
@@ -421,7 +429,7 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
   }
   const { Room } = THEMES[room.theme]
   const [away, setAway] = useState(false)
-  const { mates, mySeat, reload: reloadMates } = useLiveMates(room.id, meId)
+  const { mates, mySeat, reload: reloadMates } = useLiveMates(room.id, meId, onGone)
   // Sunucunun dolu dediği köşeler (o mola boyunca kalabalık bunlara gitmez), avatarının şu an
   // yöneldiği köşe (kalabalık bildirir: { id, capacity, slot } | null) ve sunucunun o köşede verdiği yer
   // ({ spot, slot } | null; avatar oraya geçer, herkes seni aynı yerde görür).
@@ -630,6 +638,12 @@ function RoomView({ room, meId, username, avatar, timer, stopwatch, timerMode, o
               <button type="button" className="site-btn site-btn--small desk__leave" onClick={leave}>
                 {LEAVE}
               </button>
+              {/* yalnızca odanın sahibi odayı kapatabilir (onaylı) */}
+              {room.myRole === 'OWNER' && onDelete && (
+                <button type="button" className="site-btn site-btn--small desk__delete" onClick={onDelete}>
+                  {DELETE_ROOM}
+                </button>
+              )}
             </span>
           }
         >

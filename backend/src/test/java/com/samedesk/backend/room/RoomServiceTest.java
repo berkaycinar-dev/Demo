@@ -21,7 +21,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +45,7 @@ class RoomServiceTest {
     // ---------- create ----------
 
     @Test
-    void createUsesDefaultsAndMakesCallerOwner() {
+    void createPublicRoomMakesCallerOwnerWithoutMembership() {
         stubSaveAssignsId();
 
         RoomResponse res = service.create(ME, new CreateRoomRequest("  Algoritma  ", null, null, null));
@@ -54,24 +53,35 @@ class RoomServiceTest {
         assertThat(res.name()).isEqualTo("Algoritma");
         assertThat(res.visibility()).isEqualTo(RoomVisibility.PUBLIC);
         assertThat(res.maxMembers()).isEqualTo(8);
-        assertThat(res.memberCount()).isEqualTo(1);
+        assertThat(res.memberCount()).isZero(); // public rooms have no members
         assertThat(res.myRole()).isEqualTo(RoomRole.OWNER);
         assertThat(res.inviteCode()).isNull();
-
-        ArgumentCaptor<RoomMember> member = ArgumentCaptor.forClass(RoomMember.class);
-        verify(members).save(member.capture());
-        assertThat(member.getValue().getUserId()).isEqualTo(ME);
-        assertThat(member.getValue().getRole()).isEqualTo(RoomRole.OWNER);
+        verify(members, never()).save(any());
     }
 
     @Test
-    void createPrivateRoomGeneratesInviteCodeForOwner() {
+    void createPrivateRoomGeneratesInviteCodeAndMakesOwnerTheFirstMember() {
         stubSaveAssignsId();
 
         RoomResponse res = service.create(ME, new CreateRoomRequest("Gizli", "x", RoomVisibility.PRIVATE, 4));
 
         assertThat(res.maxMembers()).isEqualTo(4);
+        assertThat(res.memberCount()).isEqualTo(1);
         assertThat(res.inviteCode()).hasSize(8).matches("[A-HJ-NP-Z2-9]{8}");
+        ArgumentCaptor<RoomMember> member = ArgumentCaptor.forClass(RoomMember.class);
+        verify(members).save(member.capture());
+        assertThat(member.getValue().getRole()).isEqualTo(RoomRole.OWNER);
+        assertThat(member.getValue().getSeat()).isZero();
+    }
+
+    @Test
+    void createBeyondTheRoomLimitIsRefused() {
+        when(rooms.countByOwnerId(ME)).thenReturn((long) RoomService.MAX_OWNED_ROOMS);
+
+        assertThatThrownBy(() -> service.create(ME, new CreateRoomRequest("Dördüncü", null, null, null)))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("ROOM_LIMIT"));
+        verify(rooms, never()).saveAndFlush(any());
     }
 
     @Test
@@ -111,31 +121,55 @@ class RoomServiceTest {
         when(rooms.findById(room.getId())).thenReturn(Optional.of(room));
         when(members.countByRoomId(room.getId())).thenReturn(2L);
 
-        when(members.findByRoomIdAndUserId(room.getId(), ME))
-                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.OWNER, NOW)));
-        assertThat(service.get(ME, room.getId()).inviteCode()).isEqualTo("CODE2345");
-
         when(members.findByRoomIdAndUserId(room.getId(), OTHER))
-                .thenReturn(Optional.of(new RoomMember(room.getId(), OTHER, RoomRole.MEMBER, NOW)));
-        RoomResponse asMember = service.get(OTHER, room.getId());
+                .thenReturn(Optional.of(new RoomMember(room.getId(), OTHER, RoomRole.OWNER, NOW, 0)));
+        assertThat(service.get(OTHER, room.getId()).inviteCode()).isEqualTo("CODE2345");
+
+        when(members.findByRoomIdAndUserId(room.getId(), ME))
+                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW, 1)));
+        RoomResponse asMember = service.get(ME, room.getId());
         assertThat(asMember.inviteCode()).isNull();
         assertThat(asMember.myRole()).isEqualTo(RoomRole.MEMBER);
+    }
+
+    @Test
+    void getPublicRoomIsOpenToEveryoneAndCountsPeopleInside() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findById(room.getId())).thenReturn(Optional.of(room));
+        when(sessions.countByRoomIdAndEndedAtIsNull(room.getId())).thenReturn(3L);
+
+        RoomResponse res = service.get(ME, room.getId());
+
+        assertThat(res.insideCount()).isEqualTo(3);
+        assertThat(res.myRole()).isNull();
     }
 
     // ---------- join ----------
 
     @Test
-    void joinPublicRoomAddsMemberAndPublishesEvent() {
+    void joinPublicRoomCreatesNoMembership() {
         Room room = room(RoomVisibility.PUBLIC, null, 4);
         when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(1L);
-        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
 
         RoomResponse res = service.join(ME, room.getId(), null);
 
+        assertThat(res.myRole()).isNull();
+        verify(members, never()).save(any());
+        verify(events, never()).publish(any(), any(), any());
+    }
+
+    @Test
+    void joinPrivateRoomAddsMemberAtTheLowestFreeSeatAndPublishesEvent() {
+        Room room = stubPrivateRoomToJoin(4, 2L);
+        when(members.findSeats(room.getId())).thenReturn(List.of(0, 2));
+
+        RoomResponse res = service.join(ME, room.getId(), "CODE2345");
+
         assertThat(res.myRole()).isEqualTo(RoomRole.MEMBER);
-        assertThat(res.memberCount()).isEqualTo(2);
+        assertThat(res.memberCount()).isEqualTo(3);
+        ArgumentCaptor<RoomMember> saved = ArgumentCaptor.forClass(RoomMember.class);
+        verify(members).save(saved.capture());
+        assertThat(saved.getValue().getSeat()).isEqualTo(1);
         ArgumentCaptor<Object> payload = ArgumentCaptor.forClass(Object.class);
         verify(events).publish(eq(room.getId().toString()), eq("MEMBER_JOINED"), payload.capture());
         MemberJoinedEvent event = (MemberJoinedEvent) payload.getValue();
@@ -146,39 +180,43 @@ class RoomServiceTest {
 
     @Test
     void joinWhenAlreadyMemberChangesNothing() {
-        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
         when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
         when(members.findByRoomIdAndUserId(room.getId(), ME))
-                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.OWNER, NOW)));
+                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW, 1)));
         when(members.countByRoomId(room.getId())).thenReturn(3L);
 
         RoomResponse res = service.join(ME, room.getId(), null);
 
-        assertThat(res.myRole()).isEqualTo(RoomRole.OWNER);
+        assertThat(res.myRole()).isEqualTo(RoomRole.MEMBER);
         verify(members, never()).save(any());
         verify(events, never()).publish(any(), any(), any());
     }
 
     @Test
-    void joinFullRoomIsRejected() {
-        Room room = room(RoomVisibility.PUBLIC, null, 2);
-        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(2L);
+    void joinFullPrivateRoomIsRejected() {
+        Room room = stubPrivateRoomToJoin(2, 2L);
 
-        assertThatThrownBy(() -> service.join(ME, room.getId(), null))
+        assertThatThrownBy(() -> service.join(ME, room.getId(), "CODE2345"))
                 .isInstanceOfSatisfying(BusinessRuleException.class,
                         e -> assertThat(e.getCode()).isEqualTo("ROOM_FULL"));
         verify(members, never()).save(any());
     }
 
     @Test
+    void joinBeyondTheInviteRoomLimitIsRefused() {
+        Room room = stubPrivateRoomToJoin(4, 1L);
+        when(members.countByUserIdAndRole(ME, RoomRole.MEMBER)).thenReturn((long) RoomService.MAX_JOINED_ROOMS);
+
+        assertThatThrownBy(() -> service.join(ME, room.getId(), "CODE2345"))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("JOIN_LIMIT"));
+        verify(members, never()).save(any());
+    }
+
+    @Test
     void joinPrivateRoomNeedsRightInviteCode() {
-        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
-        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(1L);
-        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+        Room room = stubPrivateRoomToJoin(4, 1L);
 
         for (String bad : new String[] {null, "", "WRONG999"}) {
             assertThatThrownBy(() -> service.join(ME, room.getId(), bad))
@@ -193,12 +231,8 @@ class RoomServiceTest {
 
     @Test
     void joinByCodeFindsThePrivateRoomAndJoinsIt() {
-        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
+        Room room = stubPrivateRoomToJoin(4, 1L);
         when(rooms.findByInviteCode("CODE2345")).thenReturn(Optional.of(room));
-        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(1L);
-        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
 
         // typed by hand: lower case and spaces are forgiven
         RoomResponse res = service.joinByCode(ME, " code 2345 ");
@@ -220,19 +254,6 @@ class RoomServiceTest {
     }
 
     @Test
-    void joinByCodeIntoAFullRoomIsRejected() {
-        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 2);
-        when(rooms.findByInviteCode("CODE2345")).thenReturn(Optional.of(room));
-        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(2L);
-
-        assertThatThrownBy(() -> service.joinByCode(ME, "CODE2345"))
-                .isInstanceOfSatisfying(BusinessRuleException.class,
-                        e -> assertThat(e.getCode()).isEqualTo("ROOM_FULL"));
-    }
-
-    @Test
     void normalizeCodeIgnoresTheJvmLocale() {
         Locale before = Locale.getDefault();
         try {
@@ -247,15 +268,11 @@ class RoomServiceTest {
 
     @Test
     void joinPublishesOnlyAfterTheTransactionCommits() {
-        Room room = room(RoomVisibility.PUBLIC, null, 4);
-        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(1L);
-        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+        Room room = stubPrivateRoomToJoin(4, 1L);
 
         TransactionSynchronizationManager.initSynchronization();
         try {
-            service.join(ME, room.getId(), null);
+            service.join(ME, room.getId(), "CODE2345");
             verify(events, never()).publish(any(), any(), any());
 
             for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
@@ -269,15 +286,11 @@ class RoomServiceTest {
 
     @Test
     void joinDoesNotPublishWhenTheTransactionRollsBack() {
-        Room room = room(RoomVisibility.PUBLIC, null, 4);
-        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
-        when(members.countByRoomId(room.getId())).thenReturn(1L);
-        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+        Room room = stubPrivateRoomToJoin(4, 1L);
 
         TransactionSynchronizationManager.initSynchronization();
         try {
-            service.join(ME, room.getId(), null);
+            service.join(ME, room.getId(), "CODE2345");
             for (TransactionSynchronization sync : TransactionSynchronizationManager.getSynchronizations()) {
                 sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
             }
@@ -291,8 +304,8 @@ class RoomServiceTest {
 
     @Test
     void leaveRemovesMemberClosesOpenSessionAndPublishesEvent() {
-        Room room = room(RoomVisibility.PUBLIC, null, 4);
-        RoomMember member = new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW);
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
+        RoomMember member = new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW, 1);
         RoomSession open = new RoomSession(room.getId(), ME, NOW.minusSeconds(600));
         when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
         when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.of(member));
@@ -310,14 +323,13 @@ class RoomServiceTest {
         verify(events).publish(eq(room.getId().toString()), eq("MEMBER_LEFT"), payload.capture());
         MemberLeftEvent event = (MemberLeftEvent) payload.getValue();
         assertThat(event.userId()).isEqualTo(ME);
-        assertThat(event.username()).isEqualTo("ada_l");
         assertThat(event.role()).isEqualTo(RoomRole.MEMBER);
     }
 
     @Test
     void leaveWithoutOpenSessionStillRemovesMember() {
-        Room room = room(RoomVisibility.PUBLIC, null, 4);
-        RoomMember member = new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW);
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
+        RoomMember member = new RoomMember(room.getId(), ME, RoomRole.MEMBER, NOW, 1);
         when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
         when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.of(member));
         when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
@@ -330,10 +342,10 @@ class RoomServiceTest {
 
     @Test
     void ownerCannotLeave() {
-        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
         when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
         when(members.findByRoomIdAndUserId(room.getId(), ME))
-                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.OWNER, NOW)));
+                .thenReturn(Optional.of(new RoomMember(room.getId(), ME, RoomRole.OWNER, NOW, 0)));
 
         assertThatThrownBy(() -> service.leave(ME, room.getId()))
                 .isInstanceOfSatisfying(BusinessRuleException.class,
@@ -343,10 +355,9 @@ class RoomServiceTest {
     }
 
     @Test
-    void leaveWhenNotAMemberOfPublicRoomChangesNothing() {
+    void leavingAPublicRoomChangesNothing() {
         Room room = room(RoomVisibility.PUBLIC, null, 4);
         when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
-        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
 
         service.leave(ME, room.getId());
 
@@ -365,6 +376,40 @@ class RoomServiceTest {
                         e -> assertThat(e.getCode()).isEqualTo("ROOM_NOT_FOUND"));
     }
 
+    // ---------- delete ----------
+
+    @Test
+    void ownerDeletesTheRoomAndPeopleInsideHearAboutIt() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+
+        service.delete(OTHER, room.getId());
+
+        verify(rooms).delete(room);
+        verify(events).publish(eq(room.getId().toString()), eq("ROOM_DELETED"), any());
+    }
+
+    @Test
+    void someoneElseCannotDeleteTheRoom() {
+        Room room = room(RoomVisibility.PUBLIC, null, 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+
+        assertThatThrownBy(() -> service.delete(ME, room.getId()))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        e -> assertThat(e.getCode()).isEqualTo("NOT_ROOM_OWNER"));
+        verify(rooms, never()).delete(any(Room.class));
+    }
+
+    @Test
+    void deletingSomeoneElsesPrivateRoomAsOutsiderLooksLikeUnknownRoom() {
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", 4);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.existsByRoomIdAndUserId(room.getId(), ME)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.delete(ME, room.getId())).isInstanceOf(NotFoundException.class);
+        verify(rooms, never()).delete(any(Room.class));
+    }
+
     // ---------- list ----------
 
     @Test
@@ -372,30 +417,33 @@ class RoomServiceTest {
         Room a = room(RoomVisibility.PUBLIC, null, 8);
         Room b = room(RoomVisibility.PUBLIC, null, 8);
         when(rooms.findByVisibilityOrderByCreatedAtDesc(RoomVisibility.PUBLIC)).thenReturn(List.of(a, b));
-        when(members.countByRoomIds(anyCollection())).thenReturn(List.of(count(a.getId(), 3)));
-        when(members.findByUserIdAndRoomIdIn(eq(ME), anyCollection()))
-                .thenReturn(List.of(new RoomMember(b.getId(), ME, RoomRole.MEMBER, NOW)));
+        when(sessions.countInsideByRoomIds(anyCollection())).thenReturn(List.of(count(a.getId(), 3)));
 
-        List<RoomResponse> res = service.list(ME, RoomScope.PUBLIC);
+        List<RoomResponse> asOwner = service.list(OTHER, RoomScope.PUBLIC);
+        List<RoomResponse> asGuest = service.list(ME, RoomScope.PUBLIC);
 
-        assertThat(res).hasSize(2);
-        assertThat(res.get(0).memberCount()).isEqualTo(3);
-        assertThat(res.get(0).myRole()).isNull();
-        assertThat(res.get(1).memberCount()).isZero();
-        assertThat(res.get(1).myRole()).isEqualTo(RoomRole.MEMBER);
+        assertThat(asOwner).hasSize(2);
+        assertThat(asOwner.get(0).insideCount()).isEqualTo(3);
+        assertThat(asOwner.get(1).insideCount()).isZero();
+        assertThat(asOwner.get(0).myRole()).isEqualTo(RoomRole.OWNER); // public rooms: owner from rooms.owner_id
+        assertThat(asGuest.get(0).myRole()).isNull();
     }
 
     @Test
-    void listMineUsesJoinedRooms() {
+    void listMineUsesOwnedAndJoinedRooms() {
         Room a = room(RoomVisibility.PRIVATE, "CODE2345", 8);
-        when(rooms.findJoinedBy(ME)).thenReturn(List.of(a));
-        when(members.countByRoomIds(anyCollection())).thenReturn(List.of(count(a.getId(), 1)));
+        when(rooms.findMine(ME)).thenReturn(List.of(a));
+        when(members.countByRoomIds(anyCollection())).thenReturn(List.of(count(a.getId(), 2)));
         when(members.findByUserIdAndRoomIdIn(eq(ME), anyCollection()))
-                .thenReturn(List.of(new RoomMember(a.getId(), ME, RoomRole.OWNER, NOW)));
+                .thenReturn(List.of(new RoomMember(a.getId(), ME, RoomRole.MEMBER, NOW, 1)));
 
         List<RoomResponse> res = service.list(ME, RoomScope.MINE);
 
-        assertThat(res).singleElement().satisfies(r -> assertThat(r.inviteCode()).isEqualTo("CODE2345"));
+        assertThat(res).singleElement().satisfies(r -> {
+            assertThat(r.memberCount()).isEqualTo(2);
+            assertThat(r.myRole()).isEqualTo(RoomRole.MEMBER);
+            assertThat(r.inviteCode()).isNull();
+        });
         verify(rooms, never()).findByVisibilityOrderByCreatedAtDesc(any());
     }
 
@@ -407,6 +455,16 @@ class RoomServiceTest {
         verify(members, never()).countByRoomIds(any());
     }
 
+    /** A private room owned by OTHER that ME is about to join with code CODE2345 (memberCount members now). */
+    private Room stubPrivateRoomToJoin(int max, long memberCount) {
+        Room room = room(RoomVisibility.PRIVATE, "CODE2345", max);
+        when(rooms.findByIdForUpdate(room.getId())).thenReturn(Optional.of(room));
+        when(members.findByRoomIdAndUserId(room.getId(), ME)).thenReturn(Optional.empty());
+        when(members.countByRoomId(room.getId())).thenReturn(memberCount);
+        when(members.findSeats(room.getId())).thenReturn(List.of(0));
+        when(users.findById(ME)).thenReturn(Optional.of(new User("a@b.co", "ada_l", "hash", NOW)));
+        return room;
+    }
     // ---------- helpers ----------
 
     private void stubSaveAssignsId() {

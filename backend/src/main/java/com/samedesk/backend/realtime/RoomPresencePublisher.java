@@ -1,7 +1,7 @@
 package com.samedesk.backend.realtime;
 
 import com.samedesk.backend.room.ActiveMemberResponse;
-import com.samedesk.backend.room.RoomSessionRepository;
+import com.samedesk.backend.room.RoomSessionService;
 import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
@@ -19,11 +19,11 @@ class RoomPresencePublisher {
     private static final Logger log = LoggerFactory.getLogger(RoomPresencePublisher.class);
 
     private final SimpUserRegistry users;
-    private final RoomSessionRepository sessions;
+    private final RoomSessionService sessions;
     private final SimpMessagingTemplate messaging;
     private final Clock clock;
 
-    RoomPresencePublisher(SimpUserRegistry users, RoomSessionRepository sessions,
+    RoomPresencePublisher(SimpUserRegistry users, RoomSessionService sessions,
                           SimpMessagingTemplate messaging, Clock clock) {
         this.users = users;
         this.sessions = sessions;
@@ -39,9 +39,7 @@ class RoomPresencePublisher {
 
         for (UUID roomId : rooms) {
             try {
-                List<ActiveMemberResponse> members = sessions.findActive(roomId).stream()
-                        .map(ActiveMemberResponse::of)
-                        .toList();
+                List<ActiveMemberResponse> members = sessions.presence(roomId);
                 var snapshot = new StompRoomEventPublisher.RoomEvent(1, UUID.randomUUID(), "PRESENCE_SNAPSHOT",
                         roomId, clock.instant().toString(), new Presence(members));
                 messaging.convertAndSend(StompRoomAccess.presenceDestination(roomId), snapshot);

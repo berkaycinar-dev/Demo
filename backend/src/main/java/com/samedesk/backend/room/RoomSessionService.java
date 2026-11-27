@@ -13,13 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
  * Who is inside a room right now, and for how long: enter, heartbeat, exit, list, and the
  * clean-up of sessions whose connection was lost.
  *
- * Only members can have a session. Joining a room (membership) is RoomService's job.
+ * Public room: anyone signed in enters while a seat is free (ROOM_FULL otherwise). Private room: only
+ * members enter, at their member seat; a member who is not inside is listed as away. Joining a private
+ * room (membership) is RoomService's job.
  */
 @Service
 public class RoomSessionService {
 
     static final String SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
-    static final String NOT_A_MEMBER = "NOT_A_MEMBER";
     static final String SPOT_TAKEN = "SPOT_TAKEN";
     /** Most break spots have two places (frontend AvatarCrowd); used when the client does not say. */
     static final int DEFAULT_SPOT_CAPACITY = 2;
@@ -40,29 +41,37 @@ public class RoomSessionService {
     /**
      * Opens a session. If the caller already has an open one, it is kept and refreshed
      * (a page reload must not create a second row). The room row is locked so two requests
-     * of the same user cannot both insert.
+     * cannot both take the last seat or insert twice.
      */
     @Transactional
     public RoomSessionResponse enter(UUID userId, UUID roomId) {
         Room room = rooms.findByIdForUpdate(roomId).orElseThrow(RoomSessionService::roomNotFound);
-        requireMember(room, userId);
+        RoomMember member = room.getVisibility() == RoomVisibility.PRIVATE ? requireMember(room, userId) : null;
 
         Instant now = clock.instant();
         RoomSession session = sessions.findByRoomIdAndUserIdAndEndedAtIsNull(roomId, userId).orElse(null);
         if (session == null) {
-            // back in the room (left, or the connection dropped and timed out): the seat of the last visit
-            // if it is still free, so people do not change desks; otherwise the lowest free one
-            Integer previous = sessions.findFirstByRoomIdAndUserIdAndEndedAtIsNotNullOrderByStartedAtDesc(roomId, userId)
-                    .map(RoomSession::getSeat).orElse(null);
-            List<Integer> taken = sessions.findSeatsTaken(roomId);
             session = new RoomSession(roomId, userId, now);
-            session.takeSeat(previous != null && !taken.contains(previous) ? previous : freeSeat(taken));
+            if (member != null) {
+                session.takeSeat(member.getSeat());
+            } else {
+                List<Integer> taken = sessions.findSeatsTaken(roomId);
+                if (taken.size() >= room.getMaxMembers()) {
+                    throw new BusinessRuleException("ROOM_FULL", "Room is full.");
+                }
+                // back in the room (left, or the connection dropped and timed out): the seat of the last
+                // visit if it is still free, so people do not change desks; otherwise the lowest free one
+                Integer previous = sessions.findFirstByRoomIdAndUserIdAndEndedAtIsNotNullOrderByStartedAtDesc(roomId, userId)
+                        .map(RoomSession::getSeat).orElse(null);
+                session.takeSeat(previous != null && previous < room.getMaxMembers() && !taken.contains(previous)
+                        ? previous : freeSeat(taken));
+            }
             session = sessions.save(session);
         } else {
             session.touch(now);
             if (session.getSeat() == null) {
                 // opened before seats existed: give one now
-                session.takeSeat(freeSeat(sessions.findSeatsTaken(roomId)));
+                session.takeSeat(member != null ? member.getSeat() : freeSeat(sessions.findSeatsTaken(roomId)));
             }
         }
         return RoomSessionResponse.of(session);
@@ -132,12 +141,30 @@ public class RoomSessionService {
                 .ifPresent(s -> s.end(SessionEndReason.EXIT, clock.instant()));
     }
 
-    /** People inside the room now. Members only. */
+    /**
+     * The people shown in the room. Public room (anyone signed in may look): the people inside now.
+     * Private room (members only): every member, away when not inside.
+     */
     @Transactional(readOnly = true)
     public List<ActiveMemberResponse> active(UUID userId, UUID roomId) {
         Room room = rooms.findById(roomId).orElseThrow(RoomSessionService::roomNotFound);
-        requireMember(room, userId);
-        return sessions.findActive(roomId).stream().map(ActiveMemberResponse::of).toList();
+        if (room.getVisibility() == RoomVisibility.PRIVATE) {
+            requireMember(room, userId);
+        }
+        return presence(room);
+    }
+
+    /** Same list without the access check, for the presence snapshots. Empty if the room is gone. */
+    @Transactional(readOnly = true)
+    public List<ActiveMemberResponse> presence(UUID roomId) {
+        return rooms.findById(roomId).map(this::presence).orElse(List.of());
+    }
+
+    private List<ActiveMemberResponse> presence(Room room) {
+        if (room.getVisibility() == RoomVisibility.PRIVATE) {
+            return sessions.findMemberPresence(room.getId()).stream().map(ActiveMemberResponse::of).toList();
+        }
+        return sessions.findActive(room.getId()).stream().map(ActiveMemberResponse::of).toList();
     }
 
     /**
@@ -151,15 +178,9 @@ public class RoomSessionService {
         return sessions.closeStale(cutoff, SessionEndReason.TIMEOUT);
     }
 
-    /** Private rooms look like they do not exist to non-members; public rooms say "join first". */
-    private void requireMember(Room room, UUID userId) {
-        if (members.existsByRoomIdAndUserId(room.getId(), userId)) {
-            return;
-        }
-        if (room.getVisibility() == RoomVisibility.PRIVATE) {
-            throw roomNotFound();
-        }
-        throw new BusinessRuleException(NOT_A_MEMBER, "Join the room before entering it.");
+    /** A private room's member, or 404: private rooms look like they do not exist to non-members. */
+    private RoomMember requireMember(Room room, UUID userId) {
+        return members.findByRoomIdAndUserId(room.getId(), userId).orElseThrow(RoomSessionService::roomNotFound);
     }
 
     private static NotFoundException roomNotFound() {

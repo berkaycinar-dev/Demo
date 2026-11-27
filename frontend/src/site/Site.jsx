@@ -16,7 +16,23 @@ import LobbyPage from './LobbyPage'
 import { LegalPage } from './LegalPages'
 import MyRoomPage from './MyRoomPage'
 import NotFoundPage from './NotFoundPage'
-import { HEARTBEAT_MS, createRoom, enterRoom, exitRoom, fetchRooms, forgetJoin, heartbeat, joinRoom, joinRoomByCode, loadJoined, recordJoin } from './roomStore'
+import {
+  HEARTBEAT_MS,
+  MAX_OWNED_ROOMS,
+  createRoom,
+  deleteRoom,
+  enterRoom,
+  exitRoom,
+  fetchRooms,
+  forgetJoin,
+  heartbeat,
+  joinRoom,
+  joinRoomByCode,
+  leaveRoom,
+  loadJoined,
+  recordJoin,
+} from './roomStore'
+import { RoomConfirmDialog, RoomLimitDialog } from './RoomDialogs'
 import { SiteFooter, SiteHeader } from './SiteChrome'
 import SoloRoomPage from './SoloRoomPage'
 import useColorMode from './useColorMode'
@@ -123,6 +139,9 @@ export default function Site() {
   const [avatarCloud, setAvatarCloud] = useState({ saving: false, error: '' })
   // Avatar sayfasından kaydetmeden çıkılmak istenen hedef sayfa (uyarı penceresi açık) ya da null.
   const [leaving, setLeaving] = useState(null)
+  // Oda silme / ayrılma onayı: { kind: 'delete' | 'leave', room } | null. Sınır penceresi: { kind, rooms } | null.
+  const [confirm, setConfirm] = useState(null)
+  const [limit, setLimit] = useState(null)
   // true: avatar sayfasında kaydedilmemiş değişiklik var, çıkışta sorulur. go ve adres dinleyicisi okur.
   const leaveGuard = useRef(false)
   const [focusMode, setFocusMode] = useState(false)
@@ -326,17 +345,39 @@ export default function Site() {
     setFocusMode(false)
     window.scrollTo(0, 0)
   }
-  // Odaya giriş: önce sunucuda üye olunur (zaten üyeysen bir şey değişmez), sonra girilir.
-  // Giriş yapmamış ziyaretçi (ana sayfadaki örnek odalar) girişe yönlendirilir.
+  // Sınır penceresi: kurduğun ya da üyesi olduğun odalardan biri silinir / ayrılınır.
+  const LIMIT_ROOMS = {
+    owned: (list) => list.filter((r) => r.myRole === 'OWNER'),
+    joined: (list) => list.filter((r) => r.access === 'invite' && r.myRole === 'MEMBER'),
+  }
+  const showLimit = (code) => {
+    const kind = { ROOM_LIMIT: 'owned', JOIN_LIMIT: 'joined' }[code]
+    if (!kind) return false
+    setLimit({ kind, rooms: LIMIT_ROOMS[kind](rooms) })
+    // liste bu sayfada yüklenmemiş olabilir (ör. doğrudan /olustur): sunucudan tazelenir
+    fetchRooms()
+      .then((list) => {
+        setRooms(list)
+        setLimit((l) => (l?.kind === kind ? { kind, rooms: LIMIT_ROOMS[kind](list) } : l))
+      })
+      .catch(() => {})
+    return true
+  }
+  // Odaya giriş. Davetli oda: önce üye olunur (zaten üyeysen bir şey değişmez). Herkese açık oda: üyelik
+  // yok; içeri girilir, yer yoksa ROOM_FULL. Giriş yapmamış ziyaretçi girişe yönlendirilir.
   const enter = async (room) => {
     if (!user) {
       go('giris')
       return
     }
     try {
-      const fresh = await joinRoom(room, room.code)
-      setRooms((list) => list.map((r) => (r.id === fresh.id ? { ...r, ...fresh, code: fresh.code ?? r.code } : r)))
+      if (room.access === 'invite') {
+        const fresh = await joinRoom(room, room.code)
+        setRooms((list) => list.map((r) => (r.id === fresh.id ? { ...r, ...fresh, code: fresh.code ?? r.code } : r)))
+      }
+      await enterRoom(room.id)
     } catch (e) {
+      if (showLimit(e.code)) return
       const why = { ROOM_FULL: 'Oda dolu.', ROOM_NOT_FOUND: 'Oda bulunamadı ya da davet kodu yanlış.' }[e.code]
       setNotice(why ?? errorText(e, 'Odaya girilemedi.'))
       return
@@ -346,7 +387,7 @@ export default function Site() {
     go('oda')
   }
   // Davet koduyla giriş: oda sunucuda koddan bulunur, üye olunur ve girilir. Başarısızsa hata metni
-  // (lobideki kod kutusunda görünür), başarılıysa null.
+  // (lobideki kod kutusunda görünür), başarılıysa null. Davetli oda sınırında sınır penceresi açılır.
   const enterByCode = async (code) => {
     let room
     try {
@@ -354,6 +395,7 @@ export default function Site() {
     } catch (e) {
       if (e.code === 'ROOM_NOT_FOUND') return 'Bu kodla bir oda bulunamadı. Kodu kontrol et.'
       if (e.code === 'ROOM_FULL') return 'Oda dolu.'
+      if (showLimit(e.code)) return 'Davetli oda sınırına geldin. Birinden ayrılıp tekrar dene.'
       return errorText(e, 'Odaya girilemedi.')
     }
     setRooms((list) => [room, ...list.filter((r) => r.id !== room.id)])
@@ -362,7 +404,8 @@ export default function Site() {
     go('oda')
     return null
   }
-  // Oda sunucuda oluşturulur; başarısızsa hata metni oluşturma sayfasına döner, başarılıysa null.
+  // Oda sunucuda oluşturulur; başarısızsa hata metni oluşturma sayfasına döner, başarılıysa null. Oda
+  // sınırında sınır penceresi açılır.
   const create = async (draft) => {
     try {
       const room = await createRoom(draft)
@@ -372,8 +415,31 @@ export default function Site() {
       go('oda')
       return null
     } catch (e) {
+      if (showLimit(e.code)) return `En fazla ${MAX_OWNED_ROOMS} oda kurabilirsin. Birini silip tekrar dene.`
       return errorText(e, '')
     }
+  }
+  // Oda silme (sahip) ya da davetli odadan ayrılma (üye): listeden ve geçmişten çıkar. Hata metni ya da null.
+  const forgetRoom = (roomId) => {
+    setRooms((list) => list.filter((r) => r.id !== roomId))
+    setJoined(forgetJoin(user, roomId))
+    if (currentId === roomId) setCurrentId(null)
+  }
+  const removeRoom = async (room) => {
+    try {
+      if (room.myRole === 'OWNER') await deleteRoom(room.id)
+      else await leaveRoom(room.id)
+    } catch (e) {
+      if (e.code !== 'ROOM_NOT_FOUND') return errorText(e, 'Yapılamadı. Tekrar dene.')
+    }
+    forgetRoom(room.id)
+    return null
+  }
+  // Oda sahibi odayı sildi (içerideyken fark edildi): Lobi'ye dönülür, not görünür.
+  const roomGone = (roomId) => {
+    forgetRoom(roomId)
+    go('lobi', { force: true })
+    setNotice('Bu oda sahibi tarafından kapatıldı.')
   }
   const changeAvatar = (next) => {
     setAvatar(next)
@@ -508,6 +574,8 @@ export default function Site() {
               setReceipt({ room: current, ...session })
             }}
             onBrowse={() => go('lobi')}
+            onDelete={() => setConfirm({ kind: 'delete', room: current })}
+            onGone={roomGone}
           />
         )}
         {page === 'lobi' && (
@@ -521,8 +589,27 @@ export default function Site() {
             onEnterByCode={enterByCode}
             onForget={(id) => setJoined(forgetJoin(user, id))}
             onCreate={() => go('olustur')}
+            onRemove={(room) => setConfirm({ kind: room.myRole === 'OWNER' ? 'delete' : 'leave', room })}
           />
         )}
+        <RoomConfirmDialog
+          ask={confirm}
+          onClose={() => setConfirm(null)}
+          onConfirm={async ({ room }) => {
+            const problem = await removeRoom(room)
+            if (!problem && page === 'oda') go('lobi', { force: true })
+            return problem
+          }}
+        />
+        <RoomLimitDialog
+          limit={limit}
+          onClose={() => setLimit(null)}
+          onRemove={async (room) => {
+            const problem = await removeRoom(room)
+            if (!problem) setLimit((l) => l && { ...l, rooms: l.rooms.filter((r) => r.id !== room.id) })
+            return problem
+          }}
+        />
         {page === 'olustur' && <CreateRoomPage onCreate={create} onBack={() => go('lobi')} isDark={isDark} />}
         {page === 'avatar' && <AvatarPage avatar={myAvatar} onChange={changeAvatar} cloud={avatarCloudState} onEnterRoom={() => go('odam')} />}
         <UnsavedAvatarDialog

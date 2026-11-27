@@ -5598,3 +5598,120 @@ button.people__row.people__row--me {
   border-color: #b4432f;
 }
 
+
+/* ---------- Oda kuralları: davetli odaların bölümü, sil / ayrıl, onay ve sınır pencereleri ---------- */
+.lobby-invites {
+  --room-warn: #b4432f;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+:root[data-mode='dark'] .lobby-invites,
+:root[data-mode='dark'] .lobby-room__remove,
+:root[data-mode='dark'] .lobby-quiet__remove,
+:root[data-mode='dark'] .desk__delete,
+:root[data-mode='dark'] .room-confirm,
+:root[data-mode='dark'] .room-limit {
+  --room-warn: #f08a72;
+}
+
+.site .lobby-invites .lobby-people__head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lobby-invites__note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
+.lobby-room__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* sil / ayrıl: geri dönüşü olan eylem, uyarı renginde yazı, birincil düğmeden geri planda */
+.lobby-room__remove,
+.lobby-quiet__remove,
+.desk__delete,
+.room-limit__remove {
+  --room-warn: #b4432f;
+  color: var(--room-warn);
+  border-color: color-mix(in srgb, var(--room-warn) 40%, var(--line-strong));
+}
+
+.lobby-room__remove:hover:not(:disabled),
+.lobby-quiet__remove:hover:not(:disabled),
+.desk__delete:hover:not(:disabled),
+.room-limit__remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--room-warn) 8%, transparent);
+}
+
+.lobby-quiet__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.lobby-quiet__remove {
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: var(--text-label);
+}
+
+.room-confirm,
+.room-limit {
+  --room-warn: #b4432f;
+  width: min(460px, calc(100vw - 32px));
+}
+
+/* onayda birincil düğme silme / ayrılma: uyarı renginde dolgu */
+.room-confirm .room-confirm__yes:not(:disabled) {
+  background: var(--room-warn);
+  box-shadow: none;
+}
+
+.room-limit__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-limit__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.room-limit__name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.room-limit__meta {
+  color: var(--muted);
+  font-size: var(--text-label);
+  font-weight: 400;
+}
+
+.room-limit__done {
+  margin: 0;
+  color: var(--success);
+  font-weight: 600;
+}
