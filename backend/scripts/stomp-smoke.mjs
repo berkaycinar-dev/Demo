@@ -109,6 +109,9 @@ async function expectForbidden(client, command, headers, body) {
   assert.ok(reply.headers.includes('message:FORBIDDEN'))
 }
 
+// userIds: the people inside now. A private room's snapshot lists every member; those not inside come
+// with online=false (shown as away), so only online members are compared. Returns the event and the
+// online members.
 async function expectPresence(client, roomId, userIds) {
   // Full snapshots may already be queued from before the REST change.
   while (true) {
@@ -117,8 +120,9 @@ async function expectPresence(client, roomId, userIds) {
     const event = JSON.parse(message.body)
     assert.equal(event.type, 'PRESENCE_SNAPSHOT')
     assert.equal(event.roomId, roomId)
-    const ids = event.payload.members.map((member) => member.userId).sort()
-    if (JSON.stringify(ids) === JSON.stringify([...userIds].sort())) return event
+    const inside = event.payload.members.filter((member) => member.online)
+    const ids = inside.map((member) => member.userId).sort()
+    if (JSON.stringify(ids) === JSON.stringify([...userIds].sort())) return { event, inside }
   }
 }
 
@@ -245,12 +249,19 @@ try {
   const presenceSubscription = [`destination:${presenceDestination}`, 'id:presence']
   const presence = await connect(owner.accessToken)
   presence.send('SUBSCRIBE', presenceSubscription)
-  await expectPresence(presence, room.id, [])
+  // nobody inside: every member is listed, all away (private room)
+  const empty = await expectPresence(presence, room.id, [])
+  const listed = empty.event.payload.members
+  assert.deepEqual(listed.map((m) => m.userId).sort(),
+    [owner, member, joiningUser, outsider].map((u) => u.user.id).sort())
+  assert.ok(listed.every((m) => m.status === 'AWAY' && m.online === false && m.startedAt === null))
+  assert.equal(new Set(listed.map((m) => m.seat)).size, listed.length, 'every member has their own seat')
 
   await post(`/rooms/${room.id}/sessions`, undefined, member.accessToken)
   const entered = await expectPresence(presence, room.id, [member.user.id])
-  assert.equal(entered.payload.members[0].username, member.user.username)
-  assert.equal(entered.payload.members[0].role, 'MEMBER')
+  assert.equal(entered.inside[0].username, member.user.username)
+  assert.equal(entered.inside[0].role, 'MEMBER')
+  assert.equal(entered.inside[0].seat, listed.find((m) => m.userId === member.user.id).seat, 'inside at their member seat')
   await post(`/rooms/${room.id}/sessions/current/heartbeat`, undefined, member.accessToken)
   await expectPresence(presence, room.id, [member.user.id])
 

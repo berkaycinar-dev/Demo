@@ -55,7 +55,7 @@ try {
   connection.start()
   await until(() => resyncs === 1, 'initial REST synchronization')
   await request(`/rooms/${room.id}/sessions`, { method: 'POST', token: auth.accessToken })
-  await until(() => members.some((member) => member.userId === auth.user.id), 'initial presence subscription')
+  await until(() => members.some((member) => member.userId === auth.user.id && member.online), 'initial presence subscription')
   await request('/timer/commands', {
     method: 'POST', token: auth.accessToken,
     body: { commandId: randomUUID(), expectedVersion: snapshot.version, type: 'START' },
@@ -70,7 +70,7 @@ try {
     body: { commandId: randomUUID(), expectedVersion: 1, type: 'PAUSE' },
   })
   members = []
-  await until(() => resyncs === 2 && members.some((member) => member.userId === auth.user.id), 'restored subscriptions')
+  await until(() => resyncs === 2 && members.some((member) => member.userId === auth.user.id && member.online), 'restored subscriptions')
   assert.equal(snapshot.version, paused.version)
   assert.equal(snapshot.status, 'PAUSED')
   await request('/timer/commands', {
