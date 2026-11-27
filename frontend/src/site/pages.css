@@ -1218,6 +1218,35 @@
   padding: var(--pad-card-lg);
 }
 
+/* geniş ekranda iki sütun aynı boyda biter: sağ sütun soldan kısaysa grafik aşağı uzar, altta boşluk kalmaz */
+@media (min-width: 901px) {
+  .home {
+    align-items: stretch;
+  }
+
+  .home__chart {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .home__bars {
+    flex: 1;
+  }
+
+  /* sağ sütun uzunsa sol sütunun altı da boş kalmasın: söz kartı uzar, metni ortada */
+  .home__quote {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .home__bar-track {
+    flex: 1;
+    height: auto;
+    min-height: 220px;
+  }
+}
+
 .site .home__chart h2,
 .site .home__rooms h2 {
   margin: 0;
@@ -5352,4 +5381,128 @@ button.people__row.people__row--me {
 
 .lobby-head .working-on {
   max-width: 36em;
+}
+
+/* ---------- Ayarlar ---------- */
+
+/* kapalı dil seçeneği (henüz hazır değil): soluk, altında küçük "Yakında" */
+.mode-choice button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.settings__soon {
+  margin-left: 2px;
+  color: var(--muted);
+  font-size: var(--text-micro);
+  font-weight: 600;
+}
+
+.settings__value {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lead);
+  font-weight: 700;
+}
+
+/* ---------- Yardım ve geri bildirim ---------- */
+
+.help__faq {
+  display: grid;
+}
+
+.help__item {
+  border-top: 1px solid var(--line);
+}
+
+.help__item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 0;
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.help__item summary::-webkit-details-marker {
+  display: none;
+}
+
+/* sağdaki artı işareti: açıkken eksiye döner */
+.help__item summary::after {
+  content: '+';
+  flex: none;
+  width: 24px;
+  color: var(--muted);
+  font-size: 20px;
+  font-weight: 500;
+  text-align: center;
+  transition: transform var(--dur-fast) var(--ease-standard);
+}
+
+.help__item[open] summary::after {
+  content: '−';
+}
+
+.site .help__item p {
+  margin: 0 0 14px;
+  color: var(--text-2);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.site .help__legal {
+  margin: 0;
+  font-size: var(--text-label);
+}
+
+.site .help__lead {
+  margin: -6px 0 0;
+}
+
+.help__kinds {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.help__kinds legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.help__message {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-field);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.help__message::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.help__message[aria-invalid='true'] {
+  border-color: #b4432f;
+}
+
+.site .settings__lead {
+  margin: -8px 0 0;
+  font-size: var(--text-label);
 }

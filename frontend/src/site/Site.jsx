@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { SIGNED_OUT_EVENT, errorText } from './api'
 import { currentUser, logout } from './auth'
 import AccountPage from './AccountPage'
+import SettingsPage from './SettingsPage'
+import HelpPage from './HelpPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage } from './AuthPages'
 import AvatarPage from './AvatarPage'
 import Icon from './AvatarIcons'
@@ -40,7 +42,7 @@ const PAGES = [
   { id: 'lobi', label: 'Lobi' },
 ]
 // Oturum isteyen sayfalar: menüdekiler, Lobi'nin alt sayfaları (oda oluştur, girilen oda) ve hesap.
-const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'olustur', 'oda', 'hesap'])
+const APP_PAGES = new Set([...PAGES.map((p) => p.id), 'olustur', 'oda', 'hesap', 'ayarlar', 'yardim'])
 // Menüde hangi sekmenin seçili görüneceği: oda oluşturma Lobi'nin alt sayfası. Girilen ortak oda (#oda)
 // menüdeki hiçbir sekme değildir; orada hiçbiri seçili görünmez ("Lobi" ya da "Odam" sanılmasın).
 const NAV_OF = { olustur: 'lobi' }
@@ -413,6 +415,18 @@ export default function Site() {
             }}
           />
         )}
+        {page === 'ayarlar' && (
+          <SettingsPage
+            modePref={modePref}
+            onModeChange={setModePref}
+            timer={timer}
+            timerMode={timerMode}
+            onTimerModeChange={setTimerMode}
+            goals={goals}
+            onGoalsChange={setGoals}
+          />
+        )}
+        {page === 'yardim' && <HelpPage onGo={go} />}
         {(page === 'kosullar' || page === 'gizlilik') && <LegalPage kind={page} onGo={go} />}
         {page === NOT_FOUND && <NotFoundPage path={requested} user={user} onGo={go} />}
       </main>
