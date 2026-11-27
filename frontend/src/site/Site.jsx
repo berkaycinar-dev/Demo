@@ -397,8 +397,6 @@ export default function Site() {
         {page === 'hesap' && (
           <AccountPage
             user={user}
-            modePref={modePref}
-            onModeChange={setModePref}
             onLogout={signOut}
             onDeleted={() => {
               try {

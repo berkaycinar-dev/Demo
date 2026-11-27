@@ -283,29 +283,10 @@
   background: var(--surface-2);
 }
 
-.user-menu__look {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
+.user-menu__sep {
   margin: 4px 0;
+  border: 0;
   border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.user-menu__look-label {
-  color: var(--muted);
-  font-size: var(--text-label);
-  font-weight: 600;
-}
-
-.user-menu__look .mode-choice {
-  display: flex;
-}
-
-.user-menu__look .mode-choice button {
-  flex: 1;
-  min-width: 0;
 }
 
 .user-menu__item--logout {
@@ -3311,6 +3292,21 @@
   margin: 0 auto;
 }
 
+/* Hesap ayarları: tek sütun, okunur genişlikte ortada; kartlar okuma sırasıyla alt alta, aynı genişlikte */
+.account--profile {
+  max-width: 760px;
+}
+
+.account__stack {
+  display: grid;
+  gap: 20px;
+}
+
+/* tek sütunda alanlar kart boyunca uzamasın: form okunur genişlikte kalır */
+.account__stack .auth__form {
+  max-width: 480px;
+}
+
 .account__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -3385,17 +3381,6 @@
 .site .account__note {
   margin: -8px 0 0;
   font-size: var(--text-label);
-}
-
-/* şifre değiştirme: e-postadan ince bir çizgiyle ayrılan alt bölüm */
-.account__password {
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-}
-
-.site .account__password h3 {
-  margin: 0;
-  font-size: var(--text-lead);
 }
 
 .account__saved {
