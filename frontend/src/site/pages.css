@@ -210,39 +210,6 @@
   margin: 0 auto;
 }
 
-/* hero: oda sahnenin kendisi; metin onun yanında durur. Görsel saydam zeminli izometrik oda
-   (480×360); en çok ~1.3× büyütülür, voxel kenarları yumuşamasın diye daha büyük gösterilmez. */
-.lp-hero-wrap {
-  padding-top: 40px;
-  padding-bottom: 24px;
-}
-
-.lp-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  grid-template-areas: 'text room';
-  gap: 24px 48px;
-  align-items: center;
-  max-width: var(--page-max);
-  margin: 0 auto;
-}
-
-.lp-hero__text {
-  display: flex;
-  grid-area: text;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.lp-hero__room {
-  grid-area: room;
-  justify-self: end;
-  width: 100%;
-  max-width: 620px;
-  margin: 0;
-}
-
 .lp-hero__img img {
   width: 100%;
   height: auto;
@@ -289,13 +256,6 @@
   to {
     opacity: 0;
   }
-}
-
-.lp-hero__room figcaption {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: var(--text-label);
-  text-align: center;
 }
 
 /* piksel ızgarası: 55 px (5 font pikseli), dar ekranda 44 */
@@ -390,65 +350,6 @@
   min-height: 44px;
 }
 
-/* on tema yatay şeritte: Oda oluştur'daki tema kartlarıyla aynı görsel dil; sağ kenar taşar,
-   kaydırılabildiği görünsün diye */
-.lp-themes {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.lp-themes .lp-inner {
-  max-width: calc(var(--page-max) + 2 * var(--page-gutter));
-  padding: 0 var(--page-gutter);
-}
-
-.lp-themes .section-head {
-  margin-bottom: 16px;
-}
-
-.lp-strip {
-  display: grid;
-  grid-auto-columns: 216px;
-  grid-auto-flow: column;
-  gap: 16px;
-  margin: 0;
-  padding: 4px var(--page-inline) 16px;
-  overflow-x: auto;
-  list-style: none;
-  scroll-padding-inline: var(--page-inline);
-  scroll-snap-type: x mandatory;
-  scrollbar-color: var(--line-strong) transparent;
-  scrollbar-width: thin;
-  /* kaydırma ipucu: kenara taşan kart sayfa boşluğu boyunca söner (devamı var). Sönme genişliği sayfa
-     boşluğuna eşit: şeridin başında ve sonunda hiçbir kart solmaz. */
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--page-inline), #000 calc(100% - var(--page-inline)), transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 var(--page-inline), #000 calc(100% - var(--page-inline)), transparent);
-}
-
-.lp-strip:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: -2px;
-  /* klavye odağında halka kenarlarda sönmesin */
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
-.lp-strip__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  scroll-snap-align: start;
-}
-
-.lp-strip__item .theme-option__img img {
-  transform: scale(1.06);
-}
-
-.lp-strip__item .theme-option__name {
-  font-size: var(--text-body);
-}
-
 .site .lp-h2 {
   font-family: var(--font-pixel);
   font-weight: 500;
@@ -460,6 +361,347 @@
   font-size: var(--pixel-xl);
   line-height: 1.15;
   text-wrap: balance;
+}
+
+/* ---------- ana sayfa: tabela, aralık kapı, gece koridoru ---------- */
+
+/* tabela ahşabı (kapı tabelası, koridor kapıları, ok tabelalar, söz levhası): her modda aynı ceviz */
+.lp-door__sign,
+.lp-quote,
+.lp-demo__steps button {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 22px, rgba(0, 0, 0, 0.09) 22px 23px),
+    var(--sign-wood);
+  box-shadow:
+    inset 0 0 0 3px var(--sign-edge),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.2),
+    0 18px 32px -18px rgba(30, 15, 5, 0.7);
+}
+
+.lp-door-wrap {
+  padding-top: 24px;
+}
+
+.lp-door {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.lp-door__sign {
+  position: relative;
+  z-index: 2;
+  padding: 18px 40px 14px;
+  border-radius: var(--radius-control-lg);
+  color: var(--sign-ink);
+}
+
+.site .lp-door__sign .lp-h1 {
+  color: var(--sign-ink);
+}
+
+.site .lp-door__sub {
+  margin: 6px 0 0;
+  color: var(--sign-ink-2);
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-l);
+  line-height: 1.2;
+}
+
+/* kemerli kapı: çerçeve ceviz, içi oda sahnesinin zemini; sol kanat aralık */
+.lp-door__frame {
+  width: min(760px, 100%);
+  margin: -20px 0 0;
+}
+
+.lp-door__arch {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 14px solid var(--sign-wood);
+  border-bottom: 0;
+  border-radius: 200px 200px 0 0;
+  background: var(--scene-bg);
+  box-shadow: inset 0 0 0 4px var(--sign-edge), 0 30px 50px -24px rgba(30, 15, 5, 0.55);
+}
+
+:root[data-mode='dark'] .lp-door__arch {
+  background: radial-gradient(circle at 62% 50%, #5a4330, #1a1613 75%);
+  box-shadow: inset 0 0 0 4px var(--sign-edge), 0 0 90px -10px rgba(235, 154, 120, 0.35), 0 30px 50px -24px rgba(0, 0, 0, 0.9);
+}
+
+.lp-door__arch .lp-hero__scene {
+  position: absolute;
+  top: 8%;
+  left: 20%;
+  width: 84%;
+}
+
+.lp-door__arch .lp-hero__img img {
+  width: 100%;
+  height: auto;
+}
+
+.lp-door__leaf {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 46%;
+  background: repeating-linear-gradient(90deg, #6b4d36 0 34px, var(--sign-wood) 34px 36px);
+  box-shadow: inset 0 0 0 4px var(--sign-edge), 20px 0 40px rgba(30, 15, 5, 0.35);
+  transform: perspective(1400px) rotateY(-58deg);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+:root[data-mode='dark'] .lp-door__leaf {
+  background: repeating-linear-gradient(90deg, #4f3a2a 0 34px, #43311f 34px 36px);
+}
+
+.lp-door__knob {
+  position: absolute;
+  top: 52%;
+  right: 22px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  background: #d9b56a;
+  box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.lp-door__sill {
+  display: block;
+  height: 16px;
+  border-radius: 0 0 var(--radius-block) var(--radius-block);
+  background: var(--sign-edge);
+}
+
+.lp-door__lead {
+  max-width: 36em;
+}
+
+.lp-door__actions {
+  justify-content: center;
+}
+
+/* gece koridoru: koyu ahşap zemin; kapıların üstünde yanan lamba, altında pirinç levha */
+.lp-corridor {
+  background: linear-gradient(180deg, #2a211a, #1f1813);
+  border-top: 6px solid var(--sign-wood);
+  color: var(--text);
+}
+
+.lp-corridor__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.lp-corridor__eyebrow {
+  color: var(--badge);
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-l);
+}
+
+.site .lp-corridor h2 {
+  margin: 0;
+}
+
+.lp-doors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 28px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lp-doors__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lp-doors__lamp {
+  width: 60px;
+  height: 14px;
+  border-radius: 0 0 30px 30px;
+  background: #d9b56a;
+  box-shadow: 0 10px 30px 6px rgba(255, 216, 154, 0.35);
+}
+
+.lp-doors__door {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border: 8px solid var(--sign-wood);
+  border-bottom-width: 4px;
+  border-radius: 80px 80px var(--radius-block) var(--radius-block);
+  background: radial-gradient(circle at 50% 50%, #44372a, #16130f 85%);
+  box-shadow: inset 0 0 0 3px var(--sign-edge), 0 18px 26px -14px rgba(0, 0, 0, 0.9);
+}
+
+.lp-doors__img {
+  width: 118%;
+  max-width: none;
+  aspect-ratio: auto;
+}
+
+.lp-doors__img img {
+  width: 100%;
+  height: auto;
+}
+
+.lp-doors__plate {
+  padding: 4px 14px;
+  border-radius: var(--radius-block);
+  background: #d9b56a;
+  color: #2c2119;
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-l);
+  line-height: 1.2;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2);
+}
+
+.lp-doors__desc {
+  color: var(--muted);
+  font-size: var(--text-meta);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+/* oturum adımları: direğe çakılı ok tabelalar; etkin adım lamba gibi parlar */
+.lp-demo__side {
+  position: relative;
+  padding-left: 40px;
+}
+
+.lp-demo__side::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 56px;
+  left: 0;
+  width: 18px;
+  background: var(--sign-wood);
+  box-shadow: inset 0 0 0 3px var(--sign-edge);
+}
+
+.lp-demo__steps {
+  gap: 16px;
+}
+
+.lp-demo__steps li:nth-child(2) {
+  padding-left: 28px;
+}
+
+.lp-demo__steps li:nth-child(3) {
+  padding-left: 10px;
+}
+
+.lp-demo__steps button {
+  padding: 16px 60px 16px 20px;
+  border-radius: 0;
+  color: var(--sign-ink-2);
+  clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 50%, calc(100% - 34px) 100%, 0 100%);
+}
+
+.lp-demo__steps button:hover {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 22px, rgba(0, 0, 0, 0.09) 22px 23px),
+    #6b4d36;
+}
+
+.lp-demo__steps button[aria-current='step'] {
+  background:
+    repeating-linear-gradient(180deg, transparent 0 22px, rgba(0, 0, 0, 0.09) 22px 23px),
+    #7a573b;
+  color: var(--sign-ink);
+  box-shadow:
+    inset 0 0 0 3px #d9b56a,
+    inset 0 -6px 0 rgba(0, 0, 0, 0.2);
+}
+
+.lp-demo__steps .lp-demo__step-title {
+  color: var(--sign-ink);
+  font-family: var(--font-pixel);
+  font-weight: 500;
+}
+
+.lp-demo__steps .lp-demo__no {
+  color: var(--sign-ink-2);
+}
+
+.lp-demo__steps button[aria-current='step'] .lp-demo__no {
+  color: #f2c879;
+}
+
+.lp-demo__steps .lp-demo__fuse {
+  right: 48px;
+  background: #f2c879;
+}
+
+/* günün sözü: geniş ceviz levha, yanında tek eylem */
+.lp-quote {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 36px 40px;
+  border-radius: var(--radius-card);
+}
+
+.lp-quote__text {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.lp-quote__text blockquote {
+  margin: 0;
+  color: var(--sign-ink);
+  font-family: var(--font-pixel);
+  font-size: var(--pixel-xl);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.lp-quote__text figcaption {
+  color: var(--sign-ink-2);
+}
+
+@media (max-width: 560px) {
+  .lp-door__sign {
+    padding: 14px 20px 12px;
+  }
+
+  .lp-door__arch {
+    border-width: 10px;
+    border-radius: 140px 140px 0 0;
+  }
+
+  .lp-doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 14px;
+  }
+
+  .lp-quote {
+    padding: 24px;
+  }
 }
 
 /* ---------- giriş / kayıt ---------- */
@@ -1261,6 +1503,226 @@
 .timer-mode__opt[aria-pressed='true'] .timer-mode__hint {
   color: inherit;
   opacity: 0.8;
+}
+
+/* Odam: hedefler. Sayacın altında iki küçük kart (bugün / bu hafta) ve "Hedefleri düzenle". */
+.goal-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.goal-summary__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.goal-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-control-lg);
+  background: var(--surface-2);
+}
+
+.goal-mini__ring {
+  flex: none;
+}
+
+.goal-mini__ring circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.goal-mini__track {
+  stroke: var(--line);
+}
+
+.goal-mini__fill {
+  stroke: var(--timer);
+  stroke-linecap: round;
+}
+
+.goal-mini__ring[data-tone='week'] .goal-mini__fill {
+  stroke: var(--badge);
+}
+
+.goal-mini__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.goal-mini__label {
+  color: var(--muted);
+  font-size: var(--text-micro);
+}
+
+.goal-mini__value {
+  overflow: hidden;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-label);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal-summary__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  font-weight: 600;
+}
+
+/* hedef penceresi */
+.goal-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-card-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-dialog);
+  font-family: var(--font-body);
+}
+
+.goal-dialog::backdrop {
+  background: rgba(20, 22, 26, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.goal-dialog__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+}
+
+.goal-dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.site .goal-dialog h2,
+.goal-dialog h2 {
+  margin: 0;
+  font-size: var(--text-title-s);
+  font-weight: 600;
+}
+
+.goal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.goal-field__legend {
+  margin-bottom: 10px;
+  padding: 0;
+  font-size: var(--text-label);
+  font-weight: 600;
+}
+
+.goal-field__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.goal-opt {
+  min-width: 64px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-block);
+  background: var(--surface);
+  box-shadow: var(--voxel-face);
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--text-label);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
+}
+
+.goal-opt:hover {
+  background: var(--surface-2);
+}
+
+.goal-opt[aria-pressed='true'] {
+  border-color: var(--chip-on-edge);
+  background: var(--chip-on-bg);
+  box-shadow: inset 0 0 0 1px var(--chip-on-edge), var(--voxel-face);
+  color: var(--chip-on-fg);
+  font-weight: 700;
+}
+
+.goal-field__custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--text-label);
+}
+
+.goal-field__custom input {
+  width: 96px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-field);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.goal-dialog__tip {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-meta);
+  text-wrap: pretty;
+}
+
+.goal-dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Sayfam, Bu hafta kartı: haftalık hedefe ilerleme */
+.home__week-goal {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.home__week-bar {
+  display: block;
+  width: min(220px, 100%);
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.home__week-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--badge);
 }
 
 .stopwatch-card__note {
@@ -2911,11 +3373,6 @@
   }
 }
 
-.site .account__lead {
-  margin: 0;
-  text-wrap: pretty;
-}
-
 /* ana sayfa: hesap silindikten sonra bir kez görünen not */
 .site-notice {
   display: flex;
@@ -3030,17 +3487,6 @@
 @media (max-width: 900px) {
   .site .lp-h1 {
     font-size: var(--pixel-2xl);
-  }
-
-  /* telefonda/tablette oda önce gelir: ilk ekranda mekân görünür, başlık altında */
-  .lp-hero {
-    grid-template-columns: 1fr;
-    grid-template-areas: 'room' 'text';
-  }
-
-  .lp-hero__room {
-    justify-self: center;
-    max-width: 520px;
   }
 
   .lp-open__list {
@@ -3387,15 +3833,6 @@
 
 @media (max-width: 560px) {
 
-  .lp-hero-wrap {
-    padding-top: 16px;
-  }
-
-  .lp-themes {
-    padding-left: 0;
-    padding-right: 0;
-  }
-
   /* telefonda form önce: marka paneli formun üstünde ince bir başlık satırı (küçük oda + tek cümle) */
   .site-main--auth {
     align-items: flex-start;
@@ -3436,13 +3873,6 @@
 
   .site-footer__nav {
     margin-left: 0;
-  }
-
-  .lp-strip {
-    grid-auto-columns: 168px;
-    gap: 12px;
-    padding-inline: 16px;
-    scroll-padding-inline: 16px;
   }
 
   .auth__row {
@@ -4140,29 +4570,6 @@
   animation: motion-rise var(--dur-reveal) var(--ease-out);
 }
 
-/* odanın bugünkü sözü: sahnenin altında tek satır */
-.lp-demo__line {
-  margin: 0;
-  color: var(--text-2);
-  font-size: var(--text-body);
-  line-height: 1.55;
-}
-
-.lp-demo__line-lead {
-  display: block;
-  color: var(--muted);
-  font-size: var(--text-label);
-  font-weight: 600;
-}
-
-.lp-demo__line q {
-  color: var(--text);
-}
-
-.lp-demo__by {
-  color: var(--muted);
-}
-
 .lp-demo__side {
   grid-area: side;
   display: flex;
@@ -4449,13 +4856,6 @@
   max-width: 880px;
   /* kart üst üçte birde kalmasın: ekranın ortasına yakın */
   margin: clamp(24px, 14vh, 140px) auto;
-}
-
-/* telefon: başlık ve Hemen başla ilk ekranda; oda görseli altta (900 px'e kadar oda önce kalır) */
-@media (max-width: 560px) {
-  .lp-hero {
-    grid-template-areas: 'text' 'room';
-  }
 }
 
 .not-found__shot img {

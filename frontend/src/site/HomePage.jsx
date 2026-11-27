@@ -1,14 +1,13 @@
 import AvatarPreview from '../avatars/AvatarPreview'
 import { THEMES } from '../rooms/themes'
 import { loadMyRoom } from './myRoom'
-import { formatClock, formatMinutes, localDay } from './usePomodoro'
+import { formatClock, formatMinutes } from './usePomodoro'
+import { GOAL_DEFAULTS, goalPercent } from './goals'
+import { weekOf } from './weekStats'
 import { QUOTES, quoteForDay } from './quotes'
 import RoomShot from './RoomShot'
 import Dotted from './Dotted'
 import { membersLabel } from './access'
-
-// Günlük odak hedefi (dakika). Şimdilik sabit; ayarlanabilir olunca buradan okunur.
-const DAILY_GOAL_MIN = 180
 
 const COPY = {
   quote: 'Günün sözü',
@@ -19,6 +18,8 @@ const COPY = {
   goalLabel: (pct) => `Günlük hedefin yüzde ${pct}'i`,
   week: 'Bu hafta',
   weekZero: 'Bu hafta henüz blok yok',
+  weekGoal: (goal, pct) => `Hedef ${goal} · %${pct}`,
+  weekGoalLabel: (pct) => `Haftalık hedefin yüzde ${pct}'i`,
   more: (d) => `Geçen haftanın aynı günlerinden ${d} fazla`,
   less: (d) => `Geçen haftanın aynı günlerinden ${d} az`,
   same: 'Geçen haftanın aynı günleriyle aynı',
@@ -59,39 +60,12 @@ function greeting(hour = new Date().getHours()) {
 // Dar sütunda "2:30", genişte "2 sa 30 dk"
 const shortTime = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`
 
-// Pazartesiden pazara bu hafta: her gün { key, short, long, minutes, today, future } ve geçen haftanın
-// bugüne kadarki aynı günlerinin toplamı (karşılaştırma bu haftanın tamamı yerine bugüne kadarına yapılır).
-function weekOf(history, now = new Date()) {
-  const todayIndex = (now.getDay() + 6) % 7
-  const dayAt = (offset) => new Date(now.getFullYear(), now.getMonth(), now.getDate() - todayIndex + offset)
-  const minutesOf = (d) => history[localDay(d)]?.minutes ?? 0
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const d = dayAt(i)
-    return {
-      key: localDay(d),
-      short: d.toLocaleDateString('tr-TR', { weekday: 'short' }),
-      long: d.toLocaleDateString('tr-TR', { weekday: 'long' }),
-      minutes: minutesOf(d),
-      today: i === todayIndex,
-      future: i > todayIndex,
-    }
-  })
-  let lastSpan = 0
-  for (let i = 0; i <= todayIndex; i++) lastSpan += minutesOf(dayAt(i - 7))
-  const start = dayAt(0)
-  const end = dayAt(6)
-  const sameMonth = start.getMonth() === end.getMonth()
-  const range = `${start.toLocaleDateString('tr-TR', sameMonth ? { day: 'numeric' } : { day: 'numeric', month: 'long' })} – ${end.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
-  const pomodoros = days.reduce((n, d) => n + (history[d.key]?.pomodoros ?? 0), 0)
-  return { days, total: days.reduce((n, d) => n + d.minutes, 0), pomodoros, lastSpan, range }
-}
-
 // Bugünün hedef halkası: çizgi hedefe ulaşınca dolar, yüzde metni 100'ü geçebilir.
-function GoalRing({ minutes }) {
-  const pct = Math.round((minutes / DAILY_GOAL_MIN) * 100)
+function GoalRing({ minutes, goal }) {
+  const pct = goalPercent(minutes, goal)
   const r = 50
   const len = 2 * Math.PI * r
-  const filled = Math.min(1, minutes / DAILY_GOAL_MIN) * len
+  const filled = Math.min(1, minutes / goal) * len
   return (
     <svg className="home__ring" width="112" height="112" viewBox="0 0 120 120" role="img" aria-label={COPY.goalLabel(pct)}>
       <circle className="home__ring-track" cx="60" cy="60" r={r} />
@@ -106,7 +80,7 @@ function GoalRing({ minutes }) {
 // Sayfam: giriş yapınca açılan ilk sayfa. Solda avatar, selamlama ve tek birincil eylem "Odama gir" (yanında sayacın
 // o anki durumu); altında günün sözü. Sağda bugünkü ve bu haftaki odak süresi ile gün gün haftalık grafik. En altta
 // son girilen odalar (ilk gelene lobideki açık odalar), her biri kendi "Gir" düğmesiyle.
-export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo, onEnter }) {
+export default function HomePage({ user, avatar, timer, goals = GOAL_DEFAULTS, rooms, joined = [], onGo, onEnter }) {
   const roomLabel = THEMES[loadMyRoom(user).theme]?.label ?? 'Kütüphane'
   const firstName = user.displayName.split(' ')[0]
   const open = rooms.filter((r) => r.access === 'public')
@@ -118,7 +92,8 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
   const { minutes, pomodoros } = timer.stats
   const hasToday = minutes > 0 || pomodoros > 0
   const week = weekOf(timer.history ?? {})
-  const scale = Math.max(DAILY_GOAL_MIN, ...week.days.map((d) => d.minutes))
+  const scale = Math.max(goals.daily, ...week.days.map((d) => d.minutes))
+  const weekPct = goalPercent(week.total, goals.weekly)
   const diff = week.total - week.lastSpan
   const [quote, by] = QUOTES[quoteForDay()]
   const timerText = timer.running
@@ -160,13 +135,13 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
       <div className="home__main">
         <div className="home__stats">
           <section className="site-card home__stat home__stat--today" aria-label={COPY.today}>
-            <GoalRing minutes={minutes} />
+            <GoalRing minutes={minutes} goal={goals.daily} />
             <div className="home__stat-text">
               <span className="site-muted">{COPY.today}</span>
               {hasToday ? (
                 <>
                   <span className="stat__value">{formatMinutes(minutes)}</span>
-                  <span className="site-muted">{COPY.todayMeta(formatMinutes(DAILY_GOAL_MIN), pomodoros)}</span>
+                  <span className="site-muted">{COPY.todayMeta(formatMinutes(goals.daily), pomodoros)}</span>
                 </>
               ) : (
                 <>
@@ -183,6 +158,12 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
               {week.total > 0 ? (
                 <>
                   <span className="stat__value">{formatMinutes(week.total)}</span>
+                  <span className="home__week-goal">
+                    <span className="home__week-bar" role="img" aria-label={COPY.weekGoalLabel(weekPct)}>
+                      <span style={{ width: `${Math.min(100, weekPct)}%` }} />
+                    </span>
+                    <span className="site-muted">{COPY.weekGoal(formatMinutes(goals.weekly), weekPct)}</span>
+                  </span>
                   {week.lastSpan > 0 ? (
                     <span className={diff > 0 ? 'home__trend home__trend--up' : 'site-muted'}>
                       {diff > 0 ? COPY.more(formatMinutes(diff)) : diff < 0 ? COPY.less(formatMinutes(-diff)) : COPY.same}
@@ -192,7 +173,10 @@ export default function HomePage({ user, avatar, timer, rooms, joined = [], onGo
                   )}
                 </>
               ) : (
-                <span className="stat__value stat__value--zero">{COPY.weekZero}</span>
+                <>
+                  <span className="stat__value stat__value--zero">{COPY.weekZero}</span>
+                  <span className="site-muted">{COPY.weekGoal(formatMinutes(goals.weekly), 0)}</span>
+                </>
               )}
             </div>
           </section>

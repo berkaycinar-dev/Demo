@@ -36,7 +36,6 @@ const DEMO_COPY = {
   gain: (min) => `+${min} dk bugüne`,
   sceneLabel: (name) => `${name} odası, oturum gösterimi`,
   hint: 'Sürükle: döndür',
-  quoteLead: 'Odanın bugünkü sözü',
 }
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
@@ -72,7 +71,7 @@ function DemoRoom({ theme, step, avatar, arrive }) {
   )
 }
 
-export default function LandingDemo({ avatar, quote }) {
+export default function LandingDemo({ avatar }) {
   const ref = useRef(null)
   const { near, visible } = useInView(ref, '300px')
   const [step, setStep] = useState(0)
@@ -114,7 +113,6 @@ export default function LandingDemo({ avatar, quote }) {
       : step === 2
         ? { phase: DEMO_COPY.break, secs: Math.round(DEMO_BREAK_MIN * 60 * (1 - progress)) }
         : null
-  const [text, by] = quote
 
   return (
     <section id="nasil" ref={ref} className="lp-section lp-demo-wrap" aria-labelledby="nasilBaslik">
@@ -148,15 +146,10 @@ export default function LandingDemo({ avatar, quote }) {
               </div>
             )}
           </div>
-          {/* söz odanın bir parçası: oturumun altında, odanın kendi satırı */}
-          <figcaption className="lp-demo__line">
-            <span className="lp-demo__line-lead">{DEMO_COPY.quoteLead}</span>
-            <q>{text}</q> <span className="lp-demo__by">— {by}</span>
-          </figcaption>
         </figure>
 
         <div className="lp-demo__side">
-          <ol className="lp-demo__steps" aria-label={DEMO_COPY.stepsLabel}>
+          <ol className="lp-demo__steps material-sign" aria-label={DEMO_COPY.stepsLabel}>
             {DEMO_COPY.steps.map((s, i) => (
               <li key={s.title}>
                 <button type="button" aria-current={i === step ? 'step' : undefined} onClick={() => go(i)}>

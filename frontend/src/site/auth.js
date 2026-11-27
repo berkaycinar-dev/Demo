@@ -152,30 +152,3 @@ export function updateProfile({ displayName }) {
   saveName(session.user.id, displayName.trim())
   return { user: toUser(session.user) }
 }
-
-// ---------- verilerin: indir (KVKK) ----------
-
-// Bu tarayıcıda cihaza bağlı tutulan kişisel kayıtlar (avatar, kayıtlı görünümler, odak sayısı,
-// sayaç, son oda). Dışa aktarmada gelir.
-const DEVICE_KEYS = ['samedesk.avatar', 'samedesk.avatar.presets', 'samedesk.focus-stats', 'samedesk.pomodoro', 'samedesk.current-room']
-const PER_USER_PREFIXES = ['samedesk.joined.']
-
-function readJson(key) {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw === null ? null : JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
-/** Hesabın ve bu tarayıcıdaki kişisel kayıtların dökümü. */
-export function exportAccountData(username) {
-  const user = currentUser()
-  if (!user || user.username !== username) return null
-  const records = {}
-  for (const prefix of PER_USER_PREFIXES) records[prefix.slice(0, -1)] = readJson(prefix + username)
-  const thisBrowser = {}
-  for (const key of DEVICE_KEYS) thisBrowser[key] = readJson(key)
-  return { exportedAt: new Date().toISOString(), account: user, records, thisBrowser }
-}

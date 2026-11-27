@@ -3,7 +3,7 @@ import AvatarCrowd from '../avatars/AvatarCrowd'
 import useRoomPeople from '../avatars/useRoomPeople'
 import { LISTED_THEMES, THEMES } from '../rooms/themes'
 import { QUOTES, quoteForVisit } from './quotes'
-import RoomShot from './RoomShot'
+import RoomShot, { ThemeShot } from './RoomShot'
 import { useDocumentDark } from './roomThumbs'
 import { scrollToId } from './scroll'
 import Dotted from './Dotted'
@@ -63,10 +63,33 @@ function HeroRoom({ dark }) {
 }
 const OPEN_ROOMS_SHOWN = 3
 
-// Ana sayfa: lobinin kapısı. Önce oda görünür, sonra (yalnızca giriş yapmışsa) lobideki açık odalar ve
-// on tema; en sonda bir oturum canlı bir odada oynar (LandingDemo). Ayrı adım kartları, özellik üçlüsü ve
-// kapanış bandı yok. Açık odalar sunucudan gelir; misafire örnek oda uydurulmaz, oda listesi oturum ister.
-// Kartta "şu an N kişi" yazılmaz: kapasite ve sunucunun verdiği üye sayısı yazar.
+const COPY = {
+  title: 'Odana hoş geldin.',
+  sub: 'Lamba yanık, masan hazır.',
+  lead: 'Birlikte çalışınca odaklanmak kolaylaşır. Kamera ve mikrofon yok; bir oda seç, sayacını başlat, avatarın masanda seninle otursun.',
+  open: 'Kapıyı aç',
+  home: 'Sayfama git',
+  corridor: 'Koridoru gez',
+  roomLabel: (name, dark) => `${name}, ${dark ? 'akşam ışığında' : 'gündüz'}`,
+  corridorEyebrow: 'Gece koridoru',
+  corridorTitle: 'On kapı, on oda',
+  build: 'Kendi odanı kur',
+  doorsLabel: (n) => `${n} oda teması`,
+  start: 'Hemen başla',
+  quoteNote: 'Her 25 dakikalık blok bir damla. Masan seni bekliyor.',
+}
+
+const Arrow = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+)
+
+// Ana sayfa: odanın kapısı. Üstte tabela ve aralık bir kapı; ardında oda (önce görsel, sonra canlı sahne).
+// Altında (yalnızca giriş yapmışsa) lobideki açık odalar, sonra on temanın kapılarından oluşan koridor (her
+// modda "gece": kapıların ardında akşam ışığı), bir oturumun canlı odada oynadığı tanıtım (LandingDemo;
+// adımlar direğe çakılı ok tabelalarda) ve en sonda günün sözü levhası. Açık odalar sunucudan gelir;
+// misafire örnek oda uydurulmaz. Kartta "şu an N kişi" yazılmaz: kapasite ve sunucunun verdiği üye sayısı.
 export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter }) {
   const [quote, by] = QUOTES[quoteForVisit()]
   const dark = useDocumentDark()
@@ -75,33 +98,34 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
 
   return (
     <div className="landing">
-      <section className="lp-section lp-hero-wrap" aria-labelledby="lpBaslik">
-        <div className="lp-hero">
-          <figure className="lp-hero__room">
-            <HeroRoom dark={dark} />
-            <figcaption>
-              {THEMES[HERO_THEME].label}, {dark ? 'akşam ışığında' : 'gündüz'}
-            </figcaption>
-          </figure>
-
-          <div className="lp-hero__text">
+      <section className="lp-section lp-door-wrap" aria-labelledby="lpBaslik">
+        <div className="lp-door">
+          <div className="lp-door__sign material-sign">
             <h1 id="lpBaslik" className="lp-h1">
-              Birlikte çalışınca odaklanmak kolaylaşır.
+              {COPY.title}
             </h1>
-            <p className="lp-lead">
-              SameDesk, kamera ve mikrofon olmadan başkalarıyla aynı odada çalışma hissini verir. Bir oda seç, pomodoro sayacını başlat; masandaki avatarın sen çalışırken seninle oturur.
-            </p>
-            <div className="site-actions">
-              <button type="button" className="site-btn site-btn--primary site-btn--xl" onClick={start}>
-                {user ? 'Sayfama git' : 'Hemen başla'}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6" />
-                </svg>
-              </button>
-              <button type="button" className="site-btn site-btn--xl lp-btn-surface" onClick={() => scrollToId('odalar')}>
-                Odalara göz at
-              </button>
+            <p className="lp-door__sub">{COPY.sub}</p>
+          </div>
+          <figure className="lp-door__frame">
+            <div className="lp-door__arch">
+              <HeroRoom dark={dark} />
+              {/* aralık kapı kanadı: süs */}
+              <span className="lp-door__leaf" aria-hidden="true">
+                <span className="lp-door__knob" />
+              </span>
             </div>
+            <span className="lp-door__sill" aria-hidden="true" />
+            <figcaption className="visually-hidden">{COPY.roomLabel(THEMES[HERO_THEME].label, dark)}</figcaption>
+          </figure>
+          <p className="lp-lead lp-door__lead">{COPY.lead}</p>
+          <div className="site-actions lp-door__actions">
+            <button type="button" className="site-btn site-btn--primary site-btn--xl" onClick={start}>
+              {user ? COPY.home : COPY.open}
+              <Arrow />
+            </button>
+            <button type="button" className="site-btn site-btn--xl lp-btn-surface" onClick={() => scrollToId('odalar')}>
+              {COPY.corridor}
+            </button>
           </div>
         </div>
 
@@ -135,32 +159,50 @@ export default function LandingPage({ user, avatar, rooms = [], onGo, onEnter })
         )}
       </section>
 
-      <section id="odalar" className="lp-section lp-themes" aria-labelledby="odalarBaslik">
+      {/* koridor her modda gece: koyu token'lar (material-sign), kapıların ardında akşam ışığı */}
+      <section id="odalar" className="lp-section lp-corridor material-sign" aria-labelledby="odalarBaslik">
         <div className="lp-inner">
-          <div className="section-head section-head--row">
-            <h2 id="odalarBaslik" className="lp-h2">
-              Nasıl çalışmayı seviyorsan öyle bir oda
-            </h2>
+          <div className="lp-corridor__head">
+            <div>
+              <span className="lp-corridor__eyebrow">{COPY.corridorEyebrow}</span>
+              <h2 id="odalarBaslik" className="lp-h2">
+                {COPY.corridorTitle}
+              </h2>
+            </div>
             <button type="button" className="link-btn link-btn--strong" onClick={() => onGo(user ? 'olustur' : 'kayit')}>
-              Kendi odanı kur
+              {COPY.build}
             </button>
           </div>
+          <ul className="lp-doors" aria-label={COPY.doorsLabel(LISTED_THEMES.length)}>
+            {LISTED_THEMES.map(([key, t]) => (
+              <li key={key} className="lp-doors__item">
+                <span className="lp-doors__lamp" aria-hidden="true" />
+                <span className="lp-doors__door">
+                  <ThemeShot theme={key} dark className="lp-doors__img" />
+                </span>
+                <span className="lp-doors__plate">{t.label}</span>
+                <span className="lp-doors__desc">{t.description}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-        {/* yatay şerit: on tema; kaydırılabilir bölge klavyeyle de kayar */}
-        <ul className="lp-strip" tabIndex={0} aria-label={`${LISTED_THEMES.length} oda teması, yana kaydır`}>
-          {LISTED_THEMES.map(([key, t]) => (
-            <li key={key} className="lp-strip__item">
-              <span className="theme-option__shot">
-                <RoomShot theme={key} />
-              </span>
-              <span className="theme-option__name">{t.label}</span>
-              <span className="theme-option__desc">{t.description}</span>
-            </li>
-          ))}
-        </ul>
       </section>
 
-      <LandingDemo avatar={avatar} quote={[quote, by]} />
+      <LandingDemo avatar={avatar} />
+
+      <section className="lp-section lp-quote-wrap" aria-label="Günün sözü">
+        <div className="lp-inner lp-quote material-sign">
+          <figure className="lp-quote__text">
+            <blockquote>{quote}</blockquote>
+            <figcaption>
+              {by} · {COPY.quoteNote}
+            </figcaption>
+          </figure>
+          <button type="button" className="site-btn site-btn--primary site-btn--xl" onClick={start}>
+            {user ? COPY.home : COPY.start}
+          </button>
+        </div>
+      </section>
     </div>
   )
 }
