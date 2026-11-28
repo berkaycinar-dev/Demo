@@ -10,7 +10,7 @@ services:
     # Paths from the repo root.
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    healthCheckPath: /actuator/health
+    healthCheckPath: /actuator/health/readiness
     # Deploy again only when backend files change.
     buildFilter:
       paths:
