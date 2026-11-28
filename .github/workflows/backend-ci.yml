@@ -85,6 +85,18 @@ jobs:
       - name: Run tests and package backend
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
+      - name: Verify PostgreSQL backup and restore with application data
+        run: node scripts/backup-restore-smoke.mjs
+
+      - name: Save backup restore test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: backup-restore-report
+          path: backend/target/backup-restore-report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Verify production request logging and request IDs
         env:
           CORS_ORIGINS: https://observability.example.test

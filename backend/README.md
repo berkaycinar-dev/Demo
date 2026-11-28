@@ -218,3 +218,7 @@ STOMP bağlantısında sunucu varsayılan 10 saniyelik heartbeat aralığı ilan
 - **Satırlar silinmez.** Toplamlar `point_events` satırlarından toplanır. Lig ve sıralama sonraki haftalarda bu satırlardan hesaplanır.
 - **Bu hafta olay yayınlanmaz.** Puan yazıldığında `RoomEventPublisher` ile bir şey gitmez. Canlı "puan kazandı" bildirimi gerekirse yeni olay türü olarak sonra eklenir.
 - Bruno: `bruno/points/` altında `GetMyPoints` ve `ListMyPointEvents`. Puanı 25 dakika beklemeden görmek için `GetMyPoints` açıklamasındaki SQL ile süreyi geçmişe çek.
+
+## Yedek geri yükleme denemesi
+
+PostgreSQL yedeğinin ayrı, boş veritabanında uygulama verileriyle açılabildiğini sınayan tek komutluk deneme: [BACKUP_RESTORE.md](BACKUP_RESTORE.md). CI yalnızca test raporunu saklar; yedek arşivi Git'e veya CI artifact'ine yüklenmez.
