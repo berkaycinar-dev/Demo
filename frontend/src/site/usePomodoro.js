@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { chime } from './ambient'
+import { pausePomodoroAt, siteLeftAt } from './siteAlive'
 
 // Pomodoro sayacı. Bitiş zamanı (endAt) tutulur; sekme arka planda kalsa da süre kaymaz.
 // Durum localStorage'a yazılır: yenileme, sekmenin bellekten atılması ya da başka sekme sayacı silmez.
@@ -118,6 +119,8 @@ const SKIP_TEXT = {
   toFocus: 'Mola bitti, odağa dönüldü.',
 }
 
+const AWAY_TEXT = 'Siteden çıktığında sayaç duraklatıldı. Devam etmek için Başlat.'
+
 const PHASE_TEXT = {
   break: (p) => `Odak bloku bitti. ${p.break} dakikalık mola başladı.`,
   focus: (p) => `Mola bitti. ${p.focus} dakikalık odak bloku başladı.`,
@@ -136,11 +139,19 @@ const PHASE_TEXT = {
  *   gain: { id, minutes } bugünkü sayıma son eklenen dakikalar (biten blok ya da atlama).
  */
 export default function usePomodoro({ track = true } = {}) {
-  const [timer, setTimer] = useState(() => (track && readTimer()) || idle(PRESETS[0].id))
+  // Site kapalıyken çalışan sayaç, sitenin kapandığı anda duraklatılmış olarak açılır.
+  const [start] = useState(() => {
+    const saved = track && readTimer()
+    if (!saved) return { timer: idle(PRESETS[0].id), away: false }
+    const leftAt = siteLeftAt()
+    const t = leftAt === null ? saved : pausePomodoroAt(saved, leftAt, phaseSecs(presetOf(saved.preset), saved.phase))
+    return { timer: t, away: t !== saved }
+  })
+  const [timer, setTimer] = useState(start.timer)
   const [stats, setStats] = useState(readStats)
   const [history, setHistory] = useState(readHistory)
   const [completed, setCompleted] = useState(0)
-  const [notice, setNotice] = useState(null)
+  const [notice, setNotice] = useState(() => (start.away ? { id: Date.now(), text: AWAY_TEXT } : null))
   const [hold, setHold] = useState(false)
   const [announcement, setAnnouncement] = useState(null)
   // Bugünkü sayıma eklenen son dakikalar: { id, minutes }. Sayaç kartında "+25 dk" olarak görünür.

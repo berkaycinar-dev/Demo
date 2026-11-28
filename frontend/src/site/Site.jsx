@@ -39,6 +39,7 @@ import useColorMode from './useColorMode'
 import useDaypart from './useDaypart'
 import usePomodoro from './usePomodoro'
 import useStopwatch from './useStopwatch'
+import { startAliveBeat } from './siteAlive'
 import { useGoals } from './goals'
 import { useTimerMode } from './timerMode'
 import './theme.css'
@@ -182,6 +183,8 @@ export default function Site() {
     // yalnızca pomodoro başlayınca bakılır; kronometrenin başlaması onStart'ta pomodoroyu durdurur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer.running])
+  // Site açıkken bunu düzenli yazar; site kapalıyken çalışan sayaçlar sonraki açılışta duraklatılmış gelir.
+  useEffect(() => startAliveBeat(), [])
   const page = resolvePage(requested, user)
   // Eski kayıtta avatar hâlâ varsayılan adı ("Sen") taşıyorsa sayfalarda hesabın görünen adı görünür:
   // Sayfam, Avatarım ve odalarda aynı ad.

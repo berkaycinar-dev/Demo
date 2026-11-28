@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { pauseStopwatchAt, siteLeftAt } from './siteAlive'
 
 // Kronometre: süre sınırı olmadan ileri sayar. Başlangıç zamanı (startedAt) ve duraklamaya kadar biriken
 // süre (base) tutulur; sekme arka planda kalsa da süre kaymaz. Durum localStorage'a yazılır: yenileme ve
@@ -37,7 +38,14 @@ export function formatElapsed(secs) {
  * Dönüş: { running, fresh, elapsed (saniye), toggle, pause, reset }.
  */
 export default function useStopwatch({ onMinutes, onStart } = {}) {
-  const [sw, setSw] = useState(read)
+  // Site kapalıyken çalışan kronometre, sitenin kapandığı anda duraklatılmış olarak açılır.
+  const [start] = useState(() => {
+    const saved = read()
+    const leftAt = siteLeftAt()
+    const s = leftAt === null ? saved : pauseStopwatchAt(saved, leftAt)
+    return { sw: s, away: s !== saved }
+  })
+  const [sw, setSw] = useState(start.sw)
   const [now, setNow] = useState(Date.now)
   const swRef = useRef(sw)
   const cb = useRef({ onMinutes, onStart })
@@ -65,6 +73,11 @@ export default function useStopwatch({ onMinutes, onStart } = {}) {
     cb.current.onMinutes?.(whole - s.credited)
     return { ...s, credited: whole }
   }, [])
+
+  // Açılışta duraklatıldıysa: site kapanana kadar dolan dakikalar sayılır, duraklatılmış hâl kaydedilir.
+  useEffect(() => {
+    if (start.away) commit(settle(swRef.current, Date.now()))
+  }, [start.away, settle, commit])
 
   // Çalışırken saniyede birkaç kez: görünen süre yenilenir, dolan dakikalar sayılır (açılışta, sekme
   // kapalıyken geçen süre de ilk vuruşta sayılır).
