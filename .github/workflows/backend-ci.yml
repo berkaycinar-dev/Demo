@@ -85,6 +85,31 @@ jobs:
       - name: Run tests and package backend
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
+      - name: Verify production request logging and request IDs
+        env:
+          CORS_ORIGINS: https://observability.example.test
+        run: |
+          export JWT_SECRET
+          JWT_SECRET=$(openssl rand -hex 32)
+          java -jar target/backend-*.jar --spring.profiles.active=prod > target/backend-observability.log 2>&1 &
+          backend_pid=$!
+          trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+
+          for attempt in {1..30}; do
+            if curl --fail --silent --max-time 2 "http://127.0.0.1:$PORT/actuator/health" \
+              | jq -e '.status == "UP"'; then
+              node scripts/observability-smoke.mjs "http://127.0.0.1:$PORT" target/backend-observability.log
+              exit 0
+            fi
+            if ! kill -0 "$backend_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          cat target/backend-observability.log
+          exit 1
+
       - name: Install frontend dependencies for realtime client smoke test
         run: npm ci --prefix ../frontend
 
@@ -156,6 +181,7 @@ jobs:
           name: backend-failure-reports
           path: |
             backend/target/surefire-reports/
+            backend/target/backend-observability.log
             backend/target/backend-smoke.log
             backend/target/backend-load.log
           if-no-files-found: ignore

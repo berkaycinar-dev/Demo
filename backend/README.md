@@ -139,6 +139,8 @@ Her özellik paketi aynı kalıbı izler:
 
 ## Testler
 
+Canlı ortamda hata takibi için API yanıtlarına `X-Request-ID` eklenir; prod logları JSON formatındadır. Alanlar, kapsam ve doğrulama adımları: [OPERATIONS.md](OPERATIONS.md).
+
 STOMP bağlantısında sunucu varsayılan 10 saniyelik heartbeat aralığı ilan eder (`app.websocket.heartbeat-ms`). İstemci de heartbeat desteğini ilan etmelidir; `0,0` kullanan istemcilerde bu kontrol devreye girmez. Bu, REST oda oturumunun heartbeat'inden ayrıdır ve kullanıcının çalışma/puan durumunu değiştirmez. Bağlantı ayrıntıları ve frontend yeniden bağlantı adımları: [STOMP sözleşmesi](../contracts/stomp-messages.md#bağlantı-sağlığı-ve-yeniden-bağlantı).
 
 | Test | Ne kontrol eder | Gerekenler |
