@@ -11,6 +11,7 @@ on:
       - 'frontend/package*.json'
       - 'contracts/stomp-messages.md'
       - '.github/workflows/backend-ci.yml'
+      - 'render.yaml'
   push:
     branches: [main]
     paths:
@@ -22,6 +23,7 @@ on:
       - 'frontend/package*.json'
       - 'contracts/stomp-messages.md'
       - '.github/workflows/backend-ci.yml'
+      - 'render.yaml'
 
 permissions:
   contents: read
@@ -171,6 +173,20 @@ jobs:
         with:
           name: realtime-load-report
           path: backend/target/realtime-load-report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Verify liveness and readiness during database loss and recovery
+        run: node scripts/health-probes-smoke.mjs
+
+      - name: Save health probe report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: health-probes-report
+          path: |
+            backend/target/health-probes-report.json
+            backend/target/samedesk-health-*/app.log
           if-no-files-found: ignore
           retention-days: 7
 
